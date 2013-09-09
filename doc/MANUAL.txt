@@ -35,7 +35,7 @@ contact: layla@cs.brown.edu
 	 braphael@cs.brown.edu
 
 Beta Version: 0.03
-Version data: June 4, 2013
+Version date: June 4, 2013
 
 WEBSITE:
 http://cs.brown.edu/people/braphael/software.html
@@ -62,15 +62,15 @@ This document contains the following sections:
 2) REQUIREMENTS===================================================================
 
 Requirements to run:
-1. Java 1.6
+1. Python 2.7 or higher
 
-2. Matlab (for visualization code and more than one tumor subpopulation)
-	Uses minConf pacakge from here: http://www.di.ens.fr/~mschmidt/Software/minConf.html
-	Package is included in release
+1. Java 1.6 (for optional preprocessing scripts)
+
+2. Matlab (for visualization code)
 
 3. *nix OS
 
-Tested with: Java 6, MATLAB R2011b
+Tested with: Python 2.7, Java 6, MATLAB R2011b
 
 -------------------------------------------------------------------------------
 
@@ -98,19 +98,10 @@ BIC-Seq can be obtained from: http://compbio.med.harvard.edu/Supplements/PNAS11.
      population) and will create the following executables.
 
 	bin/runBICSeqToTHetA.jar	
-	bin/runTHetA.jar
 	bin/plotResultsFromFile.m
-	bin/runTHetAMultipleTumorPopulations.m
-
 
 4) BASIC USAGE ===================================================================
 This section gives the basic instructions for running THetA.
-
--------------------------------------------------------------------------------
-
-A. Mixture of Normal and ONE tumor Population (Java Code) =====================
---See the following section for how to run with more than one tumor population--
-
 
 1. Create an interval_count_file: 
 
@@ -133,15 +124,27 @@ is tab delimited containing the following fields:
 		interval.
 
 		* These parameters are not required, but are optional and may be 
-		  supplied to decrease the runtime of the algorithm.  You must set
-		  the BOUND_HEURISTIC to false if these values are supplied.
+		  supplied to decrease the runtime of the algorithm. They are
+		  HIGHLY RECOMMENDED for the case of more than one tumor population 
+
+
+	ADDITIONAL NOTES for more than one tumor population: 
+	In addition to specifying lower and upper bounds on the the copy numbers
+	for each interval, it is strongly recommended that only a subset ( <15 )
+	intervals be considered when running with multiple tumor subpopulations
+	due to runtime.
+
+	One way to do this is to select a subset of intervals using the .withBounds
+	file output by the Mixture of Normal and ONE tumor script which will
+	include specific lower and upper bounds for each interval.  
 
 	NOTE: See the section on PREPROCESSING SCRIPTS to see how to convert
 		  BIC-Seq output into THetA input.
 
+
 2. Run Main Code:
 
-	* java -jar bin/runTHetA.jar interval_count_file [Options]
+	* python python/RunTHetA.py interval_count_file [Options]
 
 	INPUT:
 	* interval_count_file: input file with genomic intervals and read depth 
@@ -184,90 +187,26 @@ We also provide a matlab script for visualization of results.
 	
 -------------------------------------------------------------------------------
 
-B. Mixture of Normal and MULTIPLE tumor populations (MATLAB CODE)==============
-
-1. Create an interval_count_file: the interval_count_file must
-contain one line per genomic interval.  Each line is tab delimited
-containing the following fields:
-	1. interval ID (String) - an identifier for the interval
-	2. chromosome number (Integer) - chromosome on which the interval 
-	   occurs
-	3. interval start coordinate (Integer) - starting position for the 
-	   interval
-	4. interval end coordinate (Integer) - ending position for the interval
-	5. tumorCount (Integer) - number of reads contained within interval for 
-	   tumor BAM
-	6. normalCount (Integer) - number of reads contained within interval for 
-	   normal BAM
-	7. * upperBound (Integer) [Optional] - the maximum copy number to consider for the
-		interval.
-	8. * lowerBound (Integer) [Optional] - the minimum copy number to consider for the
-		interval.
-
-		* These parameters are not required, but are HIGHLY RECOMMENDED due
-		  to the runtime of the algorithm.
-
-ADDITIONAL NOTES: 
-	In addition to specifying lower and upper bounds on the the copy numbers
-	for each interval, it is strongly recommended that only a subset ( <15 )
-	intervals be considered when running with multiple tumor subpopulations
-	due to runtime.
-
-	One way to do this is to select a subset of intervals using the .withBounds
-	file output by the Mixture of Normal and ONE tumor script which will
-	include specific lower and upper bounds for each interval.  
-
-2. Run Code (in Matlab):
-
-	* cd bin
-	* runTHetAMultipleTumorPopulations('interval_count_file',N,K,TAU,'genomeName')
-
-	INPUT:
-	* interval_count_file: Is the interval_count_file from step 1.  Make sure
-							to include surrounding single quotes (').
-	* N: The total number of subpopulations (including normal)
-	* K: Maximum copy number to consider
-	* TAU: The expected copy number in the normal genome.
-	* genomeName: The name of the genome under analysis (to appear in header 
-				   of pdf created).
-
-	OUTPUT:
-	* results_plot: pdf of all inferred cancer genomes along with purity.
-					NOTE: Visualization code only currently supports up to 
-						  TWO tumor populations.
-	* results_file: the set of all maximum likelihood solutions found.  
-	  Each solution will be a single line in this file with fields:
-		1. NLL (Double) - solution neg. log likelihood (w/o constants)
-		2. mu  (Double,Double) - comma delimited list:  %normal, %tumor 
-		3. Counts (Integer,Integer,..: ... :Integer,Integer,...) - colon delimited list of 
-		   rows in C. Each row is a comma delimited list of the tumor counts only 
-		   (NOTE: the first column of C - the normal genome - is omitted.)
-		4. p* (Double, ... ,Double) - comma delimted list of inferred 
-		   multinomial parameter \widehat{C\mu}
-
--------------------------------------------------------------------------------
-
 		
 5) EXAMPLE (Normal and one Tumor) =============================================
 
-java -jar bin/runTHetA.jar example/PD4120a.intervals
-
+python RunTHetA.py example/PD412a.intervals -n 2
 
 Runs the efficient n=2 algorithm and generally considers a max copy number 
 of 3 (default value).  By default, the algorithm uses a bound heuristic to set 
 reasonable lower and upper bounds on the copy number considered for each 
-interval. For this input, the program will take ~10 minutes to complete and 
+interval. For this input, the program will take ~5 minutes to complete and 
 will produce two files: 
 
-File 1: example/PD4120a.intervals_k_3_n_2_tau_2.results 
+File 1: example/PD4120a.results 
 
 containing the following single solution with 34.3% normal and 65.7% tumor:
 
 #NLL    mu      C_2     p*
-8.844567667239439E9     0.34327276027142983,0.6567272397285702  6:1:2:3:2:1:3:3:2:1:2:1:2:2:2:1:2:1:2:1:0:1:2:2:1:2:2:2:2:1:2:2:2:2:2:1:2:2:2:1:2:2:1:2:1:2:1:2:1:2:1:2:1:2:2:2:1:1:2:1:2:1:2:1:2:1:2:1:1       3.737788732818616E-4,0.027227470473993928,0.0017921437757176257,9.244621550768462E-4,0.003723647506755758,8.011328567804987E-5,4.873633765659533E-4,0.05309191764206875,0.04957569202563855,0.00557555846529649,0.008617842363056006,3.137624372233856E-4,0.027423558949684578,0.07885361817546266,9.52819063525284E-4,0.002074948967295911,0.003471363071895951,1.8313101287435144E-4,0.006042699126503756,0.008590132740632883,7.583341275643005E-6,0.03361729294963752,0.05283040956792321,0.018102356708955387,9.79744515232263E-4,0.06683862977437419,0.023288494693323728,0.03712116808555794,0.056949865912582054,0.00398462499614757,0.03763632780338093,0.015178774131439234,0.035642548044370705,0.051761356384826325,0.0517244374598567,0.026315647292215652,0.03491610616724043,0.03081306651386766,0.01185153382796988,0.011259094170834785,0.007411745972661223,0.021060602834227095,4.360661781950337E-5,0.003939070003825306,4.3926064044161805E-5,0.008862262567163557,7.299213744227693E-4,6.497963127000401E-4,8.775909121551987E-4,0.0022007791126068283,8.841491284264123E-4,6.62219517801431E-4,8.390542150625326E-5,0.009939688481997798,0.01945244435890131,0.023098468751919284,4.5282606422146834E-4,4.808328127197484E-4,4.0963918797184826E-4,7.286906968015047E-5,3.5496218118651036E-4,1.7204902587329747E-4,0.004879253256233879,5.902733227648278E-4,8.843993792548155E-4,0.00295279160896455,4.8258935300176894E-4,0.0027020645972705396,0.005430186879438217
+8844567667.24	0.343272840672,0.656727159328	6:1:2:3:2:1:3:3:2:1:2:1:2:2:2:1:2:1:2:1:0:1:2:2:1:2:2:2:2:1:2:2:2:2:2:1:2:2:2:1:2:2:1:2:1:2:1:2:1:2:1:2:1:2:2:2:1:1:2:1:2:1:2:1:2:1:2:1:1	0.000373778844891,0.0272274719281,0.00179214376416,0.000924462121137,0.00372364748274,8.01132899565e-05,0.000487363358673,0.0530919156929,0.0495756917059,0.00557555876306,0.00861784230747,0.00031376245398,0.0274235587728,0.0788536176669,0.00095281905738,0.00207494907811,0.00347136304951,0.000183131022654,0.00604269908753,0.00859013319939,7.58334300289e-06,0.033617294745,0.0528304092272,0.0181023565922,0.000979744567555,0.0668386293433,0.0232884945431,0.0371211678461,0.0569498655453,0.00398462520895,0.0376363275606,0.0151787740335,0.0356425478145,0.051761356051,0.0517244371262,0.0263156486976,0.034916105942,0.0308130663151,0.0118515337515,0.0112590947721,0.00741174592486,0.0210606026984,4.36066201483e-05,0.00393906997842,4.392606639e-05,0.00886226251,0.000729921413404,0.000649796308509,0.000877590959023,0.00220077909841,0.000884149175644,0.00066221951353,8.39054259872e-05,0.00993968841789,0.0194524442334,0.0230984686029,0.000452826088405,0.000480832838398,0.00040963918533,7.28690735717e-05,0.000354962178897,0.000172049035062,0.00487925322476,0.000590273354288,0.000884399373551,0.00295279176666,0.000482589349889,0.00270206474157,0.00543018716944
 and 
 
-File 2: example/PD4102a.intervals_k_3_n_2_tau_2.withBounds
+File 2: example/PD4102a.withBounds
 
 containing information about the individual upper and lower bounds for all intervals
 as set by the bounds heuristic.  The first few lines look like the following:
@@ -308,29 +247,33 @@ NOTES:
 		46:E1128-E1136.
 		(2) Removal of all intervals less than 50 Kb in length.
 
-- This Beta pre-release only contains separate code for handling a single tumor
-population and multiple tumor subpopulations.  A future release will integrate
-this into a single script.
-
-
 6) OPTIONAL PARAMETERS=========================================================
 
-There are a variety of optional parameters that can be passed to the version
-of THetA that considers a mixture of normal cells and a single tumor population.
+There are a variety of optional parameters that can be passed to THetA 
 
 -------------------------------------------------------------------------------
 
-(1) TAU (Integer) -- the expected copy in the normal genome
+(1) N (Integer) -- the number of subpopulations to consider. 2 for mixture of 
+		normal and one tumor population. 3 for mixture of normal and two
+		tumor populations
 
-		Usage: java -jar bin/runTHetA.jar interval_count_file -TAU 2
+		Usage: python python/runTHetA.py interval_count_file --N 2
 
 		Default: 2
 
 -------------------------------------------------------------------------------
 
-(2) MAX_K (Integer) -- the maximum copy number to consider in the genome
+(2) TAU (Integer) -- the expected copy in the normal genome
 
-		Usage: java -jar bin/runTHetA.jar interval_count_file -MAX_K 4
+		Usage: python python/runTHetA.py interval_count_file --TAU 2
+
+		Default: 2
+
+-------------------------------------------------------------------------------
+
+(3) MAX_K (Integer) -- the maximum copy number to consider in the genome
+
+		Usage: python python/runTHetA.py interval_count_file --MAX_K 4
 
 		Default: 3
 
@@ -339,47 +282,53 @@ of THetA that considers a mixture of normal cells and a single tumor population.
 
 -------------------------------------------------------------------------------
 
-(3) OUTPUT_PREFIX (String) -- allows the user to specify a different prefix for 
+(4) OUTPUT_PREFIX (String) -- allows the user to specify a different prefix for 
 							  the output files.
 
-		Usage: java -jar bin/runTHetA.jar interval_count_file -OUTPUT_PREFIX /the/path/to/save/to/prefix
+		Usage: python python/runTHetA.py interval_count_file -OUTPUT_PREFIX prefix
 
 -------------------------------------------------------------------------------
 
-(4) MAX_NORMAL (Double) -- allows the user the change the maximum fraction of
-						   normal admixture in the sample.
+(5) DIRECTORY (String) -- allows the user to specify a target directory for output files
+	
+			
+		Usage: python python/runTHetA.py interval_count_file --DIR /path/to/directory
+		
+		Default : ./
 
-		Usage: java -jar bin/runTHetA.jar interval_count_file -MAX_NORMAL 1.0
+-------------------------------------------------------------------------------
+
+(6) MAX_NORMAL (Double) -- allows the user the change the maximum fraction of
+							normal admixture in the sample. This is
+							only enforced for the case of N=2 (normal 
+							and one tumor)
+		
+		Usage: python python/runTHetA.py interval_count_file --MAX_NORMAL 0.5
 
 		Default: 0.5
 
 -------------------------------------------------------------------------------
 
-(5) BOUND_HEURISTIC (Double) --  allows user to decide if to use bound heuristic
-								 for setting lower and upper bounds on the copy
-								 number considered for each interval.  If set to
-								 -1 the interval_count_file may contain two 
-								 extra columns: max_count	min_count.  If these
-								 extra columns are not supplied each interval will
-								 be check for copy numbers ranging from 0 to MAX_K.
-
-		Usage: java -jar bin/runTHetA.jar interval_count_file -BOUND_HEURISTIC False
+(7) BOUND_HEURISTIC (Double) --  allows user to decide if to use bound heuristic
+							for setting lower and upper bounds on the copy
+							number considered for each interval. 
+		
+		Usage: python python/runTHetA.py interval_count_file --BOUND_HEURISTIC 0.5
 
 		Default: 0.5
 
 -------------------------------------------------------------------------------
 
 (6) NORMAL_BOUND_HEURISTIC (Integer) -- allows a user to set a different value
-										for the expected copy number in a tumor.
-										When this parameter is supplied, the lower
-										and upper bounds for the copy numbers tested
-										for each interval depend on the values set 
-										for the parameters HEURISTIC_LB and 
-										HEURISTIC_UB.  See those parameters for more
-										details. 
+							for the expected copy number in a tumor.
+							When this parameter is supplied, the lower
+							and upper bounds for the copy numbers tested
+							for each interval depend on the values set 
+							for the parameters HEURISTIC_LB and 
+							HEURISTIC_UB.  See those parameters for more
+							details. 
 
-
-		Usage: java -jar bin/runTHetA.jar interval_count_file -NORMAL_BOUND_HEURISTIC 4
+		Usage: python python/runTHetA.py interval_count_file --NORMAL_BOUND_HEURISTIC 2
 
 		Default: Not applied
 
@@ -396,7 +345,8 @@ of THetA that considers a mixture of normal cells and a single tumor population.
 							 greater than HEURISTIC_UB will have a lower bound of
 							 HEURISTIC_UB and an upper bound of MAX_K.
 
-		Usage: java -jar bin/runTHetA.jar interval_count_file -NORMAL_BOUND_HEURISTIC 4 HEURISTIC_LB 0.85
+		
+		Usage: python python/runTHetA.py interval_count_file --NORMAL_BOUND_HEURISTIC 2 --HEURISTIC_LB 0.85
 
 		Default: 0.9 (when NORMAL_BOUND_HEURISTIC is supplied)
 
@@ -413,7 +363,8 @@ of THetA that considers a mixture of normal cells and a single tumor population.
 							 greater than HEURISTIC_UB will have a lower bound of
 							 HEURISTIC_UB and an upper bound of MAX_K.
 
-		Usage: java -jar bin/runTHetA.jar interval_count_file -NORMAL_BOUND_HEURISTIC 4 HEURISTIC_UB 1.15
+
+		Usage: python python/runTHetA.py interval_count_file --NORMAL_BOUND_HEURISTIC 2 --HEURISTIC_UB 1.2
 
 		Default: 1.1 (when NORMAL_BOUND_HEURISTIC is supplied)
 
