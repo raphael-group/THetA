@@ -193,8 +193,6 @@ def write_out_result(directory, prefix, results):
 	f.close()
 
 def write_out_bounds(directory, prefix, inputFile, upper_bounds, lower_bounds):
-	print "upper bounds", upper_bounds
-	print "lower bounds", lower_bounds
 	"""
 	Writes out a copy of the input file with the bounds included
 
