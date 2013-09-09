@@ -11,7 +11,4 @@ ant
 echo "Creating executable for visualization code..."
 cp matlab/mainMethod/plotResultsFromFile.m bin
 
-echo "Creating executable for multiple tumor populations..."
-cp matlab/mainMethod/runTHetAMultipleTumorPopulations.m bin
-
 echo "Installation complete.  Check for errors."

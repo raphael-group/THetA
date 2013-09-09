@@ -29,18 +29,7 @@
     <javac srcdir="${srcTHetA}" includeantruntime="false" destdir="${buildTHetA}"/>
   </target>
 
-  <target name="distBuildTHetA" depends="compileTHetA"
-        description="generate the distribution runTHetA.jar" >
-
-    <!-- make jar file -->
-    <jar jarfile="${dist}/runTHetA.jar" basedir="${buildTHetA}">
-      <manifest>
-                <attribute name="Main-Class" value="runTHetA"/>
-      </manifest>
-    </jar>
-  </target>
-
-  <target name="distBuildBICToTHetA" depends="distBuildTHetA"
+  <target name="distBuildBICToTHetA" depends="compileTHetA"
 	  description="generate the distribution runBICToTHetA.jar" >
 
 	<!-- make jar file -->
