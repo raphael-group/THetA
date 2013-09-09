@@ -5,7 +5,10 @@ echo "Removing previous builds"
 rm -rf bin
 mkdir bin
 
-echo "Installing runTHetA..."
+echo "Installing RunTHetA..."
+cp python/RunTHetA bin
+
+echo "Installing BICSeqToTHetA..."
 ant
 
 echo "Creating executable for visualization code..."
