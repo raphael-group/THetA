@@ -34,8 +34,8 @@ heterogeneity from high-throughput DNA sequencing data.  Genome Biology.
 contact: layla@cs.brown.edu
 	 braphael@cs.brown.edu
 
-Beta Version: 0.03
-Version data: June 4, 2013
+Beta Version: 0.5
+Version data: September 10, 2013
 
 WEBSITE:
 http://cs.brown.edu/people/braphael/software.html

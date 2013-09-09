@@ -10,3 +10,5 @@ Beta_0.03 (June 2013) - (1) Release full source code.
 			included exectuable for single tumor population.
 			(3) Include script to convert BIC-Seq output into THetA input.
 -------------------------------------------------------------------------------
+Beta_0.5 (September 2013) - Release includes new version of source code in python
+		for both single and multiple tomor populations
