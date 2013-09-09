@@ -1,0 +1,63 @@
+<project name="THetA" default="distJars" basedir=".">
+    <description>
+        Build jar file for THetA code
+    </description>
+  <!-- set global properties for this build -->
+
+  <property name="srcTHetA" location="java/src" />
+  <property name="buildTHetA" location="java/build" />
+  <property name="dist" location="bin"/>
+
+  <target name="clean"
+        description="clean up" >
+    <!-- Delete the ${build} directory tree -->
+    <delete dir="${build}"/>
+    <!-- <delete dir="${dist}"/> -->
+  </target>
+
+  <target name="init" depends="clean">
+    <!-- Create the time stamp -->
+    <tstamp/>
+    <!-- Create the build directory structure used by compile -->
+    <mkdir dir="${buildTHetA}"/>
+    <mkdir dir="${dist}"/>
+  </target>
+
+  <target name="compileTHetA" depends="init"
+        description="compile the source " >
+    <!-- Compile the java code from ${srcTHetA} into ${buildTHetA} -->
+    <javac srcdir="${srcTHetA}" includeantruntime="false" destdir="${buildTHetA}"/>
+  </target>
+
+  <target name="distBuildTHetA" depends="compileTHetA"
+        description="generate the distribution runTHetA.jar" >
+
+    <!-- make jar file -->
+    <jar jarfile="${dist}/runTHetA.jar" basedir="${buildTHetA}">
+      <manifest>
+                <attribute name="Main-Class" value="runTHetA"/>
+      </manifest>
+    </jar>
+  </target>
+
+  <target name="distBuildBICToTHetA" depends="distBuildTHetA"
+	  description="generate the distribution runBICToTHetA.jar" >
+
+	<!-- make jar file -->
+	<jar jarfile="${dist}/runBICSeqToTHetA.jar" basedir="${buildTHetA}">
+		<manifest>
+			<attribute name="Main-Class" value="BICSeqToTHetA"/>
+		</manifest>
+	</jar>
+ </target>
+
+  <target name="distJars" depends="distBuildBICToTHetA"
+        description="generates all jar files" >
+  </target>
+
+</project>
+
+
+
+
+

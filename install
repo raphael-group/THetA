@@ -1,0 +1,17 @@
+#!/bin/bash
+# This script will create an exectuable jar file for the java portion of the THetA code 
+
+echo "Removing previous builds"
+rm -rf bin
+mkdir bin
+
+echo "Installing runTHetA..."
+ant
+
+echo "Creating executable for visualization code..."
+cp matlab/mainMethod/plotResultsFromFile.m bin
+
+echo "Creating executable for multiple tumor populations..."
+cp matlab/mainMethod/runTHetAMultipleTumorPopulations.m bin
+
+echo "Installation complete.  Check for errors."

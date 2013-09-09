@@ -1,0 +1,12 @@
+Beta_0.01 (October 2012) - Original release
+-------------------------------------------------------------------------------
+Beta_0.02 (January 2013) - Fix a few bugs in implementation -- now considers all C.  Changes to
+            bound heuristics as well.  Changed example data to reflect that considered in the
+            journal submission.
+-------------------------------------------------------------------------------
+Beta_0.03 (June 2013) - (1) Release full source code.  
+			(2) Now includes both Java and Matlab scripts to run with single tumor 
+			population or multiple tumor populations.  Previous releases only 
+			included exectuable for single tumor population.
+			(3) Include script to convert BIC-Seq output into THetA input.
+-------------------------------------------------------------------------------
