@@ -35,7 +35,7 @@ contact: layla@cs.brown.edu
 	 braphael@cs.brown.edu
 
 Beta Version: 0.03
-Version date: June 4, 2013
+Version date: September 10, 2013
 
 WEBSITE:
 http://cs.brown.edu/people/braphael/software.html
@@ -52,8 +52,6 @@ This document contains the following sections:
 2) REQUIREMENTS
 3) INSTALLATION/COMPILING
 4) BASIC USAGE
-	a) Normal and ONE tumor population
-	b) Normal and MULTIPLE tumor populations
 5) COMPLETE EXAMPLE
 6) OPTIONAL PARAMETERS
 7) OPTIONAL PREPROCSSING SCRIPTS
@@ -63,8 +61,10 @@ This document contains the following sections:
 
 Requirements to run:
 1. Python 2.7 or higher
+	a. numpy (tested with 1.6.2)
+	b. scipy (tested with 0.10.1)
 
-1. Java 1.6 (for optional preprocessing scripts)
+2. Java 1.6 (for preprocessing script)
 
 2. Matlab (for visualization code)
 
@@ -97,6 +97,7 @@ BIC-Seq can be obtained from: http://compbio.med.harvard.edu/Supplements/PNAS11.
      This will compile the Java code (mixture of normal and ONE tumor 
      population) and will create the following executables.
 
+	bin/RunTHetA
 	bin/runBICSeqToTHetA.jar	
 	bin/plotResultsFromFile.m
 
@@ -144,7 +145,7 @@ is tab delimited containing the following fields:
 
 2. Run Main Code:
 
-	* python python/RunTHetA.py interval_count_file [Options]
+	* bin/RunTHetA interval_count_file [Options]
 
 	INPUT:
 	* interval_count_file: input file with genomic intervals and read depth 
@@ -190,7 +191,7 @@ We also provide a matlab script for visualization of results.
 		
 5) EXAMPLE (Normal and one Tumor) =============================================
 
-python RunTHetA.py example/PD412a.intervals -n 2
+	bin/RunTHetA example/PD412a.intervals
 
 Runs the efficient n=2 algorithm and generally considers a max copy number 
 of 3 (default value).  By default, the algorithm uses a bound heuristic to set 
@@ -253,27 +254,27 @@ There are a variety of optional parameters that can be passed to THetA
 
 -------------------------------------------------------------------------------
 
-(1) N (Integer) -- the number of subpopulations to consider. 2 for mixture of 
-		normal and one tumor population. 3 for mixture of normal and two
-		tumor populations
+(1) --N, -n (Integer) -- the number of subpopulations to consider. 2 for mixture of 
+				normal and one tumor population. 3 for mixture of normal and 
+				two tumor populations
 
-		Usage: python python/runTHetA.py interval_count_file --N 2
-
-		Default: 2
-
--------------------------------------------------------------------------------
-
-(2) TAU (Integer) -- the expected copy in the normal genome
-
-		Usage: python python/runTHetA.py interval_count_file --TAU 2
+		Usage: bin/RunTHetA interval_count_file --N (-n) 2
 
 		Default: 2
 
 -------------------------------------------------------------------------------
 
-(3) MAX_K (Integer) -- the maximum copy number to consider in the genome
+(2) --TAU, -t (Integer) -- the expected copy in the normal genome
 
-		Usage: python python/runTHetA.py interval_count_file --MAX_K 4
+		Usage: bin/RunTHetA interval_count_file --TAU (-t) 2
+
+		Default: 2
+
+-------------------------------------------------------------------------------
+
+(3) --MAX_K, -k (Integer) -- the maximum copy number to consider in the genome
+
+		Usage: bin/RunTHetA interval_count_file --MAX_K (-k) 4
 
 		Default: 3
 
@@ -282,89 +283,87 @@ There are a variety of optional parameters that can be passed to THetA
 
 -------------------------------------------------------------------------------
 
-(4) OUTPUT_PREFIX (String) -- allows the user to specify a different prefix for 
-							  the output files.
+(4) --OUTPUT_PREFIX, -p (String) -- allows the user to specify a different prefix for 
+					the output files.
 
-		Usage: python python/runTHetA.py interval_count_file -OUTPUT_PREFIX prefix
+		Usage: bin/RunTHetA interval_count_file --OUTPUT_PREFIX (-p) prefix
 
 -------------------------------------------------------------------------------
 
-(5) DIRECTORY (String) -- allows the user to specify a target directory for output files
+(5) --DIRECTORY, -d (String) -- allows the user to specify a target directory for
+					 output files
 	
 			
-		Usage: python python/runTHetA.py interval_count_file --DIR /path/to/directory
+		Usage: bin/RunTHetA interval_count_file --DIR (-d) /path/to/directory
 		
 		Default : ./
 
 -------------------------------------------------------------------------------
 
-(6) MAX_NORMAL (Double) -- allows the user the change the maximum fraction of
-							normal admixture in the sample. This is
-							only enforced for the case of N=2 (normal 
-							and one tumor)
+(6) --MAX_NORMAL, -m (Double) -- allows the user the change the maximum fraction of
+					normal admixture in the sample. This is only enforced 
+					for the case of N=2 (normal and one tumor)
 		
-		Usage: python python/runTHetA.py interval_count_file --MAX_NORMAL 0.5
+		Usage: bin/RunTHetA interval_count_file --MAX_NORMAL (-m) 0.5
 
 		Default: 0.5
 
 -------------------------------------------------------------------------------
 
-(7) BOUND_HEURISTIC (Double) --  allows user to decide if to use bound heuristic
-							for setting lower and upper bounds on the copy
-							number considered for each interval. 
+(7) --BOUND_HEURISTIC (Double) --  allows user to decide if to use bound heuristic
+					for setting lower and upper bounds on the copy number
+					considered for each interval. 
 		
-		Usage: python python/runTHetA.py interval_count_file --BOUND_HEURISTIC 0.5
+		Usage: bin/RunTHetA interval_count_file --BOUND_HEURISTIC 0.5
 
 		Default: 0.5
 
 -------------------------------------------------------------------------------
 
-(6) NORMAL_BOUND_HEURISTIC (Integer) -- allows a user to set a different value
-							for the expected copy number in a tumor.
-							When this parameter is supplied, the lower
-							and upper bounds for the copy numbers tested
-							for each interval depend on the values set 
-							for the parameters HEURISTIC_LB and 
-							HEURISTIC_UB.  See those parameters for more
-							details. 
+(6) --NORMAL_BOUND_HEURISTIC (Integer) -- allows a user to set a different value
+					for the expected copy number in a tumor. When this 
+					parameter is supplied, the lower and upper bounds
+					for the copy numbers tested for each interval depend 
+					on the values set for the parameters HEURISTIC_LB and 
+					HEURISTIC_UB.  See those parameters for more details. 
 
-		Usage: python python/runTHetA.py interval_count_file --NORMAL_BOUND_HEURISTIC 2
+		Usage: bin/RunTHetA interval_count_file --NORMAL_BOUND_HEURISTIC 2
 
 		Default: Not applied
 
 -------------------------------------------------------------------------------
 
-(7) HEURISTIC_LB (Double) -- Only applies if the NORMAL_BOUND_HEURISTIC has been
-							 supplied.  All intervals with tumor/normal read 
-							 depth ratio less than HEURISTIC_LB will have lower
-							 bound of 0 and upper bound of NORMAL_BOUND_HEURISTIC.
-							 All intervals with tumor/normal read depth ratio 
-							 greater than HEURISTIC_LB but less than HEURISTIC_UB
-							 will be give an copy number of NORMAL_BOUND_HEURISTIC.
-							 All intervals with tumor/normal read depth ratio
-							 greater than HEURISTIC_UB will have a lower bound of
-							 HEURISTIC_UB and an upper bound of MAX_K.
+(7) --HEURISTIC_LB (Double) -- Only applies if the NORMAL_BOUND_HEURISTIC has been
+					supplied.  All intervals with tumor/normal read 
+					depth ratio less than HEURISTIC_LB will have lower
+					bound of 0 and upper bound of NORMAL_BOUND_HEURISTIC.
+					All intervals with tumor/normal read depth ratio 
+					greater than HEURISTIC_LB but less than HEURISTIC_UB
+					will be give an copy number of NORMAL_BOUND_HEURISTIC.
+					All intervals with tumor/normal read depth ratio
+					greater than HEURISTIC_UB will have a lower bound of
+					HEURISTIC_UB and an upper bound of MAX_K.
 
 		
-		Usage: python python/runTHetA.py interval_count_file --NORMAL_BOUND_HEURISTIC 2 --HEURISTIC_LB 0.85
+		Usage: bin/RunTHetA interval_count_file --NORMAL_BOUND_HEURISTIC 2 --HEURISTIC_LB 0.85
 
 		Default: 0.9 (when NORMAL_BOUND_HEURISTIC is supplied)
 
 -------------------------------------------------------------------------------
 
-(7) HEURISTIC_UB (Double) -- Only applies if the NORMAL_BOUND_HEURISTIC has been
-							 supplied.  All intervals with tumor/normal read 
-							 depth ratio less than HEURISTIC_LB will have lower
-							 bound of 0 and upper bound of NORMAL_BOUND_HEURISTIC.
-							 All intervals with tumor/normal read depth ratio 
-							 greater than HEURISTIC_LB but less than HEURISTIC_UB
-							 will be give an copy number of NORMAL_BOUND_HEURISTIC.
-							 All intervals with tumor/normal read depth ratio
-							 greater than HEURISTIC_UB will have a lower bound of
-							 HEURISTIC_UB and an upper bound of MAX_K.
+(7) --HEURISTIC_UB (Double) -- Only applies if the NORMAL_BOUND_HEURISTIC has been
+					 supplied.  All intervals with tumor/normal read 
+					 depth ratio less than HEURISTIC_LB will have lower
+					 bound of 0 and upper bound of NORMAL_BOUND_HEURISTIC.
+					 All intervals with tumor/normal read depth ratio 
+					 greater than HEURISTIC_LB but less than HEURISTIC_UB
+					 will be give an copy number of NORMAL_BOUND_HEURISTIC.
+					 All intervals with tumor/normal read depth ratio
+					 greater than HEURISTIC_UB will have a lower bound of
+					 HEURISTIC_UB and an upper bound of MAX_K.
 
 
-		Usage: python python/runTHetA.py interval_count_file --NORMAL_BOUND_HEURISTIC 2 --HEURISTIC_UB 1.2
+		Usage: bin/RunTHetA interval_count_file --NORMAL_BOUND_HEURISTIC 2 --HEURISTIC_UB 1.2
 
 		Default: 1.1 (when NORMAL_BOUND_HEURISTIC is supplied)
 

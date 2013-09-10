@@ -60,7 +60,7 @@ def parse_arguments():
 			genome", default=2, metavar="TAU", type=int, required=False)
 	parser.add_argument("-d","--DIR", help="Directory where result file is written\
 			to", default="./", metavar="DIR", required=False)
-	parser.add_argument("-p","--PREFIX", help="Prefix for output files created. By\
+	parser.add_argument("-p","--OUTPUT_PREFIX", help="Prefix for output files created. By\
 			default, it will be the beginning of the input file name (i.e.if input\
 			filename were example.input, output filed would be example.output and\
 			example.withbounds)", default=None, metavar="PRE", required=False)
@@ -72,7 +72,8 @@ def parse_arguments():
 			default=False,required=False)
 	parser.add_argument("--HEURISTIC_LB", metavar="LB", type=float, default=0.9, \
 			required=False)
-	parser.add_argument("--HEURISTIC_UB", type=float,default=1.1,required=False)
+	parser.add_argument("--HEURISTIC_UB", metavar="UB", type=float,default=1.1, \
+			required=False)
 
 	args = parser.parse_args()
 
@@ -97,7 +98,7 @@ def parse_arguments():
 		raise ValueError(err_msg)
 
 	directory = args.DIR
-	prefix = args.PREFIX
+	prefix = args.OUTPUT_PREFIX
 	if prefix == None: prefix = os.path.basename(filename).split(".")[0]
 	max_normal = args.MAX_NORMAL
 	if max_normal < 0 or max_normal > 1:
