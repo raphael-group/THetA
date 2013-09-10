@@ -21,7 +21,7 @@
  # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  # http://cs.brown.edu/people/braphael/software.html
  # 
- # @author Layla Oesper, Ahmad Mahmoody and Benjamin J. Raphael
+ # @author Layla Oesper, Ahmad Mahmoody, Benjamin J. Raphael and Gryte Satas
  ###
 
 from FileIO import *

@@ -1,1 +1,4 @@
-python ../python/RunTHetA.py "$@"
+#Get the location of the script
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )"&& pwd )"
+
+python $DIR/../python/RunTHetA.py "$@"
