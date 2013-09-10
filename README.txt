@@ -34,7 +34,7 @@ heterogeneity from high-throughput DNA sequencing data.  Genome Biology.
 contact: layla@cs.brown.edu
 	 braphael@cs.brown.edu
 
-Beta Version: 0.5
+Beta Version: 0.03
 Version data: September 10, 2013
 
 WEBSITE:
