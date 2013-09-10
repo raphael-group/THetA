@@ -34,8 +34,13 @@ heterogeneity from high-throughput DNA sequencing data.  Genome Biology.
 contact: layla@cs.brown.edu
 	 braphael@cs.brown.edu
 
+<<<<<<< HEAD
 Beta Version: 0.03
 Version date: September 10, 2013
+=======
+Beta Version: 0.5
+Version date: Sept 10, 2013
+>>>>>>> 9f140df613f25389c3df81c051df02a4ec4db438
 
 WEBSITE:
 http://cs.brown.edu/people/braphael/software.html
@@ -191,7 +196,11 @@ We also provide a matlab script for visualization of results.
 		
 5) EXAMPLE (Normal and one Tumor) =============================================
 
+<<<<<<< HEAD
 	bin/RunTHetA example/PD412a.intervals
+=======
+python python/RunTHetA.py example/PD4120a.intervals -n 2
+>>>>>>> 9f140df613f25389c3df81c051df02a4ec4db438
 
 Runs the efficient n=2 algorithm and generally considers a max copy number 
 of 3 (default value).  By default, the algorithm uses a bound heuristic to set 

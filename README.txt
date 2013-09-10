@@ -54,8 +54,9 @@ CONTENTS ======================================================================
 * Release Notes; RELEASE_NOTES.txt - List of changes between different versions.
 * License; LICENSE.txt - The complete license that goes with the software.
 
-(ii) Software (in java/src/ and matlab/mainMethod subdirectories):
-* Source code in java/src and matlab/mainMethod
+(ii) Software (Main code in python/  Additional code in java/src/ and 
+matlab/mainMethod subdirectories):
+* Source code in python/, java/src and matlab/mainMethod
 
 (iii) Executables (in bin/ subdirectory ):
 * Executables for compiling and running code
