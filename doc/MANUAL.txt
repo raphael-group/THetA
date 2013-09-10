@@ -191,7 +191,7 @@ We also provide a matlab script for visualization of results.
 		
 5) EXAMPLE (Normal and one Tumor) =============================================
 
-	bin/RunTHetA example/PD412a.intervals
+	bin/RunTHetA example/PD4120a.intervals
 
 Runs the efficient n=2 algorithm and generally considers a max copy number 
 of 3 (default value).  By default, the algorithm uses a bound heuristic to set 
@@ -224,7 +224,7 @@ start_1_112383501:end_1_121485200       1       112383501       121485200       
 If you then want to visualize these results you can run (at a matlab prompt):
 
 >> cd bin
->> plotResultsFromFile('../example/PD4120a.intervals_k_3_n_2_tau_2.results','../example/PD4120a.intervals','PD4120a',11,4)
+>> plotResultsFromFile('../example/PD4120a.results','../example/PD4120a.intervals','PD4120a',11,4)
 
 
 This creates a pdf that visualizes the tumor genome by copy number and includes
