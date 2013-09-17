@@ -32,22 +32,28 @@ from Optimizer import Optimizer
 
 from multiprocessing import JoinableQueue, Queue, Process, Array
 
-def task(queue, opt, returnQueue, sorted_index):
-	ID = 1
+def processLoop(queue, opt, returnQueue, sorted_index):
+	"""
+	Code that each child process executes. Repeatedly pops of new C
+	values from queue until it reaches an exit signal. Then puts its results
+	on the return queue and finishes
+
+	Arguments:
+	queue (multiprocessing.Queue): Task queue, containing C matrices
+	opt (Optimizer): instance of an optimizer
+	returnQueue (multiprocessing.Queue): Queue to put results in
+	sorted_index (list): Array containing ordering information for sorting
+	"""
 	min_likelihood = float('inf') 
 	best = []
-	count = 0
 	while True:
-		count += 1
 		C = queue.get()
 		if C is 0:
 			returnQueue.put(best)
 			break
-
 		soln = opt.solve(C)
 		if soln is not None:
 			(mu, likelihood,vals) = soln
-					
 			if isClose([likelihood],[min_likelihood]):
 				C_new = reverse_sort_C(C,sorted_index)
 				vals = reverse_sort_list(vals, sorted_index)
@@ -59,8 +65,11 @@ def task(queue, opt, returnQueue, sorted_index):
 				min_likelihood = likelihood
 	
 
-def start_threads(max_processes, queue, opt, returnQueue, sorted_index):
-	processes = [Process(target=task, args=(queue, opt, returnQueue, sorted_index), name=i+1) for i in range(max_processes-1)]
+def start_processes(max_processes, queue, opt, returnQueue, sorted_index):
+	"""
+	Starts a max_processes number of processes, and starts them
+	"""
+	processes = [Process(target=processLoop, args=(queue, opt, returnQueue, sorted_index), name=i+1) for i in range(max_processes-1)]
 	for p in processes:
 		p.daemon = True
 		p.start()
@@ -77,6 +86,38 @@ def find_mins(best):
 			min_likelihood = likelihood
 			trueBest = solns
 	return trueBest
+
+def doOptimization(n,m,k,tau,lower_bounds, upper_bounds, r, rN, max_normal, sorted_index):
+	"""
+	Performs the optimization for the given parameters. Returns a list of
+	the best C matrices and associated mu values and likelihoods
+	"""
+	max_processes = 9 #This should be an argument or set somewhere else
+
+	enum = Enumerator(n, m, k, tau, lower_bound=lower_bounds, upper_bound=upper_bounds)
+	opt = Optimizer(r, rN, m, n,tau, upper_bound=max_normal)
+
+	queue = Queue()
+	returnQueue = Queue()
+
+	processes = start_processes(max_processes, queue, opt, returnQueue, sorted_index)
+	
+	C = enum.generate_next_C()
+	while C is not False:
+		queue.put(C)
+		C = enum.generate_next_C()
+	for i in range(max_processes-1):
+		queue.put(0)
+
+	for p in processes:
+		  p.join()
+
+	best = []
+	while not returnQueue.empty():
+		item = returnQueue.get()
+		best.append(item)
+	best = find_mins(best)
+	return best
 
 def main():
 	###
@@ -111,34 +152,8 @@ def main():
 	#  Initialize optimizer and enumerator 
 	###
 	print "Performing optimization..."
-	enum = Enumerator(n, m, k, tau, lower_bound=lower_bounds, upper_bound=upper_bounds)
-	opt = Optimizer(r, rN, m, n,tau, upper_bound=max_normal)
 
-	queue = Queue()
-	returnQueue = Queue()
-
-	#best = [[]]*max_threads
-	
-	processes = start_threads(max_threads, queue, opt, returnQueue, sorted_index)
-	###
-	#  Iterate through possible interval count matrices and perform optimization
-	###
-	
-	C = enum.generate_next_C()
-	while C is not False:
-		queue.put(C)
-		C = enum.generate_next_C()
-	for i in range(max_threads-1):
-		queue.put(0)
-
-	for p in processes:
-		  p.join()
-
-	best = []
-	while not returnQueue.empty():
-		item = returnQueue.get()
-		best.append(item)
-	best = find_mins(best)
+	best = doOptimization(n, m, k, tau, lower_bounds, upper_bounds, r, rN, max_normal, sorted_index)
 
 	###
 	#  Write results out to file
@@ -152,10 +167,13 @@ def main():
 if __name__ == '__main__':
 	main()
 
-	#global max_threads
+	###
+	#	Profile for number of processes
+	###
+	#global max_processes
 	#j = 2
 	#for i in range(10):
 	#	print "-------------------------", j, "---------------------------"
-	#	max_threads=j
+	#	max_processes=j
 	#	j += 2
 	#	cProfile.run('main()')
