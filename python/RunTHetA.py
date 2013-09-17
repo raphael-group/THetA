@@ -30,6 +30,54 @@ from Misc import *
 from Enumerator import Enumerator
 from Optimizer import Optimizer
 
+from multiprocessing import JoinableQueue, Queue, Process, Array
+
+def task(queue, opt, returnQueue, sorted_index):
+	ID = 1
+	min_likelihood = float('inf') 
+	best = []
+	count = 0
+	while True:
+		count += 1
+		C = queue.get()
+		if C is 0:
+			returnQueue.put(best)
+			break
+
+		soln = opt.solve(C)
+		if soln is not None:
+			(mu, likelihood,vals) = soln
+					
+			if isClose([likelihood],[min_likelihood]):
+				C_new = reverse_sort_C(C,sorted_index)
+				vals = reverse_sort_list(vals, sorted_index)
+				best.append((C_new, mu, likelihood, vals))
+			elif likelihood < min_likelihood:
+				C_new = reverse_sort_C(C,sorted_index)
+				vals = reverse_sort_list(vals, sorted_index)
+				best = [(C_new, mu, likelihood, vals)]
+				min_likelihood = likelihood
+	
+
+def start_threads(max_processes, queue, opt, returnQueue, sorted_index):
+	processes = [Process(target=task, args=(queue, opt, returnQueue, sorted_index), name=i+1) for i in range(max_processes-1)]
+	for p in processes:
+		p.daemon = True
+		p.start()
+	return processes
+
+def find_mins(best):
+	min_likelihood = float('inf')
+	trueBest = []
+	for solns in best:
+		likelihood = solns[0][2]
+		if isClose([min_likelihood], [solns[0][2]]):
+			trueBest += solns
+		elif likelihood < min_likelihood:
+			min_likelihood = likelihood
+			trueBest = solns
+	return trueBest
+
 def main():
 	###
 	#  Read in arguments and data file
@@ -64,37 +112,33 @@ def main():
 	###
 	print "Performing optimization..."
 	enum = Enumerator(n, m, k, tau, lower_bound=lower_bounds, upper_bound=upper_bounds)
-
 	opt = Optimizer(r, rN, m, n,tau, upper_bound=max_normal)
-	C = enum.generate_next_C()
-	min_likelihood = float("inf")	
-	best = []
-	count = 0
+
+	queue = Queue()
+	returnQueue = Queue()
+
+	#best = [[]]*max_threads
 	
+	processes = start_threads(max_threads, queue, opt, returnQueue, sorted_index)
 	###
 	#  Iterate through possible interval count matrices and perform optimization
 	###
+	
+	C = enum.generate_next_C()
 	while C is not False:
-		count += 1
-		if count%5000 == 0:
-			print "\tIteration #",count
-		
-		soln = opt.solve(C)
-
-		if soln is not None:
-			(mu, likelihood,vals) = soln
-					
-			if isClose([likelihood],[min_likelihood]):
-				C_new = reverse_sort_C(C,sorted_index)
-				vals = reverse_sort_list(vals, sorted_index)
-				best.append((C_new, mu, likelihood, vals))
-			elif likelihood < min_likelihood:
-				C_new = reverse_sort_C(C,sorted_index)
-				vals = reverse_sort_list(vals, sorted_index)
-				best = [(C_new, mu, likelihood, vals)]
-				min_likelihood = likelihood
-		
+		queue.put(C)
 		C = enum.generate_next_C()
+	for i in range(max_threads-1):
+		queue.put(0)
+
+	for p in processes:
+		  p.join()
+
+	best = []
+	while not returnQueue.empty():
+		item = returnQueue.get()
+		best.append(item)
+	best = find_mins(best)
 
 	###
 	#  Write results out to file
@@ -104,5 +148,14 @@ def main():
 	write_out_bounds(directory, prefix, filename, upper_bounds_real, lower_bounds_real)
 	write_out_result(directory, prefix, best)	
 
+#import cProfile
 if __name__ == '__main__':
-	  main()
+	main()
+
+	#global max_threads
+	#j = 2
+	#for i in range(10):
+	#	print "-------------------------", j, "---------------------------"
+	#	max_threads=j
+	#	j += 2
+	#	cProfile.run('main()')
