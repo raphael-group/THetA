@@ -34,8 +34,8 @@ heterogeneity from high-throughput DNA sequencing data.  Genome Biology.
 contact: layla@cs.brown.edu
 	 braphael@cs.brown.edu
 
-Beta Version: 0.5
-Version date: September 10, 2013
+Beta Version: 0.51
+Version date: October 16, 2013
 
 WEBSITE:
 http://cs.brown.edu/people/braphael/software.html
@@ -274,7 +274,7 @@ There are a variety of optional parameters that can be passed to THetA
 
 (3) --MAX_K, -k (Integer) -- the maximum copy number to consider in the genome
 
-		Usage: bin/RunTHetA interval_count_file --MAX_K (-k) 4
+		Usage: bin/RunTHetA interval_count_file --MAX_K (-k) 3
 
 		Default: 3
 
@@ -366,6 +366,16 @@ There are a variety of optional parameters that can be passed to THetA
 		Usage: bin/RunTHetA interval_count_file --NORMAL_BOUND_HEURISTIC 2 --HEURISTIC_UB 1.2
 
 		Default: 1.1 (when NORMAL_BOUND_HEURISTIC is supplied)
+
+-------------------------------------------------------------------------------
+
+(8) --NUM_PROCESSES (Integer) -- The number of processes to use for computation.
+				    Using more processes increases memory usage, but can also 
+					provide significant speed-ups.  
+
+		Usage: bin/RunTHetA interval_count_file --NUM_PROCESSES
+
+		Default: 1
 
 -------------------------------------------------------------------------------
 

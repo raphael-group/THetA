@@ -12,3 +12,6 @@ Beta_0.03 (June 2013) - (1) Release full source code.
 -------------------------------------------------------------------------------
 Beta_0.5 (September 2013) - Release includes new version of source code in python
 		for both single and multiple tumor populations
+-------------------------------------------------------------------------------
+Beta_0.51 (October 2013) - Added multiprocessing capability
+
