@@ -53,7 +53,6 @@ class Enumerator:
 			if self.upper_bound is None: self.upper_bound = [k]*m
 			self.iter = self.lower_bound[:]	
 		elif n == 3:
-			
 			if self.upper_bound is None: self.upper_bound = [k]*m
 			if self.lower_bound is None: self.lower_bound = [0]*m
 			else: self.low_val = min(self.lower_bound)
@@ -114,7 +113,6 @@ class Enumerator:
 		Returns:
 			C (numpy.array): Interval count matrix
 		"""
-
 		# Using list self.iter, which is a copy of the n=1 column
 		# finds an index in the array where the value is less than
 		# the one immediately following, and adds one
@@ -137,8 +135,6 @@ class Enumerator:
 		# no more valid arrays
 		else:
 			return False
-		
-
 	
 	def _C_to_array(self):
 		""" Converts self.iter into a numpy matrix """

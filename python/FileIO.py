@@ -48,6 +48,7 @@ def parse_arguments():
 			False by default
 		heuristic_lb: lower bound for normal bound heuristic
 		heuristic_ub: upper bound for normal bound heuristic
+		num_processes: number of processes for THetA to use
 	"""
 
 	parser = argparse.ArgumentParser()
@@ -67,6 +68,8 @@ def parse_arguments():
 	parser.add_argument("-m","--MAX_NORMAL", help="The maximum fraction to consider\
 			for normal. Only enforced for n=2", default=.5, type=float,\
 			metavar="MAX_NORMAL", required=False)
+	parser.add_argument("--NUM_PROCESSES", help="The number of processes to be used",
+			default=1, type=int, metavar="NUM_PROCESSES", required=False)
 	parser.add_argument("--BOUND_HEURISTIC", metavar="BH", default=False, required=False)
 	parser.add_argument("--NORMAL_BOUND_HEURISTIC", metavar="NBH", type=int,\
 			default=False,required=False)
@@ -80,34 +83,38 @@ def parse_arguments():
 	filename = args.QUERY_FILE
 	
 	n = args.N
-
 	if n not in N_VALS:
 		err_msg = "Invalid value entered for n: "+str(n)+". Currently supported values for n: "+str(N_VALS)
 		raise ValueError(err_msg)
 	
 	k = args.MAX_K
-	
 	if k not in range(MAX_K):
 		err_msg = "Invalid value entered for k: "+str(k)+". Supported values for k: 0-"+str(MAX_K)
 		raise ValueError(err_msg)
 
 	tau = args.TAU
-	
 	if tau < 0:
 		err_msg = "Invalid value for tau: "+str(tau)+". Tau must be non-negative"
 		raise ValueError(err_msg)
 
 	directory = args.DIR
+
 	prefix = args.OUTPUT_PREFIX
 	if prefix == None: prefix = os.path.basename(filename).split(".")[0]
+
 	max_normal = args.MAX_NORMAL
 	if max_normal < 0 or max_normal > 1:
 		err_msg = "Invalid value for max_normal: "+str(max_normal)+". Max_normal must be between 0 and 1"
 		raise ValueError(err_msg)
-	
+
+	num_processes = args.NUM_PROCESSES
+
 	bound_heuristic = args.BOUND_HEURISTIC
+
 	normal_bound_heuristic = args.NORMAL_BOUND_HEURISTIC
+
 	heuristic_lb = args.HEURISTIC_LB
+
 	heuristic_ub = args.HEURISTIC_UB
 
 	
@@ -126,10 +133,11 @@ def parse_arguments():
 		print "\tNormal Bound Heuristic:", normal_bound_heuristic
 		print "\tHeuristic Lower Bound:", heuristic_lb
 		print "\tHeuristic Upper Bound:", heuristic_ub
+	print "\tNum Processes:", num_processes
 	print "================================================="
 	
 	return filename,n,k,tau,directory,prefix,max_normal,bound_heuristic, \
-			normal_bound_heuristic, heuristic_lb, heuristic_ub
+			normal_bound_heuristic, heuristic_lb, heuristic_ub, num_processes
 
 
 def read_interval_file(filename):
