@@ -26,6 +26,7 @@
 
 import string
 import os
+import sys
 import argparse
 
 N_VALS = [2,3]
@@ -164,12 +165,16 @@ def read_interval_file(filename):
 	norm_counts = []
 	upper_bounds = []
 	lower_bounds = []
-	for line in lines:
-		line = line.split()	
-		
+	numLine = 0
+	for l in lines:
+		line = l.split()	
+		numLine += 1
 		if len(line) < 6 or len(line) > 8:
-			raise Exception("Invalid input file format")
-
+			sys.stderr.write("Invalid input file format in interval file line #"+str(numLine)+":\n" + str(l)+"\nToo few/many columns. Exiting...\n")
+			sys.exit(1)
+		if 0 in [int(line[4]), int(line[5])]:
+			sys.stderr.write("Invalid entry in interval file line #"+str(numLine)+":\n" + str(l) + "Number of reads for each interval must be greater than 0. Exiting...\n") 
+			sys.exit(1)
 		tumor_counts.append(int(line[4]))
 		norm_counts.append(int(line[5]))
 		if len(line) > 6:
