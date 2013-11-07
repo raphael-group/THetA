@@ -159,7 +159,7 @@ def read_interval_file(filename):
 	lines = f.readlines()
 	f.close()
 
-	if "#" in lines[0]: lines = lines[1:]
+	if lines[0].startswith("#"): lines = lines[1:]
 	m = 0
 	tumor_counts = []
 	norm_counts = []
