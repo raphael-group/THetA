@@ -185,6 +185,9 @@ def read_interval_file(filename):
 			lower_boundsSupplied = True
 			lower_bounds.append(int(line[7]))
 		m += 1
+	if numLine == 1:
+		sys.stderr.write("Number of intervals must be greater than 1. Exiting...\n") 
+		sys.exit(1)
 
 	if len(upper_bounds) == 0: upper_bounds = None	
 	if len(lower_bounds) == 0: lower_bounds = None	
