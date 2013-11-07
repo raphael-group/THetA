@@ -106,6 +106,7 @@ This section gives the basic instructions for running THetA.
 
 1. Create an interval_count_file: 
 
+
 The interval_count_file must contain one line per genomic interval.  Each line 
 is tab delimited containing the following fields:
 
@@ -128,6 +129,8 @@ is tab delimited containing the following fields:
 		  supplied to decrease the runtime of the algorithm. They are
 		  HIGHLY RECOMMENDED for the case of more than one tumor population 
 
+	The interval_count_file may contain an optional header line, starting with 
+	a "#" symbol.
 
 	ADDITIONAL NOTES for more than one tumor population: 
 	In addition to specifying lower and upper bounds on the the copy numbers
