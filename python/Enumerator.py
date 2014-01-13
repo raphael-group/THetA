@@ -55,14 +55,11 @@ class Enumerator:
 		elif n == 3:
 			if self.upper_bound is None: self.upper_bound = [k]*m
 			if self.lower_bound is None: self.lower_bound = [0]*m
-			else: self.low_val = min(self.lower_bound)
-			self._gen_nvectors()
-			
-			# Upper bounds for n=3 are the index of the last row vector that 
-			# should be used for that row, so the start index of the largest value
-			self.upper_bound = [self.start_indexes[self.upper_bound[i]+1] - 1 \
-				if self.upper_bound[i] < k else (len(self.nVectors) - 1) \
-				for i in range(m)]
+
+			#TODO: Implement self.low_val
+			#	else: self.low_val = min(self.lower_bound)
+			self.generator = self._generate_next_C_3()
+			self.rows, self.edges = self._create_graph()
 			
 	def generate_next_C(self):
 		"""
@@ -74,33 +71,36 @@ class Enumerator:
 		if self.n == 1:
 			return self._generate_next_C_2()
 		else:
-			return self._generate_next_C_3()
+			try:
+				return next(self.generator)
+			except StopIteration:
+				return False
 
 
-	def _check_bound_order(self,lower_bounds, upper_bounds):
+	def _check_bound_order(self,lower_bound, upper_bound):
 		"""
 		Check that the lower and upper bounds are consistent with the ordering,
 		and adjust if needed
 
 		Args:
-			lower_bounds (list of ints): minimum copy number at each interval
-			upper_bounds (list of ints): maximum copy number at each interval
+			lower_bound (list of ints): minimum copy number at each interval
+			upper_bound (list of ints): maximum copy number at each interval
 		Returns:
-			lower_bounds (list of ints): adjusted lower_bounds
-			upper_bounds (list of ints): adjusted upper_bounds
+			lower_bound (list of ints): adjusted lower_bound
+			upper_bound (list of ints): adjusted upper_bound
 		"""
 		# For lower bounds, each item must be at least as large as theone before it
-		if lower_bounds is not None:
-			for i in range(1,len(lower_bounds)):
-				if lower_bounds[i] < lower_bounds[i-1]:
-					lower_bounds[i] = lower_bounds[i-1]
+		if lower_bound is not None:
+			for i in range(1,len(lower_bound)):
+				if lower_bound[i] < lower_bound[i-1]:
+					lower_bound[i] = lower_bound[i-1]
 		# For upper bounds, each item must be no larger than the one after it
-		if upper_bounds is not None:
-			for i in reversed(range(len(upper_bounds)-1)):
-				if upper_bounds[i] > upper_bounds[i+1]:
-					upper_bounds[i] = upper_bounds[i+1]
+		if upper_bound is not None:
+			for i in reversed(range(len(upper_bound)-1)):
+				if upper_bound[i] > upper_bound[i+1]:
+					upper_bound[i] = upper_bound[i+1]
 
-		return lower_bounds, upper_bounds
+		return lower_bound, upper_bound
 	
 	###
 	#	n = 2
@@ -147,189 +147,119 @@ class Enumerator:
 	###
 	#   n = 3
 	###
-	def _generate_next_C_3(self):
-		"""
-		In the n=3 case, generate next valid interval count matrix
-
-		Returns:
-			C (numpy.array): Interval count matrix
-		"""
 	
-		# Get the next valid combination of vectors
-		valid = False
-		while not valid and self.iter is not False:
-			self._add_one_with_reset(self.m-1)
-			# Check if every value in the row is at least the lower bound for that row
-			if self.iter is not False and True not in \
-				[min(self.nVectors[self.iter[i]]) < self.lower_bound[i] for i in range(self.m)]:
-				valid = True
+	def _generate_next_C_3(self):
+		print self.lower_bound
+		print self.upper_bound
 
-		# Generate a matrix from self.iter	
-		if self.iter is not False:
-			C = numpy.zeros((self.m,self.n+1))
-			for i in range(self.m):
-				C[i][0] = self.tau
-				vec = self.nVectors[self.iter[i]]
-				for j in range(1,self.n+1):
-					C[i][j] = vec[j-1]
-			return C
+		C = [0]*self.m
+		count = 0
+		for i in range(len(self.rows)):
+			if not self._in_bounds(self.rows[i], 0): continue
+			# The following check prevents duplicate matrices, which just have 
+			# columns in a different order. 
+			row = self.rows[i]
+			switch = False
+			if row[0] > row[1]: continue
+			elif row[0] == row[1]: switch = True
+			#else: switch = False
+	
+			C[0] = i
+			for val in self._generate_next_C_3_recurse(C, 0, float("-inf"), float("inf"), switch):
+				yield self._to_matrix(C)
+	
+	def _generate_next_C_3_recurse(self, C, depth, minVal, maxVal, switch):
+		if depth == self.m-1:
+			yield C
+			return
+		for child in self.edges[C[depth]]:
+			if not self._in_bounds(self.rows[child], depth+1): continue
+
+			row = self.rows[child]
+			# The following check prevents duplicate matrices, which just have 
+			# columns in a different order. 
+			switchNew = False
+			if switch:
+				if row[0] > row[1]: continue
+				elif row[0] == row[1]: switchNew = True
+	
+			C[depth+1] = child
+			newMin, newMax = self._get_mu_bounds(self.rows[C[depth]], row)
+			if newMin: 
+				newMin = max(minVal, newMin)
+				newMax = maxVal
+			elif newMax: 
+				newMax = min(maxVal, newMax)
+				newMin = minVal
+			if newMin <= newMax:
+				for val in self._generate_next_C_3_recurse(C, depth+1, newMin, newMax, switchNew):
+					yield val
+	
+	def _to_matrix(self, C):
+		CNew = numpy.zeros((self.m, self.n+1))
+		for i in range(self.m):
+			row = self.rows[C[i]]
+			CNew[i][0] = self.tau
+			for j in range(1, self.n+1):
+				CNew[i][j] = row[j-1]
+		return CNew
+	
+	def _get_mu_bounds(self, row1, row2):
+		"""
+		Returns the minimum/maximum ratio between mu[1] and mu[2]
+		"""
+		#TODO: Memoize
+		xChange = float(row2[0] - row1[0])
+		yChange = float(row2[1] - row1[1])
+		if xChange == 0 or yChange == 0:
+			return float("-inf"), float("inf")
+		elif xChange > 0:
+			minVal = yChange/(-xChange)
+			return minVal, False
 		else:
-			return False
-   
-	def _add_one_with_reset(self, index):
-		"""
-		Recursively add one to self.iter and carry down if necessary
-		"""
+			maxVal = yChange/(-xChange)
+			return False, maxVal
 
-		###
-		# The simple version of the code below which may be easier to understand
-		# looks like:
-		#
-		# if self.iter[index] < self.upper_bound[index]:
-		#	self.iter[index] += 1
-		# elif index > 0:
-		# 	self._add_one_with_reset(index-1)
-		#	if self.iter is not False: self._reset_high_indexes(index)
-		# else: 
-		#	self.iter = False
-		#
-		# Everything in addition to that is to skip past "mirrored" matrices,
-		# that is, pairs of matrices in which columns 1 and 2 are switched,
-		# since they're mathematically equivalent. (This only works for n=3)
-		#
-		# The two boolean arrays used below:
-		# self.mirror: True if the row vector at that index is palindromic
-		#		else False
-		# self.unique: False if there is a row vector that comes earlier 
-		#		in the list nVectors that is that vectors reverse.
-		#		else True
-		###
+	def _in_bounds(self, row, i):
+		return all([a >= self.lower_bound[i] and a <= self.upper_bound[i] for a in row])
+	
 
-		hitMax = False
-		
-		if self.iter[index] < self.upper_bound[index] and index != 0: 
-			# This index hasn't hit the max yet
-
-			mirrors = [self.mirror[i] for i in self.iter[:index]]
-			if all(mirrors):
-				# If all of the rows that come before this one are
-				# mirrored, then this one must be unique
-				self.iter[index] += 1
-				while (not self.unique[self.iter[index]]):
-					if (self.iter[index] < self.upper_bound[index]):
-						self.iter[index] += 1
-					else:
-						hitMax = True; break
-
-				if hitMax: 
-					self._add_one_with_reset(index-1)
-					if self.iter is not False: self._reset_high_indexes(index)
-
-			else:
-				self.iter[index] += 1
-		elif self.iter[index] < self.upper_bound[index] and index == 0: 
-			# We're on the first row and haven't hit the max yet
-			self.iter[0] += 1
-
-			# The first row MUST be unique
-			while (not self.unique[self.iter[0]]):
-				if self.iter[0] < self.upper_bound[0]:
-					self.iter[0] += 1
-				else: 
-					hitMax = True; break
-			if hitMax:
-				self.iter = False
-		elif index > 0:
-			self._add_one_with_reset(index-1)
-			if self.iter is not False: self._reset_high_indexes(index)
-		else:
-			# None of the rows can be incremented further
-			self.iter = False
-
-	def _reset_high_indexes(self, index):
-		"""
-		Reset all the values with indexes >= index, while maintaining ordering 
-		constraints
-		"""
-		valueMin = 0
-		for i in range(index):
-			tempMin = min(self.nVectors[self.iter[i]])
-			valueMin = tempMin if tempMin >= valueMin else max(self.nVectors[self.iter[i]])
-
-		for i in range(index, len(self.iter)):
-			self.iter[i] = self.start_indexes[valueMin]
-    
 	###
 	#	Initialization methods for n=3
 	###
-
-	def _gen_nvectors(self):
+	def _add_one(self, row, maxVal):
 		"""
-		Generate the list of all n-vectors (vectors in list form), sorted by the maximum
-		value they contain
+		Used for enumerating possible rows
+		Recursively adds one
 		"""
-   	 
-		# Generate all possible n-vectors
-		vector = [self.low_val]*self.n
-		set_vectors = [vector]
-		vector = self._add_with_carry(0,vector[:])
-		while vector is not False:
-			set_vectors.append(vector)
-			vector = self._add_with_carry(0,vector[:])
-		
-		# Sorts the vectors by the maximum value they contain
-		# Basic radix sort
-		counts = [0]*(self.k + 1)
-		self.nVectors = [0]*len(set_vectors)
-		for item in set_vectors:
-			max_item = max(item)
-			counts[max_item] += 1
-
-		self.start_indexes = [0]*(self.k + 1)
-		for i in range(1,self.k+1):
-			self.start_indexes[i] = counts[i-1] + self.start_indexes[i-1]
-		counts = self.start_indexes[:]
-				
-		for item in set_vectors:
-			max_item = max(item)
-			self.nVectors[counts[max_item]] = item
-			counts[max_item] += 1
-		self.unique = mark_unique(self.nVectors) 
-		self.mirror = mark_mirror(self.nVectors)
-	def _add_with_carry(self,i,vector):
-		"""
-		Recursively add one to the vector and carry up if needed
-		"""
-		if vector[i] < self.k:
-			vector[i] += 1
-		elif i+1 < self.n:
-			vector[i] = self.low_val
-		
-			vector = self._add_with_carry(i+1,vector)
+		if len(row) == 0: return []
+		if row[0] < maxVal:
+			row[0] += 1
+			return row
 		else:
-			return False
-		return vector
+			return [0] + self._add_one(row[1:], maxVal)
+	
+	def _is_valid_edge(self, row1, row2):
+		if row1 == row2: return True
+		else: return any([i < j for i,j in zip(row1,row2)])
+	
+	def _create_graph(self):
+		"""
+		For enumerating matrices for n=3
+		Nodes in the graph are rows, and an edge from v to w in the graph, means
+		that row w can follow row v in a matrix.
+		"""
+		start = [0,0]
+		row = [0,0]
+		rows = [row[:],]
+		while True:
+			row = self._add_one(row, self.k)
+			if start == row: break
+			rows.append(list(row))
+	
+		edges = []
+		for i, row in enumerate(rows):
+			edges.append([j for j,row2 in enumerate(rows) if self._is_valid_edge(row, row2)])
+		
+		return rows, edges
 
-def mark_unique(vectors):
-	"""
-	Creates a boolean array corresponding to the list vectors
-	which is false for an vector v at index i, if there there is
-	another vector at a position earlier than i that is the reverse
-	of v
-	"""
-	mask = [True]*len(vectors)
-	for i,v1 in enumerate(vectors):
-		for v2 in vectors[:i]:
-			if v1[0] == v2[1] and v1[1] == v2[0]:
-				mask[i] = False
-	return mask
-
-def mark_mirror(vectors):
-	"""
-	Creates a boolean array corresponding to the list vectors which is 
-	true if the row vector is palindromic and false otherwise
-	"""
-	mask = [False]*len(vectors)
-	for i,v1 in enumerate(vectors):
-		if v1[0] == v1[1]: mask[i] = True
-	return mask

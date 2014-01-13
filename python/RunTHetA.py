@@ -178,6 +178,7 @@ def main():
 	###
 	print "Preprocessing data..."
 	r,rN,sorted_index = sort_r(normCounts,tumorCounts)
+
 	if bound_heuristic is not False or upper_bounds is None and lower_bounds is None:
 		if bound_heuristic is False: bound_heuristic = 0.5
 
