@@ -104,9 +104,9 @@ def do_optimization(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 	enum = Enumerator(n, m, k, tau, lower_bound=lower_bounds, \
 			    upper_bound=upper_bounds)
 	opt = Optimizer(r, rN, m, n,tau, upper_bound=max_normal)
-
-	queue = Queue() #Task queue for the processes
-	returnQueue = Queue() #Shared queue for processes to return results
+	MAX_QUEUE_SIZE = int(10E6)
+	queue = Queue(MAX_QUEUE_SIZE) #Task queue for the processes
+	returnQueue = Queue(MAX_QUEUE_SIZE) #Shared queue for processes to return results
 
 	processes = start_processes(max_processes, queue, opt, returnQueue, \
 			    sorted_index)
@@ -115,7 +115,7 @@ def do_optimization(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 	count = 0
 	while C is not False:
 		count += 1
-		queue.put(C)
+		queue.put(C, True)
 		C = enum.generate_next_C()
 	if count == 0:
 		print "Error: No valid Copy Number Profiles exist for these intervals within the bounds specified. Exiting..."
