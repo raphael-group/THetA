@@ -14,4 +14,6 @@ Beta_0.5 (September 2013) - Release includes new version of source code in pytho
 		for both single and multiple tumor populations
 -------------------------------------------------------------------------------
 Beta_0.51 (October 2013) - Added multiprocessing capability
+-------------------------------------------------------------------------------
+Beta_0.52 (January 2014) - Added some error messages and documentation
 
