@@ -112,9 +112,14 @@ def do_optimization(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 			    sorted_index)
 	
 	C = enum.generate_next_C()
+	count = 0
 	while C is not False:
+		count += 1
 		queue.put(C)
 		C = enum.generate_next_C()
+	if count == 0:
+		raise Error("No valid Copy Number Profiles exist for these intervals within the bounds specified.")
+
 
 	# Send STOP signal to all processes
 	for i in range(max_processes-1):
@@ -146,6 +151,8 @@ def do_optimization_single(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 	count = 0
 	
 	C = enum.generate_next_C()
+	if C == False: 
+		raise Error("No valid Copy Number Profiles exist for these intervals within the bounds specified.")
 	while C is not False:
 		soln = opt.solve(C)
 		if soln is not None:
@@ -160,7 +167,6 @@ def do_optimization_single(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 				vals = reverse_sort_list(vals, sorted_index)
 				best = [(C_new, mu, likelihood, vals)]
 				min_likelihood = likelihood
-		
 		C = enum.generate_next_C()
 	return best
 
