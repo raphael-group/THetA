@@ -50,6 +50,7 @@ def parse_arguments():
 		heuristic_lb: lower bound for normal bound heuristic
 		heuristic_ub: upper bound for normal bound heuristic
 		num_processes: number of processes for THetA to use
+		bounds_only: flag specifying to write out the bounds then exit
 	"""
 
 	parser = argparse.ArgumentParser()
@@ -78,7 +79,7 @@ def parse_arguments():
 			required=False)
 	parser.add_argument("--HEURISTIC_UB", metavar="UB", type=float,default=1.1, \
 			required=False)
-
+	parser.add_argument("--BOUNDS_ONLY", action='store_true', default=False, required=False)
 	args = parser.parse_args()
 
 	filename = args.QUERY_FILE
@@ -118,6 +119,8 @@ def parse_arguments():
 
 	heuristic_ub = args.HEURISTIC_UB
 
+	bounds_only = args.BOUNDS_ONLY
+
 	
 	print "================================================="
 	print "Arguments are:"
@@ -135,10 +138,12 @@ def parse_arguments():
 		print "\tHeuristic Lower Bound:", heuristic_lb
 		print "\tHeuristic Upper Bound:", heuristic_ub
 	print "\tNum Processes:", num_processes
+	print "\tBounds Only:", bounds_only
 	print "================================================="
 	
 	return filename,n,k,tau,directory,prefix,max_normal,bound_heuristic, \
-			normal_bound_heuristic, heuristic_lb, heuristic_ub, num_processes
+			normal_bound_heuristic, heuristic_lb, heuristic_ub, num_processes, \
+			bounds_only
 
 
 def read_interval_file(filename):

@@ -403,11 +403,23 @@ There are a variety of optional parameters that can be passed to THetA
 				    Using more processes increases memory usage, but can also 
 					provide significant speed-ups.  
 
-		Usage: bin/RunTHetA interval_count_file --NUM_PROCESSES
+		Usage: bin/RunTHetA interval_count_file --NUM_PROCESSES 8
 
 		Default: 1
 
 -------------------------------------------------------------------------------
+
+(9) --BOUNDS_ONLY (Boolean Flag) -- Calculates the bounds with the specified 
+					heuristic values and writes out a .withBounds file without 
+					running the rest of the program. 
+					
+
+		Usage: bin/RunTHetA interval_count_file --BOUNDS_ONLY
+
+		Default: False
+
+-------------------------------------------------------------------------------
+
 
 7) OPTIONAL PREPROCESSING SCRIPTS==============================================
 

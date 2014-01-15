@@ -179,7 +179,7 @@ def main():
 	#  Read in arguments and data file
 	##
 	filename, n, k, tau, directory, prefix, max_normal, bound_heuristic, \
-		normal_bound_heuristic,heuristic_lb, heuristic_ub, num_processes= parse_arguments()
+		normal_bound_heuristic,heuristic_lb, heuristic_ub, num_processes, bounds_only = parse_arguments()
 	print "Reading in query file..."
 	tumorCounts, normCounts, m, upper_bounds, lower_bounds = read_interval_file(filename)
 
@@ -204,6 +204,7 @@ def main():
 			sorted_index)
 
 	write_out_bounds(directory, prefix, filename, upper_bounds, lower_bounds)
+	if bounds_only: sys.exit(0)
 	###
 	#  Initialize optimizer and enumerator 
 	###
