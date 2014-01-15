@@ -203,6 +203,7 @@ def main():
 		if lower_bounds is not None: lower_bounds = sort_by_sorted_index(lower_bounds,\
 			sorted_index)
 
+	write_out_bounds(directory, prefix, filename, upper_bounds, lower_bounds)
 	###
 	#  Initialize optimizer and enumerator 
 	###
@@ -220,7 +221,6 @@ def main():
 	###
 	upper_bounds = reverse_sort_list(upper_bounds, sorted_index)
 	lower_bounds = reverse_sort_list(lower_bounds, sorted_index)
-	write_out_bounds(directory, prefix, filename, upper_bounds, lower_bounds)
 	write_out_result(directory, prefix, best)	
 
 import time
