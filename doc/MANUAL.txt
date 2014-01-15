@@ -192,15 +192,16 @@ We also provide a matlab script for visualization of results.
 -------------------------------------------------------------------------------
 
 		
-5) EXAMPLE (Normal and one Tumor) =============================================
+5) COMPLETE EXAMPLE ============= =============================================
+(i) Normal and one tumor
 
 	bin/RunTHetA example/PD4120a.intervals
 
 Runs the efficient n=2 algorithm and generally considers a max copy number 
 of 3 (default value).  By default, the algorithm uses a bound heuristic to set 
 reasonable lower and upper bounds on the copy number considered for each 
-interval. For this input, the program will take ~5 minutes to complete and 
-will produce two files: 
+interval. For this input, the program will take ~5 minutes to complete using
+a single process  and will produce two files: 
 
 File 1: example/PD4120a.results 
 
@@ -221,6 +222,32 @@ start_1_570001:end_1_106068800  1       570001  106068800       69021236        
 start_1_106068801:end_1_110651200       1       106068801       110651200       4411350 817653  2       0
 start_1_110651201:end_1_112383500       1       110651201       112383500       2143221 317518  4       2
 start_1_112383501:end_1_121485200       1       112383501       121485200       9176462 1698888 2       0
+
+(ii) Normal and 2 tumor subpopulations
+
+	bin/RunTHetA -n 3 example/sim_1.intervals
+
+Runs the n=3 algorithm. For this input, the program will take ~2 minutes to 
+complete using a single process and will produce two files:
+
+File 1: example/sim_1.results
+#NLL    mu      C       p*
+260241832.625   0.357968429254,0.399810188555,0.242221382191    1,1:2,1:1,1:2,2:2,1:1,1:1,1:1,1:3,2:2,3:1,2:2,1       0.0674762141757,0.120329338815,0.0686176716875,0.135578065971,0.104730452879,0.0763374388574,0.0606065486584,0.0654017231171,0.0784305489811,0.0893775273897,0.0575228817513,0.0755915877174
+
+File 2: example/sim_1.withBounds
+#ID     chrm    start   end     tumorCount      normalCount     UpperBound      LowerBound
+1       1       142600000       249250621       7447614 8818166 2       1
+2       2       102700000       243199373       12855772        12148554        2       1
+3       3       98300000        198022430       7124815 8967338 2       1
+4       4       59500000        191154276       14684657        12030306        2       1
+5       5       58900000        180915260       10999282        10573677        2       1
+6       6       63400000        171115067       7985575 9976200 2       1
+7       7       67000000        159138663       6371735 7920400 2       1
+8       8       52200000        146364022       7049192 8547060 2       1
+9       9       65900000        141213431       8486992 5799968 3       2
+10      10      46100000        135534747       9208074 7074033 3       2
+11      11      59900000        135006516       6233254 6379496 2       1
+12      12      46400000        133851895       7907416 7631792 2       1
 
 -------------------------------------------------------------------------------
 
