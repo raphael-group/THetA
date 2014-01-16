@@ -80,6 +80,7 @@ def parse_arguments():
 	parser.add_argument("--HEURISTIC_UB", metavar="UB", type=float,default=1.1, \
 			required=False)
 	parser.add_argument("--BOUNDS_ONLY", action='store_true', default=False, required=False)
+	parser.add_argument("--TIME_ESTIMATE", action='store_true', default=False, required=False)
 	args = parser.parse_args()
 
 	filename = args.QUERY_FILE
@@ -121,6 +122,7 @@ def parse_arguments():
 
 	bounds_only = args.BOUNDS_ONLY
 
+	time_estimate = args.TIME_ESTIMATE
 	
 	print "================================================="
 	print "Arguments are:"
@@ -130,7 +132,7 @@ def parse_arguments():
 	print "\ttau:", tau
 	print "\tOutput Directory:", directory
 	print "\tOutput Prefix:", prefix
-	print "\tMax Normal:", max_normal
+	if n == 2: print "\tMax Normal:", max_normal
 	if bound_heuristic is not False:
 		print "\tBound Heuristic:", bound_heuristic
 	if normal_bound_heuristic is not False:
@@ -138,12 +140,13 @@ def parse_arguments():
 		print "\tHeuristic Lower Bound:", heuristic_lb
 		print "\tHeuristic Upper Bound:", heuristic_ub
 	print "\tNum Processes:", num_processes
-	print "\tBounds Only:", bounds_only
+	if bounds_only: print "\tBounds Only:", bounds_only
+	if time_estimate: print "\tTime Estimate:", time_estimate
 	print "================================================="
 	
 	return filename,n,k,tau,directory,prefix,max_normal,bound_heuristic, \
 			normal_bound_heuristic, heuristic_lb, heuristic_ub, num_processes, \
-			bounds_only
+			bounds_only, time_estimate
 
 
 def read_interval_file(filename):
