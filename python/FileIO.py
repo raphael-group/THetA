@@ -240,7 +240,7 @@ def write_out_result(directory, prefix, results):
 		f.write(mu_str)
 		f.write(C_str)
 		f.write(val_str)
-		f.write("\n\n")
+		f.write("\n")
 	f.close()
 
 def write_out_bounds(directory, prefix, inputFile, upper_bounds, lower_bounds):
