@@ -176,6 +176,9 @@ def do_optimization_single(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 
 def time_estimate(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 		    max_normal, sorted_index, num_processes):
+	"""
+		Estimates the runtime with the specified bounds and parameters
+	"""
 
 	print "Estimating Runtime. This may take a few minutes for large numbers of intervals."
 	if n is 3 and m > 30:
@@ -199,19 +202,16 @@ def time_estimate(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 			end = time.clock()
 			avgVal = float(end-start)/TEST_NUM
 			dayCount = (86400 * num_processes / avgVal) * 1.25
-			print dayCount
 		count += 1
 		if dayCount > 0 and count > dayCount:
-			print "With the current parameters, the estimated runtime is greater than a day. We suggest reducing the number of intervals or increasing the number of processes before running. Exiting..."
+			print "With the current parameters, the estimated runtime is greater than a day. We suggest reducing the number of intervals, adding bounds or increasing the number of processes before re-running."
+			return
 
 	seconds = count * (float(end-start)/TEST_NUM) / num_processes
 	print "Estimated Total Time:",
 	if seconds < 60: print int(seconds + .5), "seconds"
 	elif seconds < 3600: print int((seconds/60)+.5) , "minutes"
 	else: print int((seconds/3600) + .5), "hours"
-
-
-	
 
 def main():
 	###
@@ -243,10 +243,11 @@ def main():
 		if lower_bounds is not None: lower_bounds = sort_by_sorted_index(lower_bounds,\
 			sorted_index)
 
+	write_out_bounds(directory, prefix, filename, upper_bounds, lower_bounds)
+	if bounds_only: sys.exit(0)
+
 	if estimate_time: 
 		time_estimate(n,m,k,tau,lower_bounds,upper_bounds,r,rN,max_normal,sorted_index, num_processes)
-	if (not estimate_time) or bounds_only: write_out_bounds(directory, prefix, filename, upper_bounds, lower_bounds)
-	if estimate_time or bounds_only: sys.exit(0)
 	###
 	#  Initialize optimizer and enumerator 
 	###
@@ -268,8 +269,5 @@ def main():
 
 import time
 if __name__ == '__main__':
-	start = time.clock()
 	main()
-	end = time.clock()
-	print "Elapsed time:", end - start
 

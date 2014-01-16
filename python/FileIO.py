@@ -80,7 +80,7 @@ def parse_arguments():
 	parser.add_argument("--HEURISTIC_UB", metavar="UB", type=float,default=1.1, \
 			required=False)
 	parser.add_argument("--BOUNDS_ONLY", action='store_true', default=False, required=False)
-	parser.add_argument("--TIME_ESTIMATE", action='store_true', default=False, required=False)
+	parser.add_argument("--NO_TIME_ESTIMATE", action='store_true', default=False, required=False)
 	args = parser.parse_args()
 
 	filename = args.QUERY_FILE
@@ -122,7 +122,7 @@ def parse_arguments():
 
 	bounds_only = args.BOUNDS_ONLY
 
-	time_estimate = args.TIME_ESTIMATE
+	time_estimate = args.NO_TIME_ESTIMATE
 	
 	print "================================================="
 	print "Arguments are:"
@@ -146,7 +146,7 @@ def parse_arguments():
 	
 	return filename,n,k,tau,directory,prefix,max_normal,bound_heuristic, \
 			normal_bound_heuristic, heuristic_lb, heuristic_ub, num_processes, \
-			bounds_only, time_estimate
+			bounds_only, not(time_estimate)
 
 
 def read_interval_file(filename):

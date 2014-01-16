@@ -94,8 +94,7 @@ BIC-Seq can be obtained from: http://compbio.med.harvard.edu/Supplements/PNAS11.
 
 	./install
 
-     This will compile the Java code (mixture of normal and ONE tumor 
-     population) and will create the following executables.
+     This will compile the Java and will create the following executables.
 
 	bin/RunTHetA
 	bin/runBICSeqToTHetA.jar	
@@ -134,7 +133,7 @@ is tab delimited containing the following fields:
 
 	ADDITIONAL NOTES for more than one tumor population: 
 	In addition to specifying lower and upper bounds on the the copy numbers
-	for each interval, it is strongly recommended that only a subset ( <15 )
+	for each interval, it is strongly recommended that only a subset ( <25 )
 	intervals be considered when running with multiple tumor subpopulations
 	due to runtime.
 
@@ -168,8 +167,7 @@ is tab delimited containing the following fields:
 		   inferred tumor interval copy numbers
 		4. p* (Double, ... ,Double) - comma delimted list of inferred 
 		   multinomial parameter \widehat{C\mu}
-
-
+	
 3. Visualize results:
 
 We also provide a matlab script for visualization of results.
@@ -417,6 +415,15 @@ There are a variety of optional parameters that can be passed to THetA
 		Usage: bin/RunTHetA interval_count_file --BOUNDS_ONLY
 
 		Default: False
+
+-------------------------------------------------------------------------------
+
+(10) --NO_TIME_ESTIMATE (Boolean Flag) -- Skips estimating time before running
+		program
+
+		Usage: bin/RunTHetA interval_count_file --TIME_ESTIMATE
+
+		Default: True
 
 -------------------------------------------------------------------------------
 
