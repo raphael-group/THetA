@@ -149,9 +149,6 @@ class Enumerator:
 	###
 	
 	def _generate_next_C_3(self):
-		print self.lower_bound
-		print self.upper_bound
-
 		C = [0]*self.m
 		count = 0
 		for i in range(len(self.rows)):
