@@ -15,5 +15,8 @@ Beta_0.5 (September 2013) - Release includes new version of source code in pytho
 -------------------------------------------------------------------------------
 Beta_0.51 (October 2013) - Added multiprocessing capability
 -------------------------------------------------------------------------------
-Beta_0.52 (January 2014) - Added some error messages and documentation
+Beta_0.52 (January 2014) - (1) Changed enumeration strategy for n=3.
+			(2) Added time estimates
+			(3) Added example data for n=3
+			(4) Expanded error messages and documentation
 
