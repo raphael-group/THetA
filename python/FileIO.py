@@ -51,6 +51,8 @@ def parse_arguments():
 		heuristic_ub: upper bound for normal bound heuristic
 		num_processes: number of processes for THetA to use
 		bounds_only: flag specifying to write out the bounds then exit
+		time_estimate: flag to include the time estimate
+		multi_event: flag to include rows with multi-events
 	"""
 
 	parser = argparse.ArgumentParser()
@@ -81,6 +83,7 @@ def parse_arguments():
 			required=False)
 	parser.add_argument("--BOUNDS_ONLY", action='store_true', default=False, required=False)
 	parser.add_argument("--NO_TIME_ESTIMATE", action='store_true', default=False, required=False)
+	parser.add_argument("--MULTI_EVENT", action='store_true', default=False, required=False)
 	args = parser.parse_args()
 
 	filename = args.QUERY_FILE
@@ -122,7 +125,10 @@ def parse_arguments():
 
 	bounds_only = args.BOUNDS_ONLY
 
-	time_estimate = args.NO_TIME_ESTIMATE
+	no_time_estimate = args.NO_TIME_ESTIMATE
+
+	multi_event = args.MULTI_EVENT
+	
 	
 	print "================================================="
 	print "Arguments are:"
@@ -141,12 +147,12 @@ def parse_arguments():
 		print "\tHeuristic Upper Bound:", heuristic_ub
 	print "\tNum Processes:", num_processes
 	if bounds_only: print "\tBounds Only:", bounds_only
-	if time_estimate: print "\tTime Estimate:", time_estimate
+	print "\tTime Estimate:", not(no_time_estimate)
 	print "================================================="
 	
 	return filename,n,k,tau,directory,prefix,max_normal,bound_heuristic, \
 			normal_bound_heuristic, heuristic_lb, heuristic_ub, num_processes, \
-			bounds_only, not(time_estimate)
+			bounds_only, not(no_time_estimate), multi_event
 
 
 def read_interval_file(filename):

@@ -27,7 +27,7 @@
 import numpy
 
 class Enumerator:
-	def __init__(self, n, m, k, tau, upper_bound = None, lower_bound = None):
+	def __init__(self, n, m, k, tau, lower_bound = None, upper_bound = None, multi_event = False):
 		"""
 		Initialize Enumerator
 
@@ -44,6 +44,7 @@ class Enumerator:
 		self.k = k
 		self.tau = tau
 		self.iter = [0]*m
+		self.allow_multi_event = True
 		
 		self.lower_bound, self.upper_bound = self._check_bound_order(lower_bound,upper_bound)
 
@@ -239,6 +240,11 @@ class Enumerator:
 	def _is_valid_edge(self, row1, row2):
 		if row1 == row2: return True
 		else: return any([i < j for i,j in zip(row1,row2)])
+
+	def _is_valid_row(self, row):
+		# Checks for multi-event cases
+		return row[0] == row[1] or row[0] == self.tau or row[1] == self.tau
+
 	
 	def _create_graph(self):
 		"""
@@ -249,10 +255,13 @@ class Enumerator:
 		start = [0,0]
 		row = [0,0]
 		rows = [row[:],]
+		badCount = 0
 		while True:
 			row = self._add_one(row, self.k)
 			if start == row: break
-			rows.append(list(row))
+			if self.allow_multi_event or self._is_valid_row(row):
+				rows.append(list(row))
+
 	
 		edges = []
 		for i, row in enumerate(rows):
