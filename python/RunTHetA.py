@@ -221,7 +221,7 @@ def main():
 		normal_bound_heuristic,heuristic_lb, heuristic_ub, num_processes, \
 		bounds_only, estimate_time = parse_arguments()
 	print "Reading in query file..."
-	tumorCounts, normCounts, m, upper_bounds, lower_bounds = read_interval_file(filename)
+	lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds = read_interval_file(filename)
 
 	###
 	#  Process/sort read depth vectors and calculate bounds if necessary

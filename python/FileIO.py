@@ -173,6 +173,7 @@ def read_interval_file(filename):
 	norm_counts = []
 	upper_bounds = []
 	lower_bounds = []
+	lengths = []
 	numLine = 0
 	for l in lines:
 		line = l.strip().replace(" ","\t").split("\t")	
@@ -180,11 +181,19 @@ def read_interval_file(filename):
 		if len(line) < 6 or len(line) > 8:
 			sys.stderr.write("Invalid input file format in interval file line #"+str(numLine)+":\n" + str(l)+"\nToo few/many columns. Exiting...\n")
 			sys.exit(1)
+		# Read Lengths
+		start = int(line[2])
+		end = int(line[3])
+		lengths.append(end-start)
+		
+		# Read Tumor Counts
 		if 0 in [int(line[4]), int(line[5])]:
 			sys.stderr.write("Invalid entry in interval file line #"+str(numLine)+":\n" + str(l) + "Number of reads for each interval must be greater than 0. Exiting...\n") 
 			sys.exit(1)
 		tumor_counts.append(int(line[4]))
 		norm_counts.append(int(line[5]))
+
+		# Read Bounds
 		if len(line) > 6:
 			upper_boundsSupplied = True
 			upper_bounds.append(int(line[6]))
@@ -199,7 +208,7 @@ def read_interval_file(filename):
 
 	if len(upper_bounds) == 0: upper_bounds = None	
 	if len(lower_bounds) == 0: lower_bounds = None	
-	return (tumor_counts, norm_counts, m, upper_bounds, lower_bounds)
+	return (lengths, tumor_counts, norm_counts, m, upper_bounds, lower_bounds)
 
 def write_out_result(directory, prefix, results):
 	"""
