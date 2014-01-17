@@ -175,7 +175,7 @@ def read_interval_file(filename):
 	lower_bounds = []
 	numLine = 0
 	for l in lines:
-		line = l.split()	
+		line = l.strip().replace(" ","\t").split("\t")	
 		numLine += 1
 		if len(line) < 6 or len(line) > 8:
 			sys.stderr.write("Invalid input file format in interval file line #"+str(numLine)+":\n" + str(l)+"\nToo few/many columns. Exiting...\n")
