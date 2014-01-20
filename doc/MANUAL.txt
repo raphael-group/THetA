@@ -421,9 +421,21 @@ There are a variety of optional parameters that can be passed to THetA
 (10) --NO_TIME_ESTIMATE (Boolean Flag) -- Skips estimating time before running
 		program
 
-		Usage: bin/RunTHetA interval_count_file --TIME_ESTIMATE
+		Usage: bin/RunTHetA interval_count_file --NO_TIME_ESTIMATE
 
-		Default: True
+		Default: False
+
+-------------------------------------------------------------------------------
+
+(11) --MULTI_EVENT (Boolean Flag) -- Allows multiple distinct copy number events
+					to be predicted for a single interval.
+					If not set, a perfect phylogeny assumption
+					is made for all copy number events over 
+					all tumor populations.
+
+		Usage: bin/RunTHetA interval_count_file --MULTI_EVENT
+
+		Default: False
 
 -------------------------------------------------------------------------------
 
