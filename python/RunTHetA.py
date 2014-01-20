@@ -94,15 +94,14 @@ def find_mins(best):
 	return true_best
 
 def do_optimization(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
-		    max_normal, sorted_index, max_processes):
+		    max_normal, sorted_index, max_processes, multi_event):
 	"""
 	Performs the optimization for the given parameters with max_proccesses
 	number of processes
 	Returns a list of the best C matrices and associated mu values 
 	and likelihoods
 	"""
-	enum = Enumerator(n, m, k, tau, lower_bound=lower_bounds, \
-			    upper_bound=upper_bounds)
+	enum = Enumerator(n, m, k, tau, lower_bounds, upper_bounds, multi_event)
 	opt = Optimizer(r, rN, m, n,tau, upper_bound=max_normal)
 	MAX_QUEUE_SIZE = int(10E6)
 	queue = Queue(MAX_QUEUE_SIZE) #Task queue for the processes
@@ -137,15 +136,14 @@ def do_optimization(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 	return best
 
 def do_optimization_single(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
-		    max_normal, sorted_index):
+		    max_normal, sorted_index, multi_event):
 	"""
 	Performs the optimization for the given parameters with a single process
 	Returns a list of the best C matrices and associated mu values 
 	and likelihoods
 	"""
 
-	enum = Enumerator(n, m, k, tau, lower_bound=lower_bounds, \
-			    upper_bound=upper_bounds)
+	enum = Enumerator(n, m, k, tau, lower_bounds, upper_bounds, multi_event)
 	opt = Optimizer(r, rN, m, n,tau, upper_bound=max_normal)
 	min_likelihood = float("inf")	
 	best = []
@@ -175,7 +173,7 @@ def do_optimization_single(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 	return best
 
 def time_estimate(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
-		    max_normal, sorted_index, num_processes):
+		    max_normal, sorted_index, num_processes, multi_event):
 	"""
 		Estimates the runtime with the specified bounds and parameters
 	"""
@@ -186,8 +184,7 @@ def time_estimate(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 		return
 
 	TEST_NUM=20
-	enum = Enumerator(n, m, k, tau, lower_bound=lower_bounds, \
-			    upper_bound=upper_bounds)
+	enum = Enumerator(n, m, k, tau, lower_bounds, upper_bounds, multi_event)
 	opt = Optimizer(r, rN, m, n,tau, upper_bound=max_normal)
 
 	C = enum.generate_next_C()
@@ -207,6 +204,9 @@ def time_estimate(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 			print "With the current parameters, the estimated runtime is greater than a day. We suggest reducing the number of intervals, adding bounds or increasing the number of processes before re-running."
 			return
 
+	if count == 0:
+		print "Error: No valid Copy Number Profiles exist for these intervals within the bounds specified. Exiting..."
+		sys.exit(1)
 	seconds = count * (float(end-start)/TEST_NUM) / num_processes
 	print "Estimated Total Time:",
 	if seconds < 60: print int(seconds + .5), "seconds"
@@ -247,7 +247,7 @@ def main():
 	if bounds_only: sys.exit(0)
 
 	if estimate_time: 
-		time_estimate(n,m,k,tau,lower_bounds,upper_bounds,r,rN,max_normal,sorted_index, num_processes)
+		time_estimate(n,m,k,tau,lower_bounds,upper_bounds,r,rN,max_normal,sorted_index, num_processes, multi_event)
 	###
 	#  Initialize optimizer and enumerator 
 	###
@@ -255,10 +255,10 @@ def main():
 
 	if num_processes == 1:
 		best = do_optimization_single(n,m,k,tau,lower_bounds,upper_bounds,
-			r,rN,max_normal,sorted_index)
+			r,rN,max_normal,sorted_index, multi_event)
 	else:
 		best = do_optimization(n, m, k, tau, lower_bounds, upper_bounds, r, rN,\
-			    max_normal, sorted_index, num_processes)
+			    max_normal, sorted_index, num_processes, multi_event)
 
 	###
 	#  Write results out to file
