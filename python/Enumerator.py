@@ -148,6 +148,12 @@ class Enumerator:
 	###
 	#   n = 3
 	###
+
+	def get_graph(self):
+		"""
+		Used for time estimate for n=3
+		"""
+		return self.rows, self.edges
 	
 	def _generate_next_C_3(self):
 		C = [0]*self.m
@@ -160,7 +166,7 @@ class Enumerator:
 			switch = False
 			if row[0] > row[1]: continue
 			elif row[0] == row[1]: switch = True
-			#else: switch = False
+			else: switch = False
 	
 			C[0] = i
 			for val in self._generate_next_C_3_recurse(C, 0, float("-inf"), float("inf"), switch):

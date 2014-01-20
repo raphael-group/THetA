@@ -34,51 +34,39 @@ def time_estimate(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 		Estimates the runtime with the specified bounds and parameters
 	"""
 
-	print "Estimating Runtime. This may take a few minutes for large numbers of intervals."
+
+	print "Estimating time..."
+	if n is 3: 
+		print "NOTE: This may be an overestimate, particularly if the interval bounds provided are wide, but should be within an order of magnitude."
 	if n is 3 and m > 30:
-		print "With n=3 and", m, "intervals, the runtime would likely be greater than several days. Try reducing the number of intervals below 25"
+		print "Estimated Total Time: With n=3 and", m, "intervals, the runtime would likely be greater than several days. Try reducing the number of intervals below 25"
 		return
 
 	enum = Enumerator(n, m, k, tau, lower_bounds, upper_bounds, multi_event)
 	opt = Optimizer(r, rN, m, n,tau, upper_bound=max_normal)
 
+
 	if n == 2:
 		TEST_NUM=100
-		C = enum.generate_next_C()
-		if C is False:
-			print "Error: No valid Copy Number Profiles exist for these intervals within the bounds specified. Exiting..."
-			sys.exit(1)
-		start = time.clock()
-		for i in range(TEST_NUM):
-			try:
-				soln = opt.solve(C)
-				C = enum.generate_next_C()
-			except:	break
-		end = time.clock()
 		count = count_number_matrices_2(m,upper_bounds, lower_bounds)
 	else:
 		TEST_NUM=20
-		C = enum.generate_next_C()
-		count = 1
-		start = time.clock()
-		dayCount = 0
-		while C is not False:
-			try:
-				C = enum.generate_next_C()
-				if count < TEST_NUM:
-					soln = opt.solve(C)
-				if count == TEST_NUM:
-					end = time.clock()
-					avgVal = float(end-start)/TEST_NUM
-					dayCount = (86400 * num_processes / avgVal) * 1.25
-				count += 1
-				if dayCount > 0 and count > dayCount:
-					print "With the current parameters, the estimated runtime is greater than a day. We suggest reducing the number of intervals, adding bounds or increasing the number of processes before re-running."
-					return
-			except: break
-		if count == 0:
-			print "Error: No valid Copy Number Profiles exist for these intervals within the bounds specified. Exiting..."
-			sys.exit(1)
+		count = count_number_matrices_3(m,upper_bounds, lower_bounds, enum)
+	C = enum.generate_next_C()
+	if C is False:
+		print "Error: No valid Copy Number Profiles exist for these intervals within the bounds specified. Exiting..."
+		sys.exit(1)
+	start = time.clock()
+	for i in range(TEST_NUM):
+		try:
+			soln = opt.solve(C)
+			C = enum.generate_next_C()
+		except:	break
+
+	enum = Enumerator(n, m, k, tau, lower_bounds, upper_bounds, multi_event)
+	C = enum.generate_next_C()
+		
+	end = time.clock()
 	avgVal = float(end-start)/TEST_NUM
 	seconds = count * (float(end-start)/TEST_NUM) / num_processes
 	print "Estimated Total Time:",
@@ -108,4 +96,35 @@ def count_number_matrices_2(m, upper_bounds, lower_bounds):
 					possValuesNew[k] += v
 		possValues = possValuesNew
 	return sum(possValues)
+
+def count_number_matrices_3(m, upper_bounds, lower_bounds, enum):
+	"""
+	Calculates the number of possible matrices for n=3
+	Unlike for n=2, this isn't an exact value, and is probably 
+	an overestimate
+	It accounts for matrices with columns switched by just 
+	dividing the final value in half (when the real value is 
+	slightly over half), and it doesn't take into account at all
+	matrices which would be filtered out because there aren't valid mu values.
+	"""
+
+	rows, edges = enum.get_graph()
+	rowBounds = [(min(row), max(row)) for row in rows]
+
+	upper_bounds = [int(v) for v in upper_bounds]
+	lower_bounds = [int(v) for v in lower_bounds]
+	possValues = [0]*(len(rows))
+	for i in range(len(rows)):
+		if rowBounds[i][0] >= lower_bounds[0] and rowBounds[i][1] <= upper_bounds[0]:
+			possValues[i] += 1
+	for i in range(m-1):
+		possValuesNew = [0]*(len(rows))
+		for j, v in enumerate(possValues):
+			if v > 0:
+				for k in edges[j]:
+					if all([a >= lower_bounds[i+1] and a <= upper_bounds[i+1] for a in rows[k]]):
+						possValuesNew[k] += v
+		possValues = possValuesNew
+
+	return sum(possValues)/2
 
