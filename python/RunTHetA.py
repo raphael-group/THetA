@@ -219,7 +219,7 @@ def main():
 	##
 	filename, n, k, tau, directory, prefix, max_normal, bound_heuristic, \
 		normal_bound_heuristic,heuristic_lb, heuristic_ub, num_processes, \
-		bounds_only, estimate_time = parse_arguments()
+		bounds_only, estimate_time,multi_event = parse_arguments()
 	print "Reading in query file..."
 	lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds = read_interval_file(filename)
 
