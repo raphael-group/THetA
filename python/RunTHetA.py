@@ -86,6 +86,7 @@ def find_mins(best):
 	min_likelihood = float('inf')
 	true_best = []
 	for solns in best:
+		if len(solns) == 0: continue
 		likelihood = solns[0][2]
 		if isClose([min_likelihood], [solns[0][2]]):
 			true_best += solns
@@ -167,7 +168,6 @@ def do_optimization_single(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 				best = [(C_new, mu, likelihood, vals)]
 				min_likelihood = likelihood
 		C = enum.generate_next_C()
-
 	if count == 0: 
 		print "Error: No valid Copy Number Profiles exist for these intervals within the bounds specified. Exiting..."
 		sys.exit(1)
@@ -219,7 +219,9 @@ def main():
 	else:
 		best = do_optimization(n, m, k, tau, lower_bounds, upper_bounds, r, rN,\
 			    max_normal, sorted_index, num_processes, multi_event)
-
+	if best == []:
+		print "Error: Maximum Likelihood Solution not found within given bounds."
+		exit(1)
 	###
 	#  Write results out to file
 	###
