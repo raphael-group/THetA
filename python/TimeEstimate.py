@@ -63,9 +63,6 @@ def time_estimate(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 			C = enum.generate_next_C()
 		except:	break
 
-	enum = Enumerator(n, m, k, tau, lower_bounds, upper_bounds, multi_event)
-	C = enum.generate_next_C()
-		
 	end = time.clock()
 	avgVal = float(end-start)/TEST_NUM
 	seconds = count * (float(end-start)/TEST_NUM) / num_processes
