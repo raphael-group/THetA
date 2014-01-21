@@ -258,7 +258,7 @@ def write_out_result(directory, prefix, results):
 		f.write("\n")
 	f.close()
 
-def write_out_bounds(directory, prefix, inputFile, upper_bounds, lower_bounds):
+def write_out_bounds(directory, prefix, inputFile, upper_bounds, lower_bounds, order=None):
 	"""
 	Writes out a copy of the input file with the bounds included
 
@@ -287,12 +287,24 @@ def write_out_bounds(directory, prefix, inputFile, upper_bounds, lower_bounds):
 	# Header
 	f.write("#ID\tchrm\tstart\tend\ttumorCount\tnormalCount\tUpperBound\tLowerBound\n")
 	
-	for i,line in enumerate(lines):
-		f.write(line.strip())	
-		if length == 6:				# Input file does not contain upper bounds
-			  f.write("\t" + str(int(upper_bounds[i])))
-		if length in [6,7]:			# Input file does not contain lower bounds
-			  f.write("\t" + str(int(lower_bounds[i])))
-		f.write("\n")
+	if order is not None:
+		for val in order:
+			line = lines[val]
+			f.write(line.strip())	
+			if length == 6:				# Input file does not contain upper bounds
+				f.write("\t" + str(int(upper_bounds[i])))
+			if length in [6,7]:			# Input file does not contain lower bounds
+				 f.write("\t" + str(int(lower_bounds[i])))
+			f.write("\n")
+
+	else:	
+		for i,line in enumerate(lines):
+			f.write(line.strip())	
+			if length == 6:				# Input file does not contain upper bounds
+				f.write("\t" + str(int(upper_bounds[i])))
+			if length in [6,7]:			# Input file does not contain lower bounds
+				f.write("\t" + str(int(lower_bounds[i])))
+			f.write("\n")
 
 	f.close()
+
