@@ -24,6 +24,7 @@
  # @author Layla Oesper, Ahmad Mahmoody, Benjamin J. Raphael and Gryte Satas
  ###
 
+from CalcAllC import *
 from FileIO import *
 from DataTools import *
 from Misc import *
@@ -122,7 +123,6 @@ def do_optimization(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 		print "Error: No valid Copy Number Profiles exist for these intervals within the bounds specified. Exiting..."
 		sys.exit(1)
 
-
 	# Send STOP signal to all processes
 	for i in range(max_processes-1):
 		queue.put(0)
@@ -183,11 +183,20 @@ def main():
 	print "Reading in query file..."
 	lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds = read_interval_file(filename)
 
+	DO_TOP = True
+	if DO_TOP:
+		topNum = 75
+		allM = m
+		allLengths, allTumor, allNormal, allUpperBounds, allLowerBounds = (lengths, tumorCounts, normCounts, upper_bounds, lower_bounds)
+		order, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds = get_top_intervals_by_length(lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds, topNum)
+		m = min(topNum, len(allLengths))
+		print len(order), len(lengths)
 	###
 	#  Process/sort read depth vectors and calculate bounds if necessary
 	###
 	print "Preprocessing data..."
 	r,rN,sorted_index = sort_r(normCounts,tumorCounts)
+	print len(r), len(rN), len(sorted_index)
 
 	if bound_heuristic is not False or upper_bounds is None and lower_bounds is None:
 		if bound_heuristic is False: bound_heuristic = 0.5
@@ -203,7 +212,10 @@ def main():
 		if lower_bounds is not None: lower_bounds = sort_by_sorted_index(lower_bounds,\
 			sorted_index)
 
-	write_out_bounds(directory, prefix, filename, upper_bounds, lower_bounds)
+	if DO_TOP:
+		write_out_bounds(directory, prefix, filename, upper_bounds, lower_bounds, order)
+	else: write_out_bounds(directory, prefix, filename, upper_bounds, lower_bounds)
+
 	if bounds_only: sys.exit(0)
 
 	if estimate_time: 
@@ -222,6 +234,9 @@ def main():
 	if best == []:
 		print "Error: Maximum Likelihood Solution not found within given bounds."
 		exit(1)
+
+	if DO_TOP:
+		calc_all_c(best[0], r,m, allM, order, allTumor, allNormal, allLowerBounds, allUpperBounds, tau)
 	###
 	#  Write results out to file
 	###
