@@ -286,7 +286,8 @@ def write_out_bounds(directory, prefix, inputFile, upper_bounds, lower_bounds, o
 	
 	# Header
 	f.write("#ID\tchrm\tstart\tend\ttumorCount\tnormalCount\tUpperBound\tLowerBound\n")
-	
+
+	order.sort()
 	if order is not None:
 		for val in order:
 			line = lines[val]
