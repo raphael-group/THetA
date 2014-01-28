@@ -26,12 +26,19 @@
 
 import numpy
 
+
+def setTotalReadCounts(r, rN):
+	global sum_r, sum_rN
+	sum_r = float(r)
+	sum_rN = float(rN)
+
 def calculate_bounds_heuristic(x,r,rN,m,tau,k):
 	print "Calculating bounds using bound heuristic"
+	global sum_r, sum_rN
 	# Normalize tumor and normal counts
-	sum_r = sum(r)
+	#sum_r = sum(r)
 	r_norm = [float(i)/sum_r for i in r]
-	sum_rN = sum(rN)
+	#sum_rN = sum(rN)
 	rN_norm = [float(i)/sum_rN for i in rN]
 
 	ratios = [(t/n) for (t,n) in zip(r_norm,rN_norm)] 
@@ -51,10 +58,11 @@ def calculate_bounds_heuristic(x,r,rN,m,tau,k):
 
 def calculate_bounds_normal_heuristic(normal_bound_heuristic, heuristic_lb, heuristic_ub, r, rN, m, k):
 	print "Calculating bounds using normal bound heuristic"
+	global sum_r, sum_rN
 	# Normalize tumor and normal counts
-	sum_r = sum(r)
+	#sum_r = sum(r)
 	r_norm = [float(i)/sum_r for i in r]
-	sum_rN = sum(rN)
+	#sum_rN = sum(rN)
 	rN_norm = [float(i)/sum_rN for i in rN]
 
 	ratios = [(t/n) for (t,n) in zip(r_norm,rN_norm)] 
@@ -84,10 +92,12 @@ def sort_r(rN, r):
 		rN (list of ints): normal read depth vector
 		r (list of ints): tumor read depth vector
 	"""
-	sum_n = 1.0*sum(rN)
-	sum_t = 1.0*sum(r)
+
+	global sum_r, sum_rN
+	#sum_rN = 1.0*sum(rN)
+	#sum_r = 1.0*sum(r)
 	#ratio is the ratio between rN and r after normalization
-	ratio = [(t*1.0/n)*(sum_n/sum_t) for (n,t) in zip(rN, r)]
+	ratio = [(t*1.0/n)*(sum_rN/sum_r) for (n,t) in zip(rN, r)]
 	#ratioNum just appends the index, so we can keep track of it after sorting
 	#and be able to reverse the sort at the end
 	ratioNum = [(ratio[i],i) for i in range(len(ratio))]

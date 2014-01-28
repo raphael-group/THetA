@@ -193,9 +193,10 @@ def read_interval_file(filename):
 		lengths.append(end-start)
 		
 		# Read Tumor Counts
-		if 0 in [int(line[4]), int(line[5])]:
-			sys.stderr.write("Invalid entry in interval file line #"+str(numLine)+":\n" + str(l) + "Number of reads for each interval must be greater than 0. Exiting...\n") 
-			sys.exit(1)
+#		Intervals with 0 will be filtered out later
+#		if 0 in [int(line[4]), int(line[5])]:
+#			sys.stderr.write("Invalid entry in interval file line #"+str(numLine)+":\n" + str(l) + "Number of reads for each interval must be greater than 0. Exiting...\n") 
+#			sys.exit(1)
 		tumor_counts.append(int(line[4]))
 		norm_counts.append(int(line[5]))
 
@@ -289,7 +290,7 @@ def write_out_bounds(directory, prefix, inputFile, upper_bounds, lower_bounds, o
 
 	order.sort()
 	if order is not None:
-		for val in order:
+		for i,val in enumerate(order):
 			line = lines[val]
 			f.write(line.strip())	
 			if length == 6:				# Input file does not contain upper bounds

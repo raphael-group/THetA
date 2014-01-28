@@ -173,6 +173,12 @@ def do_optimization_single(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 		sys.exit(1)
 	return best
 
+def best_near_max_contamination(best, max_normal):
+	for C, mu, likelihood, vals in best:
+		if abs(max_normal-mu[0]) < .01: return True
+	return False
+
+
 def main():
 	###
 	#  Read in arguments and data file
@@ -185,24 +191,27 @@ def main():
 
 	DO_TOP = True
 	if DO_TOP:
-		topNum = 75
+		topNum = 100
 		allM = m
 		allLengths, allTumor, allNormal, allUpperBounds, allLowerBounds = (lengths, tumorCounts, normCounts, upper_bounds, lower_bounds)
-		order, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds = get_top_intervals_by_length(lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds, topNum)
-		m = min(topNum, len(allLengths))
-		print len(order), len(lengths)
+		order, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds = get_top_intervals_by_length(lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds, topNum, k)
+		m = len(order)
+
+	sum_r = sum(tumorCounts)
+	sum_rN = sum(normCounts)
+	setTotalReadCounts(sum_r, sum_rN)
 	###
 	#  Process/sort read depth vectors and calculate bounds if necessary
 	###
 	print "Preprocessing data..."
 	r,rN,sorted_index = sort_r(normCounts,tumorCounts)
-	print len(r), len(rN), len(sorted_index)
 
 	if bound_heuristic is not False or upper_bounds is None and lower_bounds is None:
 		if bound_heuristic is False: bound_heuristic = 0.5
 
 		upper_bounds,lower_bounds = calculate_bounds_heuristic(float(bound_heuristic),\
 			 r, rN, m, tau, k)
+
 	elif normal_bound_heuristic is not False:
 		upper_bounds,lower_bounds = calculate_bounds_normal_heuristic( \
 			normal_bound_heuristic, heuristic_lb, heuristic_ub, r, rN, m, k)
@@ -235,8 +244,11 @@ def main():
 		print "Error: Maximum Likelihood Solution not found within given bounds."
 		exit(1)
 
-	if DO_TOP:
-		calc_all_c(best[0], r,m, allM, order, allTumor, allNormal, allLowerBounds, allUpperBounds, tau)
+	if n == 2 and best_near_max_contamination(best, max_normal):
+		print "WARNING: At least one of the top solutions is near the upper bound on normal contamination. Further analysis may required as the sample likely falls into one of the following categories:\n\t1. This sample has high normal contamination. Consider re-running with an increased normal contamination upper bound. See --MAX_NORMAL option\n\t2. This sample may not satisfy the assumption that most of the tumor genome retains the normal expected copynumber (e.g. a genome duplication event has occurred). See THetA optional parameters in changing the expected copy number.\n\t3. This sample may not be a good candidate for THetA analysis (i.e. does not contain large copy number aberrations that distinguish populations)."
+
+	#if DO_TOP:
+	#	best = calc_all_c(best, r, rN,m, allM, order, allTumor, allNormal, allLowerBounds, allUpperBounds, tau)
 	###
 	#  Write results out to file
 	###
