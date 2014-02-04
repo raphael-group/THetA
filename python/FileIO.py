@@ -38,6 +38,8 @@ def parse_arguments():
 	
 	Returns:
 		query file: full path to the location of the input file
+		results: for n=3 automatic interval selection, must provide results 
+			of n=2 analysis
 		n: number of subpopulations
 		k: maximum value of k to be considered
 		tau: expected copy number for normal genome
@@ -53,6 +55,9 @@ def parse_arguments():
 		bounds_only: flag specifying to write out the bounds then exit
 		time_estimate: flag to include the time estimate
 		multi_event: flag to include rows with multi-events
+		force: ignores certain warnings and forces THetA to run
+		get_values: collects and prints out values for C, mu and likelihood for
+			all Cs considered, for development purposes
 	"""
 
 	parser = argparse.ArgumentParser()
@@ -84,6 +89,10 @@ def parse_arguments():
 	parser.add_argument("--BOUNDS_ONLY", action='store_true', default=False, required=False)
 	parser.add_argument("--NO_TIME_ESTIMATE", action='store_true', default=False, required=False)
 	parser.add_argument("--MULTI_EVENT", action='store_true', default=False, required=False)
+	parser.add_argument("--RESULTS", metavar = "filename", default=None, required=False)
+	parser.add_argument("--FORCE", action = "store_true", default=False, required=False)
+	parser.add_argument("--GET_VALUES", action = "store_true", default=False, required=False)
+	parser.add_argument("--NO_INTERVAL_SELECTION", action = "store_true", default=False, required=False)
 	args = parser.parse_args()
 
 	filename = args.QUERY_FILE
@@ -114,31 +123,29 @@ def parse_arguments():
 		raise ValueError(err_msg)
 
 	num_processes = args.NUM_PROCESSES
-
 	bound_heuristic = args.BOUND_HEURISTIC
-
 	normal_bound_heuristic = args.NORMAL_BOUND_HEURISTIC
-
 	heuristic_lb = args.HEURISTIC_LB
-
 	heuristic_ub = args.HEURISTIC_UB
-
 	bounds_only = args.BOUNDS_ONLY
-
 	no_time_estimate = args.NO_TIME_ESTIMATE
-
 	multi_event = args.MULTI_EVENT
-	
+	results = args.RESULTS
+	force = args.FORCE	
+	get_values = args.GET_VALUES
+	interval_selection = not(args.NO_INTERVAL_SELECTION)
 	
 	print "================================================="
 	print "Arguments are:"
 	print "\tQuery File:", filename
+	if n == 3 and results is not None: print "\tResults File:", results
 	print "\tn:", n
 	print "\tk:", k
 	print "\ttau:", tau
 	print "\tOutput Directory:", directory
 	print "\tOutput Prefix:", prefix
 	if n == 2: print "\tMax Normal:", max_normal
+	if not(interval_selection): print "\tInterval Selection:", interval_selection
 	if bound_heuristic is not False:
 		print "\tBound Heuristic:", bound_heuristic
 	if normal_bound_heuristic is not False:
@@ -148,12 +155,13 @@ def parse_arguments():
 	print "\tNum Processes:", num_processes
 	if bounds_only: print "\tBounds Only:", bounds_only
 	print "\tTime Estimate:", not(no_time_estimate)
+	if force: print "\tForce:", force
+	if get_values: print "\tGet Values:", get_values
 	print "================================================="
 	
-	return filename,n,k,tau,directory,prefix,max_normal,bound_heuristic, \
+	return filename,results,n,k,tau,directory,prefix,max_normal,bound_heuristic, \
 			normal_bound_heuristic, heuristic_lb, heuristic_ub, num_processes, \
-			bounds_only, not(no_time_estimate), multi_event
-
+			bounds_only, not(no_time_estimate), multi_event, force, get_values, interval_selection
 
 def read_interval_file(filename):
 	"""
@@ -193,10 +201,6 @@ def read_interval_file(filename):
 		lengths.append(end-start)
 		
 		# Read Tumor Counts
-#		Intervals with 0 will be filtered out later
-#		if 0 in [int(line[4]), int(line[5])]:
-#			sys.stderr.write("Invalid entry in interval file line #"+str(numLine)+":\n" + str(l) + "Number of reads for each interval must be greater than 0. Exiting...\n") 
-#			sys.exit(1)
 		tumor_counts.append(int(line[4]))
 		norm_counts.append(int(line[5]))
 
@@ -208,6 +212,7 @@ def read_interval_file(filename):
 		if len(line) > 7:
 			lower_boundsSupplied = True
 			lower_bounds.append(int(line[7]))
+
 		m += 1
 	if numLine == 1:
 		sys.stderr.write("Number of intervals must be greater than 1. Exiting...\n") 
@@ -216,6 +221,28 @@ def read_interval_file(filename):
 	if len(upper_bounds) == 0: upper_bounds = None	
 	if len(lower_bounds) == 0: lower_bounds = None	
 	return (lengths, tumor_counts, norm_counts, m, upper_bounds, lower_bounds)
+
+def read_results_file(filename):
+	"""
+	For n=3 with automatic interval selection, reads in the results file to get C
+	Args:
+		filename: location of results file
+	Returns:
+		C: list form of the second column of the result copy number profile
+	"""
+
+	with open(filename) as f:
+		lines = f.readlines()
+	if lines[0].startswith("#"):
+		lines = lines[1:]
+	if len(lines) == 0:
+		print "ERROR: The result file provided appears to be empty. Exiting..."
+	elif len(lines) > 1:
+		print "WARNING: The results file contains more than one solution. THetA will use the first provided solution."
+	
+	soln = lines[0].strip().split("\t")
+	copy = [int(i) for i in soln[2].split(":")]
+	return copy
 
 def write_out_result(directory, prefix, results):
 	"""
@@ -272,6 +299,10 @@ def write_out_bounds(directory, prefix, inputFile, upper_bounds, lower_bounds, o
 		lower_bounds (list of ints): array of lower bounds
 
 	"""
+	print "FILEIO"
+	print upper_bounds
+	print lower_bounds
+
 	f = open(inputFile)
 	lines = f.readlines()
 	f.close()
@@ -288,24 +319,22 @@ def write_out_bounds(directory, prefix, inputFile, upper_bounds, lower_bounds, o
 	# Header
 	f.write("#ID\tchrm\tstart\tend\ttumorCount\tnormalCount\tUpperBound\tLowerBound\n")
 
-	order.sort()
 	if order is not None:
+		order.sort()
 		for i,val in enumerate(order):
 			line = lines[val]
+			line = "\t".join(line.strip().split("\t")[:6])
 			f.write(line.strip())	
-			if length == 6:				# Input file does not contain upper bounds
-				f.write("\t" + str(int(upper_bounds[i])))
-			if length in [6,7]:			# Input file does not contain lower bounds
-				 f.write("\t" + str(int(lower_bounds[i])))
+			f.write("\t" + str(int(upper_bounds[i])))
+			f.write("\t" + str(int(lower_bounds[i])))
 			f.write("\n")
 
 	else:	
 		for i,line in enumerate(lines):
+			line = "\t".join(line.strip().split("\t")[:6])
 			f.write(line.strip())	
-			if length == 6:				# Input file does not contain upper bounds
-				f.write("\t" + str(int(upper_bounds[i])))
-			if length in [6,7]:			# Input file does not contain lower bounds
-				f.write("\t" + str(int(lower_bounds[i])))
+			f.write("\t" + str(int(upper_bounds[i])))
+			f.write("\t" + str(int(lower_bounds[i])))
 			f.write("\n")
 
 	f.close()

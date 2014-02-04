@@ -29,21 +29,26 @@ from Enumerator import Enumerator
 import time
 
 def time_estimate(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
-		    max_normal, sorted_index, num_processes, multi_event):
+		    max_normal, sorted_index, num_processes, multi_event, force):
 	"""
 		Estimates the runtime with the specified bounds and parameters
 	"""
 
 
 	print "Estimating time..."
-	if n is 3: 
-		print "NOTE: This may be an overestimate, particularly if the interval bounds provided are wide, but should be within an order of magnitude."
-	if n is 3 and m > 30:
-		print "Estimated Total Time: With n=3 and", m, "intervals, the runtime would likely be greater than several days. Try reducing the number of intervals below 25"
-		return
+	if n is 3 and m > 30 and not force:
+		print "\tWARNING: With n=3 and", m, "intervals, the runtime would likely be excessive. Try reducing the number of intervals below 25. Run with --FORCE to continue."
+		exit(1)
 
 	enum = Enumerator(n, m, k, tau, lower_bounds, upper_bounds, multi_event)
 	opt = Optimizer(r, rN, m, n,tau, upper_bound=max_normal)
+
+	if n == 3:
+		print n, m, k, tau
+		print lower_bounds
+		print upper_bounds
+		print r
+		print rN
 
 
 	if n == 2:
@@ -54,7 +59,7 @@ def time_estimate(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 		count = count_number_matrices_3(m,upper_bounds, lower_bounds, enum)
 	C = enum.generate_next_C()
 	if C is False:
-		print "Error: No valid Copy Number Profiles exist for these intervals within the bounds specified. Exiting..."
+		print "ERROR: No valid Copy Number Profiles exist for these intervals within the bounds specified. Exiting..."
 		sys.exit(1)
 	start = time.clock()
 	for i in range(TEST_NUM):
@@ -66,10 +71,19 @@ def time_estimate(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 	end = time.clock()
 	avgVal = float(end-start)/TEST_NUM
 	seconds = count * (float(end-start)/TEST_NUM) / num_processes
-	print "Estimated Total Time:",
+	print "\tEstimated Total Time:",
 	if seconds < 60: print int(seconds + .5), "seconds"
 	elif seconds < 3600: print int((seconds/60)+.5) , "minutes"
-	else: print int((seconds/3600) + .5), "hours"
+	else: 
+		hours = int((seconds/3600) + .5)
+
+		print int((seconds/3600) + .5), "hours"
+		if hours > 200: 
+			if not force:
+				print "WARNING: With the current settings, the runtime is likely excessive. To reduce runtime, try:\n\t1) Increase the number of processes used with the --NUM_PROCESSES flag.\n\t2) Reduce the number of intervals chosen using the --NUM_INTERVALS flag.\n\t3) Disable automatic interval selection using --NO_INTERVAL_SELECTION, and hand-select a smaller number of intervals, or set tighter bounds on the current intervals.\n\t Run with --FORCE to continue with current settings."
+				exit(1)
+
+		
 
 
 def count_number_matrices_2(m, upper_bounds, lower_bounds):

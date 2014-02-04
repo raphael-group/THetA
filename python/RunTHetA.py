@@ -32,9 +32,9 @@ from Enumerator import Enumerator
 from Optimizer import Optimizer
 from TimeEstimate import *
 
-from multiprocessing import JoinableQueue, Queue, Process, Array
+from multiprocessing import JoinableQueue, Queue, Process, Array, current_process
 
-def process_loop(queue, opt, returnQueue, sorted_index):
+def process_loop(queue, opt, returnQueue, sorted_index, get_values):
 	"""
 	Code that each child process executes. Repeatedly pops of new C
 	values from queue until it reaches an exit signal. Then puts its results
@@ -48,15 +48,16 @@ def process_loop(queue, opt, returnQueue, sorted_index):
 	"""
 	min_likelihood = float('inf') 
 	best = []
+	if get_values: solns = []
 	while True:
 		C = queue.get()
 		if C is 0:
 			returnQueue.put(best)
 			break
-
 		soln = opt.solve(C)
 		if soln is not None:
 			(mu, likelihood,vals) = soln
+			if get_values: solns.append((C,mu,likelihood,vals))
 			if isClose([likelihood],[min_likelihood]):
 				C_new = reverse_sort_C(C,sorted_index)
 				vals = reverse_sort_list(vals, sorted_index)
@@ -66,14 +67,22 @@ def process_loop(queue, opt, returnQueue, sorted_index):
 				vals = reverse_sort_list(vals, sorted_index)
 				best = [(C_new, mu, likelihood, vals)]
 				min_likelihood = likelihood
+
+	if get_values:
+		with open(pre+"."+"values" + str(current_process().name),'w') as f:
+			for C,mu,likelihood,vals in solns:
+				m,n = C.shape
+				stringC = "".join((str(int(C[i][1])) for i in range(m)))
+				valsStr = " ".join((str(v) for v in vals))
+				f.write(stringC+"\t"+str(mu[0])+"\t"+str(likelihood)+"\t"+valsStr+"\n")
 	
 
-def start_processes(max_processes, queue, opt, returnQueue, sorted_index):
+def start_processes(max_processes, queue, opt, returnQueue, sorted_index, get_values):
 	"""
 	Starts a max_processes number of processes, and starts them
 	"""
 	processes = [Process(target=process_loop, args=(queue, opt, returnQueue,\
-			    sorted_index), name=i+1) for i in range(max_processes-1)]
+			    sorted_index, get_values), name=i+1) for i in range(max_processes-1)]
 	for p in processes:
 		p.daemon = True
 		p.start()
@@ -97,7 +106,7 @@ def find_mins(best):
 	return true_best
 
 def do_optimization(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
-		    max_normal, sorted_index, max_processes, multi_event):
+		    max_normal, sorted_index, max_processes, multi_event, get_values):
 	"""
 	Performs the optimization for the given parameters with max_proccesses
 	number of processes
@@ -111,7 +120,7 @@ def do_optimization(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 	returnQueue = Queue(MAX_QUEUE_SIZE) #Shared queue for processes to return results
 
 	processes = start_processes(max_processes, queue, opt, returnQueue, \
-			    sorted_index)
+			    sorted_index, get_values)
 	
 	C = enum.generate_next_C()
 	count = 0
@@ -138,7 +147,7 @@ def do_optimization(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 	return best
 
 def do_optimization_single(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
-		    max_normal, sorted_index, multi_event):
+		    max_normal, sorted_index, multi_event, get_values):
 	"""
 	Performs the optimization for the given parameters with a single process
 	Returns a list of the best C matrices and associated mu values 
@@ -150,14 +159,15 @@ def do_optimization_single(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 	min_likelihood = float("inf")	
 	best = []
 	count = 0
-	
 	C = enum.generate_next_C()
+	if get_values: solns = []
 	while C is not False:
 		count += 1
 		soln = opt.solve(C)
 		if soln is not None:
 			(mu, likelihood,vals) = soln
-					
+
+			if get_values: solns.append((C,mu,likelihood))
 			if isClose([likelihood],[min_likelihood]):
 				C_new = reverse_sort_C(C,sorted_index)
 				vals = reverse_sort_list(vals, sorted_index)
@@ -168,6 +178,14 @@ def do_optimization_single(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 				best = [(C_new, mu, likelihood, vals)]
 				min_likelihood = likelihood
 		C = enum.generate_next_C()
+
+	if get_values:
+		with open(pre+"."+"likelihoods",'w') as f:
+			for C,mu,likelihood in solns:
+				m,n = C.shape
+				stringC = "".join((str(int(C[i][1])) for i in range(m)))
+				f.write(stringC+"\t"+str(mu[0])+"\t"+str(likelihood)+"\n")
+	
 	if count == 0: 
 		print "Error: No valid Copy Number Profiles exist for these intervals within the bounds specified. Exiting..."
 		sys.exit(1)
@@ -183,23 +201,43 @@ def main():
 	###
 	#  Read in arguments and data file
 	##
-	filename, n, k, tau, directory, prefix, max_normal, bound_heuristic, \
+	filename, results, n, k, tau, directory, prefix, max_normal, bound_heuristic, \
 		normal_bound_heuristic,heuristic_lb, heuristic_ub, num_processes, \
-		bounds_only, estimate_time,multi_event = parse_arguments()
+		bounds_only, estimate_time,multi_event, force, get_values, choose_intervals= parse_arguments()
+
+
+	global pre
+	pre = prefix
+
 	print "Reading in query file..."
 	lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds = read_interval_file(filename)
 
-	DO_TOP = True
-	if DO_TOP:
-		topNum = 100
-		allM = m
-		allLengths, allTumor, allNormal, allUpperBounds, allLowerBounds = (lengths, tumorCounts, normCounts, upper_bounds, lower_bounds)
-		order, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds = get_top_intervals_by_length(lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds, topNum, k)
+	###
+	#	Automatically Select Intervals
+	#	note: This is the default behavior
+	###
+	if choose_intervals:
+		print "Selecting intervals..."
+
+		allM, allLengths, allTumor, allNormal, allUpperBounds, allLowerBounds = (m, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds)
+
+		if n == 2:
+			order, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds = select_intervals_n2(lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds, k, force)
+		elif n == 3:
+			if results is None: 
+				print "ERROR: No results file supplied. Unable to automatically select intervals for n=3 without results of n=2 analysis. See --RESULTS flag, or --NO_INTERVAL_SELECTION to disable interval selection. Exiting..."
+				exit(1)
+			else: 
+				copy = read_results_file(results)
+				order, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds, copy = select_intervals_n3(lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds, copy, tau, force)
+				print "1",upper_bounds
+				print "2",lower_bounds
+
 		m = len(order)
 
 	sum_r = sum(tumorCounts)
 	sum_rN = sum(normCounts)
-	setTotalReadCounts(sum_r, sum_rN)
+	set_total_read_counts(sum_r, sum_rN)
 	###
 	#  Process/sort read depth vectors and calculate bounds if necessary
 	###
@@ -208,10 +246,8 @@ def main():
 
 	if bound_heuristic is not False or upper_bounds is None and lower_bounds is None:
 		if bound_heuristic is False: bound_heuristic = 0.5
-
 		upper_bounds,lower_bounds = calculate_bounds_heuristic(float(bound_heuristic),\
 			 r, rN, m, tau, k)
-
 	elif normal_bound_heuristic is not False:
 		upper_bounds,lower_bounds = calculate_bounds_normal_heuristic( \
 			normal_bound_heuristic, heuristic_lb, heuristic_ub, r, rN, m, k)
@@ -221,14 +257,19 @@ def main():
 		if lower_bounds is not None: lower_bounds = sort_by_sorted_index(lower_bounds,\
 			sorted_index)
 
-	if DO_TOP:
-		write_out_bounds(directory, prefix, filename, upper_bounds, lower_bounds, order)
-	else: write_out_bounds(directory, prefix, filename, upper_bounds, lower_bounds)
+	###Bounds files in their original orders
+	ub_out = reverse_sort_list(upper_bounds, sorted_index)
+	lb_out = reverse_sort_list(lower_bounds, sorted_index)
+	if choose_intervals:
+		write_out_bounds(directory, prefix, filename, ub_out, lb_out, order)
+	else: 
+		write_out_bounds(directory, prefix, filename, ub_out, lb_out)
 
 	if bounds_only: sys.exit(0)
 
 	if estimate_time: 
-		time_estimate(n,m,k,tau,lower_bounds,upper_bounds,r,rN,max_normal,sorted_index, num_processes, multi_event)
+		time_estimate(n,m,k,tau,lower_bounds,upper_bounds,r,rN,max_normal,sorted_index, num_processes, multi_event, force)
+	if n == 3: exit(0)
 	###
 	#  Initialize optimizer and enumerator 
 	###
@@ -236,12 +277,12 @@ def main():
 
 	if num_processes == 1:
 		best = do_optimization_single(n,m,k,tau,lower_bounds,upper_bounds,
-			r,rN,max_normal,sorted_index, multi_event)
+			r,rN,max_normal,sorted_index, multi_event, get_values)
 	else:
 		best = do_optimization(n, m, k, tau, lower_bounds, upper_bounds, r, rN,\
-			    max_normal, sorted_index, num_processes, multi_event)
+			    max_normal, sorted_index, num_processes, multi_event, get_values)
 	if best == []:
-		print "Error: Maximum Likelihood Solution not found within given bounds."
+		print "ERROR: Maximum Likelihood Solution not found within given bounds."
 		exit(1)
 
 	if n == 2 and best_near_max_contamination(best, max_normal):
@@ -249,11 +290,10 @@ def main():
 
 	#if DO_TOP:
 	#	best = calc_all_c(best, r, rN,m, allM, order, allTumor, allNormal, allLowerBounds, allUpperBounds, tau)
+
 	###
 	#  Write results out to file
 	###
-	upper_bounds = reverse_sort_list(upper_bounds, sorted_index)
-	lower_bounds = reverse_sort_list(lower_bounds, sorted_index)
 	write_out_result(directory, prefix, best)	
 
 import time
