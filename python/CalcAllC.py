@@ -11,7 +11,7 @@ MIN_LENGTH_N2 = 1000000 # 1Mb
 MAX_INTERVALS_N3 = 20 
 MIN_LENGTH_N3 = 5000000 # 5Mb
 
-def select_intervals_n3(lengths, tumor_counts, norm_counts, m, upper_bounds, lower_bounds, copy, tau, force):
+def select_intervals_n3(lengths, tumor_counts, norm_counts, m, upper_bounds, lower_bounds, copy, tau, force, num_intervals):
 	"""
 	Selects num intervals from the input file for n=3 analysis
 	Returns lines in original input order
@@ -21,8 +21,9 @@ def select_intervals_n3(lengths, tumor_counts, norm_counts, m, upper_bounds, low
 		print "ERROR: For automatic interval selection with 3 subpopulations, the default copy number (--TAU) must be 2. To run with other values, bounds must be provided in the input file."
 		exit(1)
 
-	b = int(math.ceil(MAX_INTERVALS_N3*.75))
-	c = int(MAX_INTERVALS_N3 - b)
+
+	b = int(math.ceil(num_intervals*.75))
+	c = int(num_intervals - b)
 
 	indexes = [i for i in range(len(lengths)) if lengths[i] >= MIN_LENGTH_N3]
 
@@ -30,15 +31,21 @@ def select_intervals_n3(lengths, tumor_counts, norm_counts, m, upper_bounds, low
 	lines.sort(key=lambda x: -x[1])
 
 	### Select b longest intervals that have C != 2
-	### Select c longest intervals that have C == 2 
+	### Select up to c longest intervals that have C == 2 && ub == 2 
 	intervals = []
 	for i, line  in enumerate(lines):
-		if c > 0 and line[6] == 2: 
+		if c > 0 and line[6] == 2 and line[4] == 2:
 			intervals.append(i)
 			c -= 1
 		elif b > 0 and line[6] in [0,1,3]:
 			intervals.append(i)
 			b -= 1
+
+	for i, line  in enumerate(lines):
+		if c > 0 and line[6] == 2 and line[4] > 2:
+			intervals.append(i)
+			c -= 1
+
 
 	if c > 0 or b > 0:
 		if not force:
@@ -47,7 +54,6 @@ def select_intervals_n3(lengths, tumor_counts, norm_counts, m, upper_bounds, low
 		else:
 			print "WARNING: This sample isn't a good candidate for THetA analysis with 3 subpopulations: There aren't a sufficient number of intervals that fit the criteria for interval selection."
 	topLines = [lines[i] for i in intervals]
-
 	### Calculate new bounds
 	for line in topLines:
 		c = line[6]
@@ -60,7 +66,7 @@ def select_intervals_n3(lengths, tumor_counts, norm_counts, m, upper_bounds, low
 		# If c = 2 then lb = 1 and ub = min(3, ub)
 		elif c == 2:
 			line[5] = 1
-			line[4] = min(3, lines[i][4])
+			line[4] = min(3, line[4])
 		# If c = 3 then lb = lb and ub = 3
 		else:
 			line[4] = 3
@@ -70,13 +76,9 @@ def select_intervals_n3(lengths, tumor_counts, norm_counts, m, upper_bounds, low
 	topLines.sort(key=lambda x: x[0])
 
 	print "\tSelected", len(intervals), "intervals for analysis."
-	print 
-
-
-	print [column(topLines, i) for i in range(len(topLines[0]))]
 	return [column(topLines, i) for i in range(len(topLines[0]))]
 
-def select_intervals_n2(lengths, tumor_counts, norm_counts, m, upper_bounds, lower_bounds, k, force):
+def select_intervals_n2(lengths, tumor_counts, norm_counts, m, upper_bounds, lower_bounds, k, force, num_intervals):
 	"""
 	Selects num intervals for n=2 analysis
 	Returns lines in original input order
@@ -90,7 +92,7 @@ def select_intervals_n2(lengths, tumor_counts, norm_counts, m, upper_bounds, low
 		lines = [(i, lengths[i], tumor_counts[i], norm_counts[i], upper_bounds[i], lower_bounds[i]) for i in indexes]
 	lines.sort(key=lambda x: x[1])
 
-	lim = min(MAX_INTERVALS_N2, len(indexes))
+	lim = min(num_intervals, len(indexes))
 	topLines = lines[-lim:]
 
 	new_total_length = float(sum([topLines[i][1] for i in range(len(topLines))]))

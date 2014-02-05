@@ -79,6 +79,7 @@ def parse_arguments():
 			metavar="MAX_NORMAL", required=False)
 	parser.add_argument("--NUM_PROCESSES", help="The number of processes to be used",
 			default=1, type=int, metavar="NUM_PROCESSES", required=False)
+	parser.add_argument("--NUM_INTERVALS", help="The maximum number of intervals used by automatic interval selection.", default=100, type=int, metavar="NUM_INTERVALS", required=False)
 	parser.add_argument("--BOUND_HEURISTIC", metavar="BH", default=False, required=False)
 	parser.add_argument("--NORMAL_BOUND_HEURISTIC", metavar="NBH", type=int,\
 			default=False,required=False)
@@ -134,6 +135,8 @@ def parse_arguments():
 	force = args.FORCE	
 	get_values = args.GET_VALUES
 	interval_selection = not(args.NO_INTERVAL_SELECTION)
+	num_intervals = args.NUM_INTERVALS
+	if n == 3 and num_intervals == 100: num_intervals = 20
 	
 	print "================================================="
 	print "Arguments are:"
@@ -157,11 +160,12 @@ def parse_arguments():
 	print "\tTime Estimate:", not(no_time_estimate)
 	if force: print "\tForce:", force
 	if get_values: print "\tGet Values:", get_values
+
 	print "================================================="
 	
 	return filename,results,n,k,tau,directory,prefix,max_normal,bound_heuristic, \
 			normal_bound_heuristic, heuristic_lb, heuristic_ub, num_processes, \
-			bounds_only, not(no_time_estimate), multi_event, force, get_values, interval_selection
+			bounds_only, not(no_time_estimate), multi_event, force, get_values, interval_selection, num_intervals
 
 def read_interval_file(filename):
 	"""

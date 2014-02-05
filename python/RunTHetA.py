@@ -203,7 +203,7 @@ def main():
 	##
 	filename, results, n, k, tau, directory, prefix, max_normal, bound_heuristic, \
 		normal_bound_heuristic,heuristic_lb, heuristic_ub, num_processes, \
-		bounds_only, estimate_time,multi_event, force, get_values, choose_intervals= parse_arguments()
+		bounds_only, estimate_time,multi_event, force, get_values, choose_intervals, num_intervals = parse_arguments()
 
 
 	global pre
@@ -220,16 +220,15 @@ def main():
 		print "Selecting intervals..."
 
 		allM, allLengths, allTumor, allNormal, allUpperBounds, allLowerBounds = (m, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds)
-
 		if n == 2:
-			order, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds = select_intervals_n2(lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds, k, force)
+			order, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds = select_intervals_n2(lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds, k, force, num_intervals)
 		elif n == 3:
 			if results is None: 
 				print "ERROR: No results file supplied. Unable to automatically select intervals for n=3 without results of n=2 analysis. See --RESULTS flag, or --NO_INTERVAL_SELECTION to disable interval selection. Exiting..."
 				exit(1)
 			else: 
 				copy = read_results_file(results)
-				order, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds, copy = select_intervals_n3(lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds, copy, tau, force)
+				order, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds, copy = select_intervals_n3(lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds, copy, tau, force, num_intervals)
 				print "1",upper_bounds
 				print "2",lower_bounds
 
