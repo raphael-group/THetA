@@ -105,12 +105,20 @@ for i=2:numResults  %start at 2 to ignore header file
     
     c = [];
     c_str = regexp(parts{3},':','split'); 
+    neg_idx = ones(size(c_str,2));
     
     for j=1:size(c_str,2)
         c_row = regexp(c_str{j},',','split');
         row = zeros(1,size(c_row,2));
         for k=1:size(c_row,2)
-            row(k) = str2num(c_row{k});
+            
+            if (strcmp(c_row{k},'X'))
+                row(k) = -1;
+                neg_idx(j) = -1;
+            else
+                row(k) = str2num(c_row{k});
+            end
+            
         end
         c = [c;row];
     end
@@ -118,7 +126,7 @@ for i=2:numResults  %start at 2 to ignore header file
         
     subplot(numResults - 1,1,i-1);
     hold on;
-    plotTumor(intervalMat,mu,c, genome);
+    plotTumor(intervalMat,mu,c, genome, neg_idx);
     
 end
 
@@ -128,7 +136,7 @@ print(figure1,'-dpdf',pdfName);
 
 end
 
-function[] = plotTumor(intervalMat,mu,c,genome);
+function[] = plotTumor(intervalMat,mu,c,genome, neg_idx)
 numIntervals = size(c,1);
 
 legendPlot = zeros(size(c,2)+1,1);
@@ -184,8 +192,12 @@ for i=1:size(c,2)
         xgrid = [pointer, pointer + curLength - 1];
         pointer = pointer + curLength;
         ygrid = [c(k,i)+ (i-1)*offset, c(k,i) + (i-1)*offset];
-        p = plot(xgrid,ygrid,colors{i},'LineWidth',3);
-        legendPlot(i) = p;
+        
+        if (c(k,i) ~= -1)
+        
+            p = plot(xgrid,ygrid,colors{i},'LineWidth',3);
+            legendPlot(i) = p;
+        end
 
         lastChrm = curChrm;
         lastEnd = curEnd;
@@ -232,9 +244,13 @@ for k=1:numIntervals
     pointer = pointer + curLength;
     %ygrid = [c(k,i)+ (i-1)*offset, c(k,i) + (i-1)*offset];
     ygrid = [tau - offset, tau - offset];
-    p = plot(xgrid,ygrid,colors{3},'LineWidth',3);
     
-    legendPlot(end) = p;
+    if (neg_idx(k) ~= -1)
+    
+        p = plot(xgrid,ygrid,colors{3},'LineWidth',3);
+    
+        legendPlot(end) = p;
+    end
 
     lastChrm = curChrm;
     lastEnd = curEnd;
