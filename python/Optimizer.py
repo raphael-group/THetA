@@ -96,7 +96,7 @@ class Optimizer:
 
 		C_w = weighted_C(C,self.rN)
 		C_hat = normalize_C(C_w, self.m, self.n)
-		
+
 		lB = self.lB
 		uB = self.uB
 		if lB != 0: lB = M2_Rev(C_w,self.lB, self.m, self.n)
@@ -113,6 +113,7 @@ class Optimizer:
 
 		mu = M2(C_w,val,self.m, self.n)
 		likelihood,vals = L2(mu,C_w,self.m, self.r)
+
 		return ((mu, 1-mu), likelihood, vals)
 
 	def _solve_n3plus(self, C):

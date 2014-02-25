@@ -43,14 +43,6 @@ def time_estimate(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 	enum = Enumerator(n, m, k, tau, lower_bounds, upper_bounds, multi_event)
 	opt = Optimizer(r, rN, m, n,tau, upper_bound=max_normal)
 
-	if n == 3:
-		print n, m, k, tau
-		print lower_bounds
-		print upper_bounds
-		print r
-		print rN
-
-
 	if n == 2:
 		TEST_NUM=100
 		count = count_number_matrices_2(m,upper_bounds, lower_bounds)
@@ -72,16 +64,17 @@ def time_estimate(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 	avgVal = float(end-start)/TEST_NUM
 	seconds = count * (float(end-start)/TEST_NUM) / num_processes
 	print "\tEstimated Total Time:",
-	if seconds < 60: print int(seconds + .5), "seconds"
-	elif seconds < 3600: print int((seconds/60)+.5) , "minutes"
+	if seconds < 60: print int(seconds + .5), "second(s)"
+	elif seconds < 3600: print int((seconds/60)+.5) , "minute(s)"
 	else: 
 		hours = int((seconds/3600) + .5)
 
-		print int((seconds/3600) + .5), "hours"
+		print int((seconds/3600) + .5), "hour(s)"
 		if hours > 200: 
 			if not force:
 				print "WARNING: With the current settings, the runtime is likely excessive. To reduce runtime, try:\n\t1) Increase the number of processes used with the --NUM_PROCESSES flag.\n\t2) Reduce the number of intervals chosen using the --NUM_INTERVALS flag.\n\t3) Disable automatic interval selection using --NO_INTERVAL_SELECTION, and hand-select a smaller number of intervals, or set tighter bounds on the current intervals.\n\t Run with --FORCE to continue with current settings."
 				exit(1)
+	return enum
 
 		
 

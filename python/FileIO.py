@@ -180,50 +180,52 @@ def read_interval_file(filename):
 		upper_bounds: list of upper_bounds if supplied, None otherwise
 		lower_bounds: list of lower_bounds if supplied, None otherwise
 	"""
-	  
-	f = open(filename)
-	lines = f.readlines()
-	f.close()
 
-	if lines[0].startswith("#"): lines = lines[1:]
-	m = 0
 	tumor_counts = []
 	norm_counts = []
 	upper_bounds = []
 	lower_bounds = []
 	lengths = []
 	numLine = 0
-	for l in lines:
-		line = l.strip().replace(" ","\t").split("\t")	
-		numLine += 1
-		if len(line) < 6 or len(line) > 8:
-			sys.stderr.write("Invalid input file format in interval file line #"+str(numLine)+":\n" + str(l)+"\nToo few/many columns. Exiting...\n")
-			sys.exit(1)
-		# Read Lengths
-		start = int(line[2])
-		end = int(line[3])
-		lengths.append(end-start)
+	with open(filename) as f:
+		for line in f:
+			if line.startswith("#"): continue
+
+
+			line = line.strip().replace(" ","\t").split("\t")	
+			numLine += 1
+			
+			if len(line) < 6 or len(line) > 8:
+				sys.stderr.write("Invalid input file format in interval file line #"+str(numLine)+":\n" + str(l)+"\nToo few/many columns. Exiting...\n")
+				sys.exit(1)
+			# Read Lengths
+			start = int(line[2])
+			end = int(line[3])
+			lengths.append(end-start)
 		
-		# Read Tumor Counts
-		tumor_counts.append(int(line[4]))
-		norm_counts.append(int(line[5]))
+			# Read Tumor Counts
+			tumor_counts.append(int(line[4]))
+			norm_counts.append(int(line[5]))
 
-		# Read Bounds
-		if len(line) > 6:
-			upper_boundsSupplied = True
-			upper_bounds.append(int(line[6]))
+			# Read Bounds
+			if len(line) > 6:
+				upper_bounds.append(line[6])
+			else: 
+				upper_bounds.append("X")
 
-		if len(line) > 7:
-			lower_boundsSupplied = True
-			lower_bounds.append(int(line[7]))
+			if len(line) > 7:
+				lower_bounds.append(line[7])
+			else: 
+				lower_bounds.append("X")
 
-		m += 1
 	if numLine == 1:
 		sys.stderr.write("Number of intervals must be greater than 1. Exiting...\n") 
 		sys.exit(1)
 
-	if len(upper_bounds) == 0: upper_bounds = None	
-	if len(lower_bounds) == 0: lower_bounds = None	
+	if all([x == "X" for x in upper_bounds]): upper_bounds = None	
+	if all([x == "X" for x in lower_bounds]): lower_bounds = None	
+	m = len(lengths)
+
 	return (lengths, tumor_counts, norm_counts, m, upper_bounds, lower_bounds)
 
 def read_results_file(filename):
@@ -245,10 +247,10 @@ def read_results_file(filename):
 		print "WARNING: The results file contains more than one solution. THetA will use the first provided solution."
 	
 	soln = lines[0].strip().split("\t")
-	copy = [int(i) for i in soln[2].split(":")]
+	copy = [i for i in soln[2].split(":")]
 	return copy
 
-def write_out_result(directory, prefix, results):
+def write_out_result(directory, prefix, results, n):
 	"""
 	Writes out the file containing the optimum C,mu pairs
 
@@ -260,7 +262,7 @@ def write_out_result(directory, prefix, results):
 			as the likelihood associated with those pairs
 	"""
 
-	filename = prefix + ".results"
+	filename = prefix + ".n"+str(n)+".results"
 	path = os.path.join(directory,filename)
 	
 	print "Writing results file to", path
@@ -277,7 +279,10 @@ def write_out_result(directory, prefix, results):
 		C_str = ""
 		for i in range(m):
 			for j in range(1,n):
-				C_str = C_str + str(int(C[i][j])) +","
+				if int(C[i][j]) == -1: 
+					C_str = C_str + "X" + ","
+				else:
+					C_str = C_str + str(int(C[i][j])) +","
 			C_str = C_str[:-1]
 			C_str += ":"
 		C_str = C_str[:-1] + "\t"
@@ -290,7 +295,7 @@ def write_out_result(directory, prefix, results):
 		f.write("\n")
 	f.close()
 
-def write_out_bounds(directory, prefix, inputFile, upper_bounds, lower_bounds, order=None):
+def write_out_bounds(directory, prefix, inputFile, upper_bounds, lower_bounds, n, order=None):
 	"""
 	Writes out a copy of the input file with the bounds included
 
@@ -303,17 +308,13 @@ def write_out_bounds(directory, prefix, inputFile, upper_bounds, lower_bounds, o
 		lower_bounds (list of ints): array of lower bounds
 
 	"""
-	print "FILEIO"
-	print upper_bounds
-	print lower_bounds
 
 	f = open(inputFile)
 	lines = f.readlines()
 	f.close()
 
-	outputFile = os.path.join(directory,prefix+".withBounds")
+	outputFile = os.path.join(directory,prefix+".n"+str(n)+".withBounds")
 	f = open(outputFile,"w")
-
 
 	print "Writing bounds file to", outputFile
 	length = len(lines[1].split())
@@ -324,15 +325,19 @@ def write_out_bounds(directory, prefix, inputFile, upper_bounds, lower_bounds, o
 	f.write("#ID\tchrm\tstart\tend\ttumorCount\tnormalCount\tUpperBound\tLowerBound\n")
 
 	if order is not None:
-		order.sort()
-		for i,val in enumerate(order):
-			line = lines[val]
+		orderMap = {}
+		for i, v in enumerate(order):
+			orderMap[v] = i
+		for i,line in enumerate(lines):
 			line = "\t".join(line.strip().split("\t")[:6])
 			f.write(line.strip())	
-			f.write("\t" + str(int(upper_bounds[i])))
-			f.write("\t" + str(int(lower_bounds[i])))
+			if i in orderMap:
+				f.write("\t" + str(int(upper_bounds[orderMap[i]])))
+				f.write("\t" + str(int(lower_bounds[orderMap[i]])))
+			else: 
+				f.write("\tX")
+				f.write("\tX")
 			f.write("\n")
-
 	else:	
 		for i,line in enumerate(lines):
 			line = "\t".join(line.strip().split("\t")[:6])
@@ -340,6 +345,5 @@ def write_out_bounds(directory, prefix, inputFile, upper_bounds, lower_bounds, o
 			f.write("\t" + str(int(upper_bounds[i])))
 			f.write("\t" + str(int(lower_bounds[i])))
 			f.write("\n")
-
 	f.close()
 

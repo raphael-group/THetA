@@ -72,7 +72,7 @@ def calculate_bounds_normal_heuristic(normal_bound_heuristic, heuristic_lb, heur
 			upper_bounds[j] = normal_bound_heuristic
 		elif ratio > heuristic_ub:
 			if ratio > 2:
-				y = round(normal_bound_heuristc * ratio)
+				y = round(normal_bound_heuristic * ratio)
 				lower_bounds[j] = y-1
 				upper_bounds[j] = max(k, y+1)
 			else:

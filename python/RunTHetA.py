@@ -24,13 +24,14 @@
  # @author Layla Oesper, Ahmad Mahmoody, Benjamin J. Raphael and Gryte Satas
  ###
 
-from CalcAllC import *
+from SelectIntervals import *
 from FileIO import *
 from DataTools import *
 from Misc import *
 from Enumerator import Enumerator
 from Optimizer import Optimizer
 from TimeEstimate import *
+from CalcAllC import *
 
 from multiprocessing import JoinableQueue, Queue, Process, Array, current_process
 
@@ -177,6 +178,7 @@ def do_optimization_single(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 				vals = reverse_sort_list(vals, sorted_index)
 				best = [(C_new, mu, likelihood, vals)]
 				min_likelihood = likelihood
+
 		C = enum.generate_next_C()
 
 	if get_values:
@@ -205,7 +207,6 @@ def main():
 		normal_bound_heuristic,heuristic_lb, heuristic_ub, num_processes, \
 		bounds_only, estimate_time,multi_event, force, get_values, choose_intervals, num_intervals = parse_arguments()
 
-
 	global pre
 	pre = prefix
 
@@ -216,21 +217,23 @@ def main():
 	#	Automatically Select Intervals
 	#	note: This is the default behavior
 	###
+
 	if choose_intervals:
 		print "Selecting intervals..."
-
 		allM, allLengths, allTumor, allNormal, allUpperBounds, allLowerBounds = (m, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds)
+
 		if n == 2:
-			order, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds = select_intervals_n2(lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds, k, force, num_intervals)
+			order, lengths, tumorCounts, normCounts = select_intervals_n2(lengths, tumorCounts, normCounts, m, k, force, num_intervals)
+			upper_bounds = None
+			lower_bounds = None
 		elif n == 3:
 			if results is None: 
 				print "ERROR: No results file supplied. Unable to automatically select intervals for n=3 without results of n=2 analysis. See --RESULTS flag, or --NO_INTERVAL_SELECTION to disable interval selection. Exiting..."
 				exit(1)
 			else: 
+				# Need to read in original file, bounds file and results file. Original file needed because copy numbers are based on 
 				copy = read_results_file(results)
 				order, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds, copy = select_intervals_n3(lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds, copy, tau, force, num_intervals)
-				print "1",upper_bounds
-				print "2",lower_bounds
 
 		m = len(order)
 
@@ -241,6 +244,7 @@ def main():
 	#  Process/sort read depth vectors and calculate bounds if necessary
 	###
 	print "Preprocessing data..."
+
 	r,rN,sorted_index = sort_r(normCounts,tumorCounts)
 
 	if bound_heuristic is not False or upper_bounds is None and lower_bounds is None:
@@ -260,15 +264,14 @@ def main():
 	ub_out = reverse_sort_list(upper_bounds, sorted_index)
 	lb_out = reverse_sort_list(lower_bounds, sorted_index)
 	if choose_intervals:
-		write_out_bounds(directory, prefix, filename, ub_out, lb_out, order)
+		write_out_bounds(directory, prefix, filename, ub_out, lb_out, n, order)
 	else: 
-		write_out_bounds(directory, prefix, filename, ub_out, lb_out)
+		write_out_bounds(directory, prefix, filename, ub_out, lb_out, n)
 
 	if bounds_only: sys.exit(0)
 
-	if estimate_time: 
-		time_estimate(n,m,k,tau,lower_bounds,upper_bounds,r,rN,max_normal,sorted_index, num_processes, multi_event, force)
-	if n == 3: exit(0)
+
+	enum = time_estimate(n,m,k,tau,lower_bounds,upper_bounds,r,rN,max_normal,sorted_index, num_processes, multi_event, force)
 	###
 	#  Initialize optimizer and enumerator 
 	###
@@ -286,14 +289,20 @@ def main():
 
 	if n == 2 and best_near_max_contamination(best, max_normal):
 		print "WARNING: At least one of the top solutions is near the upper bound on normal contamination. Further analysis may required as the sample likely falls into one of the following categories:\n\t1. This sample has high normal contamination. Consider re-running with an increased normal contamination upper bound. See --MAX_NORMAL option\n\t2. This sample may not satisfy the assumption that most of the tumor genome retains the normal expected copynumber (e.g. a genome duplication event has occurred). See THetA optional parameters in changing the expected copy number.\n\t3. This sample may not be a good candidate for THetA analysis (i.e. does not contain large copy number aberrations that distinguish populations)."
-
-	#if DO_TOP:
-	#	best = calc_all_c(best, r, rN,m, allM, order, allTumor, allNormal, allLowerBounds, allUpperBounds, tau)
+	r = reverse_sort_list(r, sorted_index)
+	rN = reverse_sort_list(rN, sorted_index)
+	if choose_intervals:
+		if n == 2:
+			best = calc_all_c_2(best, r, rN, allTumor, allNormal, order)
+		elif n == 3 and not multi_event: 
+			best = calc_all_c_3(best, r, rN, allTumor, allNormal, order)
+		else:
+			best = calc_all_c_3_multi_event(best, r, rN, allTumor, allNormal, order)
 
 	###
 	#  Write results out to file
 	###
-	write_out_result(directory, prefix, best)	
+	write_out_result(directory, prefix, best, n)	
 
 import time
 if __name__ == '__main__':
