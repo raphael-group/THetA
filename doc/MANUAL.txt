@@ -1,4 +1,4 @@
-Copyright 2012, 2013 Brown University, Providence, RI.
+Copyright 2012, 2013, 2014 Brown University, Providence, RI.
 
                          All Rights Reserved
 
@@ -28,8 +28,7 @@ aberrations directly from high-throughput DNA sequencing data.
 If you use this software in your research, please cite:
 
 L. Oesper, A. Mahmoody, B.J. Raphael. (2013)  THetA: Inferring intra-tumor 
-heterogeneity from high-throughput DNA sequencing data.  Genome Biology.
-(In Press).
+heterogeneity from high-throughput DNA sequencing data.  Genome Biology. 14:R80.
 
 contact: layla@cs.brown.edu
 	 braphael@cs.brown.edu
@@ -38,7 +37,7 @@ Beta Version: 0.52
 Version date: January 15, 2014
 
 WEBSITE:
-http://cs.brown.edu/people/braphael/software.html
+http://cs.brown.edu/software/
 http://compbio.cs.brown.edu/projects/theta/
 
 
@@ -124,22 +123,15 @@ is tab delimited containing the following fields:
 	8. * lowerBound (Integer) [Optional]- the minimum copy number to consider for the
 		interval.
 
-		* These parameters are not required, but are optional and may be 
-		  supplied to decrease the runtime of the algorithm. They are
-		  HIGHLY RECOMMENDED for the case of more than one tumor population 
-
 	The interval_count_file may contain an optional header line, starting with 
 	a "#" symbol.
 
 	ADDITIONAL NOTES for more than one tumor population: 
-	In addition to specifying lower and upper bounds on the the copy numbers
-	for each interval, it is strongly recommended that only a subset ( <25 )
-	intervals be considered when running with multiple tumor subpopulations
-	due to runtime.
-
-	One way to do this is to select a subset of intervals using the .withBounds
-	file output by the Mixture of Normal and ONE tumor script which will
-	include specific lower and upper bounds for each interval.  
+	After running for a single tumor population, THetA now produces a .bash
+	script [prefix].RunN3.bash that can be run to consider more than one tumor 
+	population. This is the recommended way to run THetA for multiple tumor 
+	populations.  
+ 
 
 	NOTE: See the section on PREPROCESSING SCRIPTS to see how to convert
 		  BIC-Seq output into THetA input.
@@ -167,10 +159,12 @@ is tab delimited containing the following fields:
 		   inferred tumor interval copy numbers
 		4. p* (Double, ... ,Double) - comma delimted list of inferred 
 		   multinomial parameter \widehat{C\mu}
+	* results_plot: if matlab is installed on your system, a PDF that visualizes
+	  the results will automatically be created.  
 	
 3. Visualize results:
 
-We also provide a matlab script for visualization of results.
+We also provide a matlab script for creating visualization of results on your own.
 
 	Run Visualization Code (in Matlab):
 
@@ -284,11 +278,19 @@ There are a variety of optional parameters that can be passed to THetA
 
 (1) --N, -n (Integer) -- the number of subpopulations to consider. 2 for mixture of 
 				normal and one tumor population. 3 for mixture of normal and 
-				two tumor populations
+				two tumor populations and requires the use of either
+				the --RESULTS flag or the --NO_INTERVAL_SELECTION
+				flag.
 
 		Usage: bin/RunTHetA interval_count_file --N (-n) 2
 
 		Default: 2
+
+		NOTE: If you want to run for a value of 3, first running with
+		      a value of 2 (the default) will now output a bash script
+		      of the name [prefix].RunN3.bash that can be run to 
+		      automatically do analysis with a value of 3 (or multiple
+		      tumor populations).
 
 -------------------------------------------------------------------------------
 
@@ -438,6 +440,33 @@ There are a variety of optional parameters that can be passed to THetA
 		Default: False
 
 -------------------------------------------------------------------------------
+
+(12) --RESULTS (String) -- A results file output from a run with one tumor population
+			   (-n 2 or --N 2).  Either the --RESULTS or 
+			   --NO_INTERVAL_SELECTION flag is required when considering 
+			   multiple tumor populations (-n 3 or --N 3).
+	
+		Usage: bin/RunTHetA interval_count_file -n 3 --RESULTS result_file
+
+		Default: Only applies when multiple tumor populations are considered
+			 (-n 3 or --N 3).
+
+------------------------------------------------------------------------------
+
+(13) --NO_INTERVAL_SELECTION (Boolean Flag) -- Turns off automatic interval selection
+						for determining which intervals should
+						be used in the optimization procedure.
+						When set to TRUE all supplied intervals
+						are used.  WARNING - this may result in
+						very long run-times.
+
+		Usage: bin/RunTHetA interval_count_file --NO_INTERVAL_SELECTION
+
+		Default: False
+
+------------------------------------------------------------------------------
+
+
 
 
 7) OPTIONAL PREPROCESSING SCRIPTS==============================================
