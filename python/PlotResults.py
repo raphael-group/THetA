@@ -78,7 +78,9 @@ def plot_results(out_dir, interval_file, n, prefix):
 
 		#Call matlab code from here
 		command = 'matlab -nodisplay -nosplash -r "run '+plot_path+'"'
-		os.system(command) 
+		os.system(command)
+		os.system('stty echo') #clear problems from calling matlab from a script
+		print('\n') 
 
 	os.remove(plot_path)
 	
