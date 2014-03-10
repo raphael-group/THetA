@@ -35,9 +35,6 @@
 % genome - a name for the genome under consideration.
 % width - the width of the pdf to create.
 % height - the height of the pdf to create.
-% 
-% OPTIONAL PARAMETERS:
-% rowNumber - plots only a particular entry (TO IMPLEMENT)
 %
 % OUTPUT:
 % resultsFile.pdf
@@ -54,7 +51,6 @@ idx = sep_locs(end - 1); %Go up one level
 main = strcat(file_path(1:idx),'matlab/mainMethod');
 addpath(genpath(main));
 
-% WHERE TO PUT THIS CODE????
 
 close all;
 figure1 = figure;
@@ -88,8 +84,22 @@ end
 
 intervalMat = intervals;
 
-allData = importdata(resultsFile);
-numResults = size(allData,1);
+%allData = importdata(resultsFile);
+%numResults = size(allData,1);
+
+%new way to import data
+fid = fopen(resultsFile);
+header = fgetl(fid);
+allData = {header};
+line = fgetl(fid);
+
+while (line ~= -1)
+    allData{numel(allData)+1} = line;
+    line = fgetl(fid);
+end
+fclose(fid);
+
+numResults = size(allData,2);
 
 %Iterate over all results
 for i=2:numResults  %start at 2 to ignore header file
@@ -141,10 +151,12 @@ numIntervals = size(c,1);
 
 legendPlot = zeros(size(c,2)+1,1);
 
+%Fixed vertical plot range
+vertBar = [-0.5, 6];
+offset = (0.075 * vertBar(2)/3);
 
-vertBar = [-0.5,max(max(c))+ 0.5];
-%offset = 0.075;
-offset = (0.075 * max(max(c))/3);
+%vertBar = [-0.5,max(max(c))+ 0.5];
+%offset = (0.075 * max(max(c))/3);
 
 tau= 2;
 
@@ -193,7 +205,7 @@ for i=1:size(c,2)
         pointer = pointer + curLength;
         ygrid = [c(k,i)+ (i-1)*offset, c(k,i) + (i-1)*offset];
         
-        if (c(k,i) ~= -1)
+        if (c(k,i) ~= -1) && ((curEnd - curStart) > 100000)
         
             p = plot(xgrid,ygrid,colors{i},'LineWidth',3);
             legendPlot(i) = p;
