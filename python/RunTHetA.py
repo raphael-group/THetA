@@ -303,6 +303,7 @@ def main():
 	#  Write results out to file
 	###
 	write_out_result(directory, prefix, best, n)	
+	if n == 2: write_out_N3_script(directory, prefix, filename)
 
 import time
 if __name__ == '__main__':

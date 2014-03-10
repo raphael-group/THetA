@@ -347,3 +347,18 @@ def write_out_bounds(directory, prefix, inputFile, upper_bounds, lower_bounds, n
 			f.write("\n")
 	f.close()
 
+def write_out_N3_script(directory, prefix, inputFile):
+	# All the arguments are the same except -n 3 instead of 2 and --bounds prefix.n2.withbounds	
+
+	filename = os.path.join(directory, prefix+".RunN3.bash")
+	print "Writing script to run N=3 to ", filename
+	with open(filename, 'w') as f:
+		argString = " ".join(sys.argv)
+		boundsFile = os.path.join(directory, prefix + ".n2.withBounds")
+		resultsFile = os.path.join(directory, prefix + ".n2.results")
+
+		string = "python "+ argString.replace("-n 2", "").replace(inputFile, boundsFile) +" -n 3" + " --RESULTS " + resultsFile
+		f.write("#!/bin/bash\n")
+		f.write(string)
+
+
