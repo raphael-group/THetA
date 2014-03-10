@@ -95,8 +95,8 @@ def calc_all_c_2(best, r, rN, all_tumor, all_normal, intervals_used):
 					c_all[i][1] = int(bot)
 				else:
 					c_all[i][1] = int(top)
-
-		likelihood, vals = L2(mu[0], c_all, len(all_tumor), all_tumor)
+		c_all_w = weighted_C(c_all, all_normal)
+		likelihood, vals = L2(mu[0], c_all_w, len(all_tumor), all_tumor)
 		bestNew.append((c_all, mu, likelihood, vals))
 
 	return bestNew
@@ -195,6 +195,8 @@ def calc_all_c_3(best, r, rN, all_tumor, all_normal, intervals_used):
 				c_all[i][1] = rowMin[0]
 				c_all[i][2] = rowMin[1]
 
+		c_all_w = weighted_C(c_all, all_normal)
+
 		likelihood, vals = L3(mu, c_all, len(all_tumor), all_tumor, n)
 		bestNew.append((c_all, mu, likelihood, vals))
 	return bestNew
@@ -267,6 +269,8 @@ def calc_all_c_3_multievent(best, r, rN, all_tumor, all_normal, intervals_used):
 
 				c_all[i][1] = rowMin[1]
 				c_all[i][2] = rowMin[2]
+
+		c_all_w = weighted_C(c_all, all_normal)
 
 		likelihood, vals = L3(mu, c_all, len(all_tumor), all_tumor, n)
 		bestNew.append((c_all, mu, likelihood, vals))
