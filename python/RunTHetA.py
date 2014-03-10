@@ -32,6 +32,7 @@ from Enumerator import Enumerator
 from Optimizer import Optimizer
 from TimeEstimate import *
 from CalcAllC import *
+from PlotResults import *
 
 from multiprocessing import JoinableQueue, Queue, Process, Array, current_process
 
@@ -304,6 +305,12 @@ def main():
 	###
 	write_out_result(directory, prefix, best, n)	
 	if n == 2: write_out_N3_script(directory, prefix, filename)
+
+	###
+	# Make Results Plots
+	###
+	print "Plotting results..."
+	plot_results(directory, filename, n, prefix)
 
 import time
 if __name__ == '__main__':
