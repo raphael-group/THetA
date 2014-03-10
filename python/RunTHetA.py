@@ -309,7 +309,7 @@ def main():
 	###
 	# Make Results Plots
 	###
-	print "Plotting results..."
+	print "Plotting results as a PDF..."
 	plot_results(directory, filename, n, prefix)
 
 import time
