@@ -21,7 +21,10 @@ def select_intervals_n3(lengths, tumor_counts, norm_counts, m, upper_bounds, low
 
 
 	# Filter out intervals not used in n=2 analysis (those that don't have bounds set)
+
+
 	interval_used = [x != "X" for x in upper_bounds]
+	real_indexes = [i for i in range(m) if interval_used[i]]
 	lengths = [v for i,v in enumerate(lengths) if interval_used[i]]
 	tumor_counts = [v for i,v in enumerate(tumor_counts) if interval_used[i]]
 	norm_counts = [v for i,v in enumerate(norm_counts) if interval_used[i]]
@@ -33,8 +36,8 @@ def select_intervals_n3(lengths, tumor_counts, norm_counts, m, upper_bounds, low
 	c = int(num_intervals - b)
 
 	indexes = [i for i in range(len(lengths)) if lengths[i] >= MIN_LENGTH_N3]
-
-	lines = [[i, lengths[i], tumor_counts[i], norm_counts[i], upper_bounds[i], lower_bounds[i], copy[i]] for i in indexes]
+	
+	lines = [[real_indexes[i], lengths[i], tumor_counts[i], norm_counts[i], upper_bounds[i], lower_bounds[i], copy[i]] for i in range(len(real_indexes)) if lengths[i] >= MIN_LENGTH_N3]
 	lines.sort(key=lambda x: -x[1])
 
 	### Select b longest intervals that have C != 2
