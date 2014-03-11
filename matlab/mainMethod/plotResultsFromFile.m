@@ -58,31 +58,51 @@ hold on;
 
 %Step 1: load interval file information
 
-intervals = importdata(intervalFile);
-%if (isstruct(intervals))
-%    intervalMat = intervals.data;
-%else
-%    intervalMat = intervals;
-%end
+%intervals = importdata(intervalFile);
 
 %If header line was included, we need to get the correct field
-if (isfield(intervals,'data'))
-    intervals = intervals.data;
-end
+%if (isfield(intervals,'data'))
+%    intervals = intervals.data;
+%end
 
 %Check to see if ID column is still included
 
 %if 6 columns then, remove the first one
-if (size(intervals,2) == 6)
-    intervals = intervals(:,2:end);
-end
+%if (size(intervals,2) == 6)
+%    intervals = intervals(:,2:end);
+%end
 
 %if 8 columns then has bounds and ID, remove first
-if (size(intervals,2) == 8)
-    intervals = intervals(:,2:end);
+%if (size(intervals,2) == 8)
+%    intervals = intervals(:,2:end);
+%end
+
+%intervalMat = intervals;
+
+
+%Alternate way of importing
+intervalMat = [];
+fid = fopen(intervalFile);
+line = fgetl(fid);
+
+%Check for header
+while (line ~= -1)
+    % check for header
+    if (strcmp(line(1),'#'))
+        line = fgetl(fid);
+        continue;
+    end
+    
+    row = regexp(line, '\t','split');
+    chrm = str2num(row{2});
+    s = str2num(row{3});
+    e = str2num(row{4});
+    intervalMat = [intervalMat; chrm, s, e];
+    line = fgetl(fid);
 end
 
-intervalMat = intervals;
+fclose(fid);
+
 
 %allData = importdata(resultsFile);
 %numResults = size(allData,1);
