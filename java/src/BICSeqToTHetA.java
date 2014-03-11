@@ -188,12 +188,43 @@ public class BICSeqToTHetA
 			while ((curLine = br.readLine()) != null)
 			{
 				String[] parts = curLine.split("\\s+");
-				int chrm = Integer.parseInt(parts[0]);
 				Long[] vals = new Long[4];
+				
+				//Handle chromosome names lko - 3/11/2014
+				String chrm_str = parts[0];
+				
+				//Remove preceeding Chr or chr
+				if (chrm_str.length() > 3)
+				{
+					String pre = chrm_str.substring(0,3);
+					if (pre.toLowerCase().equals("chr"))
+						chrm_str = chrm_str.substring(3);
+				}
+				
+				if (chrm_str.toLowerCase().equals("x"))
+					chrm_str = "23";
+				
+				if (chrm_str.toLowerCase().equals("y"))
+						chrm_str ="24";
+				
+				int chrm = -1;
+				
+				//If non-number, then just ignore
+			    try { 
+			        chrm = Integer.parseInt(chrm_str); 
+			    } catch(NumberFormatException e) 
+			    { 
+			        System.out.println("Warning!  Only numeric, X and Y chromosomes allowed.");
+			        System.out.println("Ignoring the interval:"+ parts[0] + ":" + parts[1] + "-" + parts[2]);
+			    	continue;
+			    }
+				
 				vals[0] = Long.parseLong(parts[1]);
 				vals[1] = Long.parseLong(parts[2]);
 				vals[2] = Long.parseLong(parts[3]);
 				vals[3] = Long.parseLong(parts[4]);
+
+
 				
 				if (!data.containsKey(chrm))
 				{
