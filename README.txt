@@ -1,4 +1,4 @@
-Copyright 2012, 2013 Brown University, Providence, RI.
+Copyright 2012, 2013, 2014 Brown University, Providence, RI.
 
                          All Rights Reserved
 
@@ -28,17 +28,16 @@ aberrations directly from high-throughput DNA sequencing data.
 If you use this software in your research, please cite:
 
 L. Oesper, A. Mahmoody, B.J. Raphael. (2013)  THetA: Inferring intra-tumor 
-heterogeneity from high-throughput DNA sequencing data.  Genome Biology.
-(In Press).
+heterogeneity from high-throughput DNA sequencing data.  Genome Biology.  14:R80.
 
 contact: layla@cs.brown.edu
 	 braphael@cs.brown.edu
 
-Beta Version: 0.52
-Version data: January 15, 2014
+Beta Version: 0.53
+Version data: March, 2014
 
 WEBSITE:
-http://cs.brown.edu/people/braphael/software.html
+http://compbio.cs.brown.edu/software/
 http://compbio.cs.brown.edu/projects/theta/
 
 

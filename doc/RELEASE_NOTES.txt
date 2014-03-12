@@ -19,4 +19,8 @@ Beta_0.52 (January 2014) - (1) Changed enumeration strategy for n=3.
 			(2) Added time estimates
 			(3) Added example data for n=3
 			(4) Expanded error messages and documentation
+------------------------------------------------------------------------------
+Beta_0.53 (March 2014) - (1) Added  two step process
+			 (2) Automatically generate pdfs when matlab is installed
+			 (3) Changed example data to use one dataset for n=2 and n=3
 

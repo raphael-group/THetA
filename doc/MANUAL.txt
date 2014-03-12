@@ -33,11 +33,11 @@ heterogeneity from high-throughput DNA sequencing data.  Genome Biology. 14:R80.
 contact: layla@cs.brown.edu
 	 braphael@cs.brown.edu
 
-Beta Version: 0.52
-Version date: January 15, 2014
+Beta Version: 0.53
+Version date: March, 2014
 
 WEBSITE:
-http://cs.brown.edu/software/
+http://compbio.cs.brown.edu/software/
 http://compbio.cs.brown.edu/projects/theta/
 
 
@@ -156,7 +156,9 @@ is tab delimited containing the following fields:
 		1. NLL (Double) - solution neg. log likelihood (w/o constants)
 		2. mu  (Double,Double) - comma delimited list:  %normal, %tumor 
 		3. C_2 (Integer: ... :Integer) - colon delimited list of 
-		   inferred tumor interval copy numbers
+		   inferred tumor interval copy numbers.  When multiple tumor
+		   populations are inferred this list is in the form
+		   (Integer,Integer: ... : Integer, Integer).
 		4. p* (Double, ... ,Double) - comma delimted list of inferred 
 		   multinomial parameter \widehat{C\mu}
 	* results_plot: if matlab is installed on your system, a PDF that visualizes
@@ -193,60 +195,99 @@ Runs the efficient n=2 algorithm and generally considers a max copy number
 of 3 (default value).  By default, the algorithm uses a bound heuristic to set 
 reasonable lower and upper bounds on the copy number considered for each 
 interval. For this input, the program will take ~5 minutes to complete using
-a single process  and will produce two files: 
+a single process  and will produce three files (or four if you have matlab installed): 
 
-File 1: example/PD4120a.results 
+File 1: example/PD4120a.n2.results 
 
-containing the following single solution with 34.3% normal and 65.7% tumor:
+containing the a single solution with 34.5% normal and 65.4% tumor, output in the following format
+(only part of the output is written here as indicated by ...)
 
-#NLL    mu      C_2     p*
-8844567667.24	0.343272840672,0.656727159328	6:1:2:3:2:1:3:3:2:1:2:1:2:2:2:1:2:1:2:1:0:1:2:2:1:2:2:2:2:1:2:2:2:2:2:1:2:2:2:1:2:2:1:2:1:2:1:2:1:2:1:2:1:2:2:2:1:1:2:1:2:1:2:1:2:1:2:1:1	0.000373778844891,0.0272274719281,0.00179214376416,0.000924462121137,0.00372364748274,8.01132899565e-05,0.000487363358673,0.0530919156929,0.0495756917059,0.00557555876306,0.00861784230747,0.00031376245398,0.0274235587728,0.0788536176669,0.00095281905738,0.00207494907811,0.00347136304951,0.000183131022654,0.00604269908753,0.00859013319939,7.58334300289e-06,0.033617294745,0.0528304092272,0.0181023565922,0.000979744567555,0.0668386293433,0.0232884945431,0.0371211678461,0.0569498655453,0.00398462520895,0.0376363275606,0.0151787740335,0.0356425478145,0.051761356051,0.0517244371262,0.0263156486976,0.034916105942,0.0308130663151,0.0118515337515,0.0112590947721,0.00741174592486,0.0210606026984,4.36066201483e-05,0.00393906997842,4.392606639e-05,0.00886226251,0.000729921413404,0.000649796308509,0.000877590959023,0.00220077909841,0.000884149175644,0.00066221951353,8.39054259872e-05,0.00993968841789,0.0194524442334,0.0230984686029,0.000452826088405,0.000480832838398,0.00040963918533,7.28690735717e-05,0.000354962178897,0.000172049035062,0.00487925322476,0.000590273354288,0.000884399373551,0.00295279176666,0.000482589349889,0.00270206474157,0.00543018716944
+#NLL    mu      C       p*
+12534652744.8   0.345525386958,0.654474613042	2:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:2:2:3:2:2:2:2:2:1:2:3:2:3:3: ...	4.97752475775e-06,1.75115814182e-05,0.000709237511777,0.000598878358733,0.00158303218873,0.0007845646391,4.17929289805e-05,0.000858662779858,0.00212827237416, ...
+
+** Notice that only the tumor component is written.  The normal genome is assumed to contain
+all segments with the expected copy number.**
+
 and 
 
-File 2: example/PD4102a.withBounds
+File 2: example/PD4120a.n2.withBounds
 
 containing information about the individual upper and lower bounds for all intervals
-as set by the bounds heuristic.  The first few lines look like the following:
+as set by the bounds heuristic.  Bounds set to a value of "X" indicate that the interval
+was not used in the initial estimate phase:
 
 #ID     chrm    start   end     tumorCount      normalCount     UpperBound      LowerBound
-start_1_10001:end_1_570000      1       10001   570000  1075438 73714   6       4
-start_1_570001:end_1_106068800  1       570001  106068800       69021236        18495636        2       0
-start_1_106068801:end_1_110651200       1       106068801       110651200       4411350 817653  2       0
-start_1_110651201:end_1_112383500       1       110651201       112383500       2143221 317518  4       2
-start_1_112383501:end_1_121485200       1       112383501       121485200       9176462 1698888 2       0
+start_1_10001:end_1_564400      1       10001   564400  13751   2267    X       X
+start_1_570001:end_1_804000     1       570001  804000  48047   11855   X       X
+start_1_804001:end_1_4124300    1       804001  4124300 1758468 480140  X       X
+start_1_4127501:end_1_6485000   1       4127501 6485000 1482531 405429  X       X
+start_1_6485001:end_1_13122900  1       6485001 13122900        4008088 1071682 X       X
+start_1_13165701:end_1_16891900 1       13165701        16891900        1972497 531135  X       X
+start_1_16918201:end_1_16975300 1       16918201        16975300        98443   28293   X       X
+start_1_16975301:end_1_20498000 1       16975301        20498000        2149097 581298  X       X
+start_1_20498001:end_1_29426500 1       20498001        29426500        5413316 1440799 2       0
+...				...	...		...		...	...	...	...
+
+File 3: example/PD4120a.RunN3.bash
+
+a script that can be run to do analysis of the genome while considering a mixture of normal cells
+and two distinct tumor populations
+
+File 4 (if matlab is installed): example/PD4120a.n2.results.pdf
+
+a pdf visualization of the results from THetA, similar to those seen in the original publication.
 
 (ii) Normal and 2 tumor subpopulations
 
-	bin/RunTHetA -n 3 example/sim_1.intervals
+	bash example/PD4120a.RunN3.bash
 
-Runs the n=3 algorithm. For this input, the program will take ~2 minutes to 
-complete using a single process and will produce two files:
+Runs the n=3 algorithm. For this input, the program will take ~2 hours to 
+complete using a single process and will produce two files (or three if you
+have matlab installed):
 
-File 1: example/sim_1.results
+File 1: example/PD4120a.n3.results
 #NLL    mu      C       p*
-260241832.625   0.357968429254,0.399810188555,0.242221382191    1,1:2,1:1,1:2,2:2,1:1,1:1,1:1,1:3,2:2,3:1,2:2,1       0.0674762141757,0.120329338815,0.0686176716875,0.135578065971,0.104730452879,0.0763374388574,0.0606065486584,0.0654017231171,0.0784305489811,0.0893775273897,0.0575228817513,0.0755915877174
+12533388199.9   0.316798996672,0.558861427378,0.124339575949    2,3:1,2:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1: ...	 5.29201137218e-06,1.87738182607e-05,0.000694756604183,0.000586650717035,0.00155071051586,0.0007685457345,4.09396188657e-05,0.000841130971172,0.00208481822083,0.000502870137658,0.000445582453407,0.000489368296792,0.000298445523978, ...
 
-File 2: example/sim_1.withBounds
+** Notice that only the tumor components of C are written.  It is assumed that the normal component contains all segments with the expected copy number. **
+
+
+File 2: example/PD4120a.n3.withBounds
+
+containing information about the individual upper and lower bounds for all intervals as
+set by the various bound heuristics.  Bounds set to a value of "X" indicates that the
+interval was not used in the initial estimate phase.
+
 #ID     chrm    start   end     tumorCount      normalCount     UpperBound      LowerBound
-1       1       142600000       249250621       7447614 8818166 2       1
-2       2       102700000       243199373       12855772        12148554        2       1
-3       3       98300000        198022430       7124815 8967338 2       1
-4       4       59500000        191154276       14684657        12030306        2       1
-5       5       58900000        180915260       10999282        10573677        2       1
-6       6       63400000        171115067       7985575 9976200 2       1
-7       7       67000000        159138663       6371735 7920400 2       1
-8       8       52200000        146364022       7049192 8547060 2       1
-9       9       65900000        141213431       8486992 5799968 3       2
-10      10      46100000        135534747       9208074 7074033 3       2
-11      11      59900000        135006516       6233254 6379496 2       1
-12      12      46400000        133851895       7907416 7631792 2       1
+start_1_10001:end_1_564400      1       10001   564400  13751   2267    X       X
+start_1_570001:end_1_804000     1       570001  804000  48047   11855   X       X
+start_1_804001:end_1_4124300    1       804001  4124300 1758468 480140  X       X
+start_1_4127501:end_1_6485000   1       4127501 6485000 1482531 405429  X       X
+start_1_6485001:end_1_13122900  1       6485001 13122900        4008088 1071682 X       X
+start_1_13165701:end_1_16891900 1       13165701        16891900        1972497 531135  X       X
+start_1_16918201:end_1_16975300 1       16918201        16975300        98443   28293   X       X
+start_1_16975301:end_1_20498000 1       16975301        20498000        2149097 581298  X       X
+start_1_20498001:end_1_29426500 1       20498001        29426500        5413316 1440799 X       X
+start_1_29426501:end_1_31589400 1       29426501        31589400        1280677 347529  X       X
+start_1_31590901:end_1_33465100 1       31590901        33465100        1162476 307938  X       X
+start_1_33465101:end_1_35371600 1       33465101        35371600        1246168 338198  X       X
+start_1_35371601:end_1_36569200 1       35371601        36569200        785215  206253  X       X
+start_1_36569201:end_1_51348300 1       36569201        51348300        9600613 2573086 2       1
+...				...	...		...		...	...	...	...
+
+
+
+File 3 (if matlab is installed): example/PD4120a.n3.results.pdf
+
+a pdf visualization of the results from THetA, similar to those seen in the the original publication.
+
 
 -------------------------------------------------------------------------------
 
 If you then want to visualize these results you can run (at a matlab prompt):
 
 >> cd bin
->> plotResultsFromFile('../example/PD4120a.results','../example/PD4120a.intervals','PD4120a',11,4)
+>> plotResultsFromFile('../example/PD4120a.n2.results','../example/PD4120a.intervals','PD4120a',11,4)
 
 
 This creates a pdf that visualizes the tumor genome by copy number and includes
@@ -264,7 +305,7 @@ NOTES:
 	Cell, 149, 5:994-1007.
 	
 	b) genomic intervals determined by 
-		(1) running the algorithm (with parameter lambda = 100) described in:
+		(1) running the algorithm (with default parameter lambda = 2) described in:
 		Xi, R. et al. (2011) Copy number variation detection in whole-genome
 		sequencing data using the Bayesian information criterion. PNAS, 108,
 		46:E1128-E1136.
@@ -474,7 +515,8 @@ There are a variety of optional parameters that can be passed to THetA
 While THetA can be used with any segmentation algorithm, we provide code to 
 convert BIC-Seq output (from their perl pipeline) into the 
 appropriate input for THetA since that is what we use in the results presented
-in our paper.  
+in our paper.  With the latest version of THetA, we suggest running BIC-Seq
+with the default parameters.
 
 BIC-Seq can be obtained from: http://compbio.med.harvard.edu/Supplements/PNAS11.html
 
@@ -490,7 +532,7 @@ INPUT:
 
 OUTPUT:
 	interval_count_file: A file used as input to THetA.  See the section on
-						 Basic Usage for a more detailed description.
+			     Basic Usage for a more detailed description.
 
 OPTIONS:
 

@@ -1,4 +1,4 @@
-Copyright 2012, 2013 Brown University, Providence, RI.
+Copyright 2012, 2013, 2014 Brown University, Providence, RI.
 
                          All Rights Reserved
 
@@ -24,5 +24,4 @@ REFERENCES:
 If you use our code in your research, please cite:
 
 L. Oesper, A. Mahmoody, and B.J. Raphael. (2013) THetA: Inferring Intra-Tumor 
-Heterogeneity from High-Throughput DNA Sequencing Data. Genome Biology.  
-(In Press).
+Heterogeneity from High-Throughput DNA Sequencing Data. Genome Biology. 14:R80.
