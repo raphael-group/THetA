@@ -201,7 +201,7 @@ def calc_all_c_3(best, r, rN, all_tumor, all_normal, intervals_used):
 		bestNew.append((c_all, mu, likelihood, vals))
 	return bestNew
 
-def calc_all_c_3_multievent(best, r, rN, all_tumor, all_normal, intervals_used):
+def calc_all_c_3_multi_event(best, r, rN, all_tumor, all_normal, intervals_used):
 	bestNew = []
 	num_intervals = len(all_tumor)
 
@@ -238,11 +238,14 @@ def calc_all_c_3_multievent(best, r, rN, all_tumor, all_normal, intervals_used):
 				# Weighted optimal x value (float)
 				wX = calculateX(all_tumor[i], all_normal[i], sum_r, sum_all, mu, n, [2,0,0], 1)
 				maxX = math.ceil(wX/all_normal[i])
+				print maxX
 
 				c_new[m][0] = 2*all_normal[i]
 
 				lMin = float('inf')
 				rowMin = None
+
+				if maxX < 0: maxX = 0
 
 				for x in range(int(maxX)+1):
 					wX = x * all_normal[i]
@@ -266,6 +269,7 @@ def calc_all_c_3_multievent(best, r, rN, all_tumor, all_normal, intervals_used):
 					if lTop[0] < lMin: 
 						lMin = lTop[0]
 						rowMin = [2,x,top]
+
 
 				c_all[i][1] = rowMin[1]
 				c_all[i][2] = rowMin[2]
