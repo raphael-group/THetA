@@ -201,7 +201,7 @@ def calc_all_c_3(best, r, rN, all_tumor, all_normal, intervals_used):
 		bestNew.append((c_all, mu, likelihood, vals))
 	return bestNew
 
-def calc_all_c_3_multievent(best, r, rN, all_tumor, all_normal, intervals_used):
+def calc_all_c_3_multi_event(best, r, rN, all_tumor, all_normal, intervals_used):
 	bestNew = []
 	num_intervals = len(all_tumor)
 
