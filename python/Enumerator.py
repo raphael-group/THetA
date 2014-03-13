@@ -249,8 +249,11 @@ class Enumerator:
 
 	def _is_valid_row(self, row):
 		# Checks for multi-event cases
-		return row[0] == row[1] or row[0] == self.tau or row[1] == self.tau
+		return (self.tau - row[0])*(self.tau - row[1]) >= 0
 
+	def _no_multi_event(self, row):
+		# Checks for multi-event cases
+		return row[0] == row[1] or row[0] == self.tau or row[1] == self.tau
 	
 	def _create_graph(self):
 		"""
@@ -265,8 +268,13 @@ class Enumerator:
 		while True:
 			row = self._add_one(row, self.k)
 			if start == row: break
-			if self.allow_multi_event or self._is_valid_row(row):
+
+			if self.allow_multi_event and self._is_valid_row(row):
+				# Where is valid row checks that tehre isnt amp/del in same interval
 				rows.append(list(row))
+			elif self._no_multi_event(row):
+				rows.append(list(row))
+
 
 	
 		edges = []

@@ -256,6 +256,13 @@ def calc_all_c_3_multi_event(best, r, rN, all_tumor, all_normal, intervals_used)
 					bot = int(max(0,math.floor(y)))
 					top = int(max(0,math.ceil(y)))
 
+					if x < 2:
+						bot = min(bot,2)
+						top = min(top,2)
+					elif x > 2:
+						bot = max(2,bot)
+						top = max(2,top)
+
 					c_new[m][2] = bot*all_normal[i]
 					lBot = L3(mu, c_new, m+1, r+[all_tumor[i],],n)
 					if lBot[0] < lMin:
