@@ -238,7 +238,6 @@ def calc_all_c_3_multi_event(best, r, rN, all_tumor, all_normal, intervals_used)
 				# Weighted optimal x value (float)
 				wX = calculateX(all_tumor[i], all_normal[i], sum_r, sum_all, mu, n, [2,0,0], 1)
 				maxX = math.ceil(wX/all_normal[i])
-				print maxX
 
 				c_new[m][0] = 2*all_normal[i]
 
