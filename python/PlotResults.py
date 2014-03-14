@@ -77,9 +77,10 @@ def plot_results(out_dir, interval_file, n, prefix):
 		fid.close()
 
 		#Call matlab code from here
+		var = subprocess.check_output("stty -g", shell=True) #save old configuration
 		command = 'matlab -nodisplay -nosplash -r "run '+plot_path+'"'
 		os.system(command)
-		os.system('stty echo') #clear problems from calling matlab from a script
+		os.system('stty '+var) #reset the old configuration
 		print('\n') 
 
 	os.remove(plot_path)

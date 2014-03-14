@@ -309,8 +309,8 @@ def main():
 	###
 	# Make Results Plots
 	###
-	#print "Plotting results as a PDF..."
-	#plot_results(directory, filename, n, prefix)
+	print "Plotting results as a PDF..."
+	plot_results(directory, filename, n, prefix)
 
 import time
 if __name__ == '__main__':
