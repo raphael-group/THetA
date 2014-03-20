@@ -8,7 +8,7 @@ def L2(mu, C, m, r):
 	vals = []
 	total_sum = 0
 	mu1 = 1-mu
-	valid_rows = [i for i in range(m) if C[i][1] != -1]
+	valid_rows = [i for i in range(m) if C[i][0] != 0]
 	denom = sum([C[j][0]*mu + C[j][1]*mu1 for j in valid_rows])
 	for i in range(m):
 		if i in valid_rows:
@@ -62,7 +62,6 @@ def calc_all_c_2(best, r, rN, all_tumor, all_normal, intervals_used):
 				c_new[x][y] = c[x][y]
 
 		c_new = weighted_C(c_new, rN + [0,])
-
 		c_all = numpy.zeros((len(all_tumor), n))
 		for i, val in enumerate(intervals_used):
 			c_all[val] = c[i]
@@ -98,10 +97,10 @@ def calc_all_c_2(best, r, rN, all_tumor, all_normal, intervals_used):
 					c_all[i][1] = int(bot)
 				else:
 					c_all[i][1] = int(top)
+
 		c_all_w = weighted_C(c_all, all_normal)
 		likelihood, vals = L2(mu[0], c_all_w, len(all_tumor), all_tumor)
 		bestNew.append((c_all, mu, likelihood, vals))
-
 	return bestNew
 
 def calc_all_c_2(best, r, rN, all_tumor, all_normal, intervals_used):
