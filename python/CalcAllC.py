@@ -48,9 +48,6 @@ def calculateX(tumorI, normalI, sumR, sumAll, mu, n, row, h):
 
 
 def calc_all_c_2(best, r, rN, all_tumor, all_normal, intervals_used):
-	"""
-	Considers each interval individually
-	"""
 	bestNew = []
 	num_intervals = len(all_tumor)
 	for c,mu,likelihood, vals in best:
@@ -101,72 +98,6 @@ def calc_all_c_2(best, r, rN, all_tumor, all_normal, intervals_used):
 		c_all_w = weighted_C(c_all, all_normal)
 		likelihood, vals = L2(mu[0], c_all_w, len(all_tumor), all_tumor)
 		bestNew.append((c_all, mu, likelihood, vals))
-	return bestNew
-
-def calc_all_c_2(best, r, rN, all_tumor, all_normal, intervals_used):
-	"""
-	Iteratively builds C
-	"""
-	bestNew = []
-	num_intervals = len(all_tumor)
-	for c,mu,likelihood, vals in best:
-		m,n = c.shape
-		c_new = numpy.zeros((len(all_tumor),n))
-	
-		for x in range(m):
-			for y in range(n):
-				c_new[x][y] = c[x][y]
-
-		c_new = weighted_C(c_new, rN + [0]*(len(all_normal)-len(rN)))
-
-		c_all = numpy.zeros((len(all_tumor), n))
-		for i, val in enumerate(intervals_used):
-			c_all[val] = c[i]
-
-		sum_all = sum([c_new[j][k]*mu[k] for j in range(m) for k in range(n)]) 
-		sum_r = sum(r)
-		count = 0
-
-		for i in range(num_intervals):
-			if i not in intervals_used:
-				if all_normal[i] == 0:
-					c_all[i][0] = 2
-					c_all[i][1] = -1
-					continue
-
-				r += [all_tumor[i],]
-
-				c_all[i][0] = 2
-
-				wX = calculateX(all_tumor[i], all_normal[i], sum_r, sum_all, mu, n, [2,0], 1)
-				x = wX/all_normal[i]
-				if x < 0: 
-					c_all[i][1] = 0 
-					continue
-
-				bot = math.floor(x)
-				top = math.ceil(x)
-			
-				c_new[count+m][0] = 2*all_normal[i]
-				c_new[count+m][1] = bot*all_normal[i]
-				lBot = L2(mu[0], c_new, m+count, r)
-				c_new[count+m][1] = top*all_normal[i]
-				lTop = L2(mu[0], c_new, m+count, r)
-			
-				if lBot[0] < lTop[0]:
-					c_all[i][1] = int(bot)
-				else:
-					c_all[i][1] = int(top)
-
-				c_new[count+m][1] = c_all[i][1]*all_normal[i]
-				count += 1
-
-				sum_all += (c_all[i][0]*mu[0] + c_all[i][1]*mu[1])*all_normal[i]
-				sum_r += all_tumor[i]
-		c_all_w = weighted_C(c_all, all_normal)
-		likelihood, vals = L2(mu[0], c_all_w, len(all_tumor), all_tumor)
-		bestNew.append((c_all, mu, likelihood, vals))
-
 	return bestNew
 
 def calc_all_c_3(best, r, rN, all_tumor, all_normal, intervals_used):
