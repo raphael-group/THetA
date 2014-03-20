@@ -89,7 +89,7 @@ def parse_arguments():
 			required=False)
 	parser.add_argument("--BOUNDS_ONLY", action='store_true', default=False, required=False)
 	parser.add_argument("--NO_TIME_ESTIMATE", action='store_true', default=False, required=False)
-	parser.add_argument("--MULTI_EVENT", action='store_true', default=False, required=False)
+	parser.add_argument("--NO_MULTI_EVENT", action='store_true', default=False, required=False)
 	parser.add_argument("--RESULTS", metavar = "filename", default=None, required=False)
 	parser.add_argument("--FORCE", action = "store_true", default=False, required=False)
 	parser.add_argument("--GET_VALUES", action = "store_true", default=False, required=False)
@@ -130,7 +130,7 @@ def parse_arguments():
 	heuristic_ub = args.HEURISTIC_UB
 	bounds_only = args.BOUNDS_ONLY
 	no_time_estimate = args.NO_TIME_ESTIMATE
-	multi_event = args.MULTI_EVENT
+	multi_event = not(args.NO_MULTI_EVENT)
 	results = args.RESULTS
 	force = args.FORCE	
 	get_values = args.GET_VALUES

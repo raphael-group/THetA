@@ -470,13 +470,13 @@ There are a variety of optional parameters that can be passed to THetA
 
 -------------------------------------------------------------------------------
 
-(11) --MULTI_EVENT (Boolean Flag) -- Allows multiple distinct copy number events
+(11) --NO_MULTI_EVENT (Boolean Flag) -- Prohibits multiple distinct copy number events
 					to be predicted for a single interval.
-					If not set, a perfect phylogeny assumption
+					If set, a perfect phylogeny assumption
 					is made for all copy number events over 
 					all tumor populations.
 
-		Usage: bin/RunTHetA interval_count_file --MULTI_EVENT
+		Usage: bin/RunTHetA interval_count_file --NO_MULTI_EVENT
 
 		Default: False
 
