@@ -35,7 +35,7 @@ from CalcAllC import *
 from PlotResults import *
 
 from multiprocessing import JoinableQueue, Queue, Process, Array, current_process
-
+import os
 def process_loop(queue, opt, returnQueue, sorted_index, get_values):
 	"""
 	Code that each child process executes. Repeatedly pops of new C
@@ -138,13 +138,14 @@ def do_optimization(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 	for i in range(max_processes-1):
 		queue.put(0)
 
+	best = []
+	for i in range(len(processes)):
+		item = returnQueue.get()
+		best.append(item)
+
 	for p in processes:
 		p.join()
 
-	best = []
-	while not returnQueue.empty():
-		item = returnQueue.get()
-		best.append(item)
 	best = find_mins(best)
 	return best
 
