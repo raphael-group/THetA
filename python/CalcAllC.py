@@ -22,7 +22,8 @@ def L2(mu, C, m, r):
 def L3(mu, C, m, r, n):
 	total_sum = 0
 	vals = []
-	valid_rows = [i for i in range(m) if C[i][1] != -1]
+	valid_rows = [i for i in range(m) if C[i][0] != 0]
+
 	denom = sum([C[h][j]*mu[j] for j in range(n) for h in valid_rows])
 	for i in range(m):
 		if i in valid_rows:
