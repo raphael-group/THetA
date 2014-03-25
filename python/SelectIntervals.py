@@ -44,29 +44,26 @@ def select_intervals_n3(lengths, tumor_counts, norm_counts, m, upper_bounds, low
 	### Select up to c longest intervals that have C == 2 && ub == 2 
 	intervals = []
 	for i, line  in enumerate(lines):
-	#	if c > 0 and line[6] == 2 and line[4] == 2:
-			#intervals.append(i)
-			#c -= 1
-		if b > 0 and line[6] in [0,1,3]:
+		if c > 0 and line[6] == 2 and line[4] == 2:
+			intervals.append(i)
+			c -= 1
+		elif b > 0 and line[6] in [0,1,3]:
 			intervals.append(i)
 			b -= 1
 
-	c = c + b
 	for i, line  in enumerate(lines):
-		if c > 0 and line[6] == 2:
+		if c > 0 and line[6] == 2 and line[4] > 2:
 			intervals.append(i)
 			c -= 1
 
-	total_length = float(sum(lengths))
-	topLines = [lines[i] for i in intervals]
-	new_total_length = float(sum([topLines[i][1] for i in range(len(topLines))]))
 
-	if not(c == 0 and b == 0) and new_total_length < 0.1 * total_length: 
+	if c > 0 or b > 0:
 		if not force:
 			print "WARNING: This sample isn't a good candidate for THetA analysis with 3 subpopulations: There aren't a sufficient number of intervals that fit the criteria for interval selection. Run with --FORCE flag to ignore this warning. Exiting..."
 			exit(1)
 		else:
 			print "WARNING: This sample isn't a good candidate for THetA analysis with 3 subpopulations: There aren't a sufficient number of intervals that fit the criteria for interval selection."
+	topLines = [lines[i] for i in intervals]
 	### Calculate new bounds
 	for line in topLines:
 		c = line[6]
@@ -97,7 +94,6 @@ def select_intervals_n2(lengths, tumor_counts, norm_counts, m, k, force, num_int
 	indexes = filter_intervals_n2(lengths, tumor_counts, norm_counts, m, k)
 
 	total_length = float(sum(lengths))
-
 	lines = [[i, lengths[i], tumor_counts[i], norm_counts[i]] for i in indexes]
 	lines.sort(key=lambda x: x[1])
 
