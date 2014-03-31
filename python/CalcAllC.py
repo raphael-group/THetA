@@ -9,6 +9,8 @@ def L2(mu, C, m, r):
 	total_sum = 0
 	mu1 = 1-mu
 	valid_rows = [i for i in range(m) if C[i][0] != 0]
+	if mu == 0.0:
+		valid_rows = [i for i in range(m) if C[i][1] != 0]
 	denom = sum([C[j][0]*mu + C[j][1]*mu1 for j in valid_rows])
 	for i in range(m):
 		if i in valid_rows:
@@ -18,6 +20,8 @@ def L2(mu, C, m, r):
 		else:
 			vals.append("X")
 	return (-total_sum, vals)
+
+
 
 def L3(mu, C, m, r, n):
 	total_sum = 0
