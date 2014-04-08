@@ -36,6 +36,7 @@ from PlotResults import *
 
 from multiprocessing import JoinableQueue, Queue, Process, Array, current_process
 import os
+
 def process_loop(queue, opt, returnQueue, sorted_index, get_values):
 	"""
 	Code that each child process executes. Repeatedly pops of new C
@@ -207,7 +208,7 @@ def main():
 	##
 	filename, results, n, k, tau, directory, prefix, max_normal, bound_heuristic, \
 		normal_bound_heuristic,heuristic_lb, heuristic_ub, num_processes, \
-		bounds_only, estimate_time,multi_event, force, get_values, choose_intervals, num_intervals = parse_arguments()
+		bounds_only, multi_event, force, get_values, choose_intervals, num_intervals = parse_arguments()
 
 	global pre
 	pre = prefix

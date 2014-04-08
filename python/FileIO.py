@@ -88,7 +88,6 @@ def parse_arguments():
 	parser.add_argument("--HEURISTIC_UB", metavar="UB", type=float,default=1.1, \
 			required=False)
 	parser.add_argument("--BOUNDS_ONLY", action='store_true', default=False, required=False)
-	parser.add_argument("--NO_TIME_ESTIMATE", action='store_true', default=False, required=False)
 	parser.add_argument("--NO_MULTI_EVENT", action='store_true', default=False, required=False)
 	parser.add_argument("--RESULTS", metavar = "filename", default=None, required=False)
 	parser.add_argument("--FORCE", action = "store_true", default=False, required=False)
@@ -129,7 +128,6 @@ def parse_arguments():
 	heuristic_lb = args.HEURISTIC_LB
 	heuristic_ub = args.HEURISTIC_UB
 	bounds_only = args.BOUNDS_ONLY
-	no_time_estimate = args.NO_TIME_ESTIMATE
 	multi_event = not(args.NO_MULTI_EVENT)
 	results = args.RESULTS
 	force = args.FORCE	
@@ -157,7 +155,6 @@ def parse_arguments():
 		print "\tHeuristic Upper Bound:", heuristic_ub
 	print "\tNum Processes:", num_processes
 	if bounds_only: print "\tBounds Only:", bounds_only
-	print "\tTime Estimate:", not(no_time_estimate)
 	if force: print "\tForce:", force
 	if get_values: print "\tGet Values:", get_values
 
@@ -165,7 +162,7 @@ def parse_arguments():
 	
 	return filename,results,n,k,tau,directory,prefix,max_normal,bound_heuristic, \
 			normal_bound_heuristic, heuristic_lb, heuristic_ub, num_processes, \
-			bounds_only, not(no_time_estimate), multi_event, force, get_values, interval_selection, num_intervals
+			bounds_only, multi_event, force, get_values, interval_selection, num_intervals
 
 def read_interval_file(filename):
 	"""
