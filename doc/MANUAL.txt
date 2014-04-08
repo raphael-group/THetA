@@ -381,7 +381,7 @@ There are a variety of optional parameters that can be passed to THetA
 
 -------------------------------------------------------------------------------
 
-(7) --BOUND_HEURISTIC (Double) --  allows user to decide if to use bound heuristic
+(8) --BOUND_HEURISTIC (Double) --  allows user to decide if to use bound heuristic
 					for setting lower and upper bounds on the copy number
 					considered for each interval. 
 		
@@ -391,7 +391,7 @@ There are a variety of optional parameters that can be passed to THetA
 
 -------------------------------------------------------------------------------
 
-(6) --NORMAL_BOUND_HEURISTIC (Integer) -- allows a user to set a different value
+(9) --NORMAL_BOUND_HEURISTIC (Integer) -- allows a user to set a different value
 					for the expected copy number in a tumor. When this 
 					parameter is supplied, the lower and upper bounds
 					for the copy numbers tested for each interval depend 
@@ -404,7 +404,7 @@ There are a variety of optional parameters that can be passed to THetA
 
 -------------------------------------------------------------------------------
 
-(7) --HEURISTIC_LB (Double) -- Only applies if the NORMAL_BOUND_HEURISTIC has been
+(10) --HEURISTIC_LB (Double) -- Only applies if the NORMAL_BOUND_HEURISTIC has been
 					supplied.  All intervals with tumor/normal read 
 					depth ratio less than HEURISTIC_LB will have lower
 					bound of 0 and upper bound of NORMAL_BOUND_HEURISTIC.
@@ -422,7 +422,7 @@ There are a variety of optional parameters that can be passed to THetA
 
 -------------------------------------------------------------------------------
 
-(7) --HEURISTIC_UB (Double) -- Only applies if the NORMAL_BOUND_HEURISTIC has been
+(11) --HEURISTIC_UB (Double) -- Only applies if the NORMAL_BOUND_HEURISTIC has been
 					 supplied.  All intervals with tumor/normal read 
 					 depth ratio less than HEURISTIC_LB will have lower
 					 bound of 0 and upper bound of NORMAL_BOUND_HEURISTIC.
@@ -440,7 +440,7 @@ There are a variety of optional parameters that can be passed to THetA
 
 -------------------------------------------------------------------------------
 
-(8) --NUM_PROCESSES (Integer) -- The number of processes to use for computation.
+(12) --NUM_PROCESSES (Integer) -- The number of processes to use for computation.
 				    Using more processes increases memory usage, but can also 
 					provide significant speed-ups.  
 
@@ -450,7 +450,7 @@ There are a variety of optional parameters that can be passed to THetA
 
 -------------------------------------------------------------------------------
 
-(9) --BOUNDS_ONLY (Boolean Flag) -- Calculates the bounds with the specified 
+(13) --BOUNDS_ONLY (Boolean Flag) -- Calculates the bounds with the specified 
 					heuristic values and writes out a .withBounds file without 
 					running the rest of the program. 
 					
@@ -461,7 +461,7 @@ There are a variety of optional parameters that can be passed to THetA
 
 -------------------------------------------------------------------------------
 
-(10) --NO_MULTI_EVENT (Boolean Flag) -- Prohibits multiple distinct copy number events
+(14) --NO_MULTI_EVENT (Boolean Flag) -- Prohibits multiple distinct copy number events
 					to be predicted for a single interval.
 					If set, a perfect phylogeny assumption
 					is made for all copy number events over 
@@ -473,7 +473,7 @@ There are a variety of optional parameters that can be passed to THetA
 
 -------------------------------------------------------------------------------
 
-(11) --RESULTS (String) -- A results file output from a run with one tumor population
+(15) --RESULTS (String) -- A results file output from a run with one tumor population
 			   (-n 2 or --N 2).  Either the --RESULTS or 
 			   --NO_INTERVAL_SELECTION flag is required when considering 
 			   multiple tumor populations (-n 3 or --N 3).
@@ -483,9 +483,19 @@ There are a variety of optional parameters that can be passed to THetA
 		Default: Only applies when multiple tumor populations are considered
 			 (-n 3 or --N 3).
 
+
 ------------------------------------------------------------------------------
 
-(12) --NO_INTERVAL_SELECTION (Boolean Flag) -- Turns off automatic interval selection
+(16) --NUM_INTERVALS (Integer) -- Changes the maximum number of intervals used 
+			in the high confidence step of the two step processes. 
+
+		Usage: bin/RunTHetA interval_count_file --NUM_INTERVALS 50
+
+		Defualt: 100 for n=2, 20 for n=3
+
+------------------------------------------------------------------------------
+
+(16) --NO_INTERVAL_SELECTION (Boolean Flag) -- Turns off automatic interval selection
 						for determining which intervals should
 						be used in the optimization procedure.
 						When set to TRUE all supplied intervals
@@ -497,9 +507,6 @@ There are a variety of optional parameters that can be passed to THetA
 		Default: False
 
 ------------------------------------------------------------------------------
-
-
-
 
 7) OPTIONAL PREPROCESSING SCRIPTS==============================================
 
