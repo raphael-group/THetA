@@ -34,7 +34,7 @@ contact: layla@cs.brown.edu
 	 braphael@cs.brown.edu
 
 Beta Version: 0.53
-Version date: March, 2014
+Version date: April, 2014
 
 WEBSITE:
 http://compbio.cs.brown.edu/software/
@@ -83,7 +83,8 @@ Tested with: Python 2.7, Java 6, MATLAB R2011b
      This will compile the Java and will create the following executables.
 
 	bin/RunTHetA
-	bin/runBICSeqToTHetA.jar	
+	bin/runBICSeqToTHetA.jar
+	bin/CreateExomeInput	
 	bin/plotResultsFromFile.m
 
 4) BASIC USAGE ===================================================================
@@ -119,8 +120,12 @@ is tab delimited containing the following fields:
 	populations.  
  
 
-	NOTE: See the section on PREPROCESSING SCRIPTS to see how to convert
+	NOTE: See the section on WHOLE-GENOME PREPROCESSING SCRIPTS to see how to convert
 		  BIC-Seq output into THetA input.
+
+	NOTE: See the section on WHOLE-EXOME PREPROCESSING SCRIPTS to see how to convert
+		 Whole-exome data (with specific support for ExomeCNV and EXCAVATOR) 
+		 into THetA input.
 
 
 2. Run Main Code:
@@ -159,7 +164,8 @@ is tab delimited containing the following fields:
 
 3. Visualize results:
 
-We also provide a matlab script for creating visualization of results on your own.
+We also provide a matlab script for creating visualization of results on your own. If you have
+matlab installed on your system, this will automatically be run.
 
 	Run Visualization Code (in Matlab):
 
