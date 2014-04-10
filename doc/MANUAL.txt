@@ -53,8 +53,8 @@ This document contains the following sections:
 4) BASIC USAGE
 5) COMPLETE EXAMPLE
 6) OPTIONAL PARAMETERS
-8) WHOLE-GENOME PREPROCESSING SCRIPTS
-9) WHOLE-EXOME PREPROCESSING SCRIPTS
+7) WHOLE-GENOME PREPROCESSING SCRIPTS
+8) WHOLE-EXOME PREPROCESSING SCRIPTS
 
 
 2) REQUIREMENTS===================================================================
@@ -63,32 +63,18 @@ Requirements to run:
 1. Python 2.7 or higher
 	a. numpy (tested with 1.6.2)
 	b. scipy (tested with 0.10.1)
+2. *nix OS
+3. Java 1.6 (optional, for preprocessing script)
+4. Matlab (optional, for visualization code)
 
-2. Java 1.6 (for preprocessing script)
-
-2. Matlab (for visualization code)
-
-3. *nix OS
 
 Tested with: Python 2.7, Java 6, MATLAB R2011b
 
--------------------------------------------------------------------------------
-
-Preprocessing Requirements:
-While THetA can be used with any segmentation algorithm, we provide code to 
-convert BIC-Seq output (from their perl pipeline) into the appropriate input for 
-THetA since that is what we use in the results presented in our paper.  See
-the OPTIONAL PREPROCESSING SCRIPTS section of this MANUAL for more detailed 
-instructions.
-
-BIC-Seq can be obtained from: http://compbio.med.harvard.edu/Supplements/PNAS11.html
-
-
 3) INSTALLATION==================================================================
 
-(i) Unpack all contents of the THetA_XXX.tar.gz
+(i) Obtain the most recent version of THetA:
 
-	tar -xvf THetA_XXX.tar.gz
+	git clone https://github.com/raphael-group/THetA.git
 
 (ii) Install the code.  Run the following command
 
@@ -104,7 +90,6 @@ BIC-Seq can be obtained from: http://compbio.med.harvard.edu/Supplements/PNAS11.
 This section gives the basic instructions for running THetA.
 
 1. Create an interval_count_file: 
-
 
 The interval_count_file must contain one line per genomic interval.  Each line 
 is tab delimited containing the following fields:
@@ -142,17 +127,17 @@ is tab delimited containing the following fields:
 
 	* bin/RunTHetA interval_count_file [Options]
 
+	NOTES: This script will consider both the case of a normal and one tumor 
+		subpopulation as well as a normal and two tumor subpopulations, then
+		choose the best solution.
+
 	INPUT:
 	* interval_count_file: input file with genomic intervals and read depth 
 	  counts (format above)
 	* [Options] - see later section on all optional parameters.
 
-
 	OUTPUT:
-	* bounds_file: a copy of the interval_count_file with additional 
-	  columns for the upper and lower bounds used for the copy number
-          estimate of each genomic interval.
-	* results_file: the set of all maximum likelihood solutions found.  
+	* results files: the set of all maximum likelihood solutions found.  
 	  Each solution will be a single line in this file with fields:
 		1. NLL (Double) - solution neg. log likelihood (w/o constants)
 		2. mu  (Double,Double) - comma delimited list:  %normal, %tumor 
@@ -162,9 +147,16 @@ is tab delimited containing the following fields:
 		   (Integer,Integer: ... : Integer, Integer).
 		4. p* (Double, ... ,Double) - comma delimted list of inferred 
 		   multinomial parameter \widehat{C\mu}
-	* results_plot: if matlab is installed on your system, a PDF that visualizes
+		The chosen solution will be in a file with postfix ".BEST.results".
+		THetA will also output the individual solutions for n=2 and n=3 in 
+		in files ending in ".n3.results" and ".n3.results" respectively
+	* results plots: if matlab is installed on your system, PDFs that visualize
 	  the results will automatically be created.  
-	
+	* bounds files: a copy of the interval_count_file with additional 
+	  columns for the upper and lower bounds used for the copy number
+      estimate of each genomic interval for n=2 and n=3 (see example 
+	  for details).
+
 3. Visualize results:
 
 We also provide a matlab script for creating visualization of results on your own.
@@ -187,32 +179,46 @@ We also provide a matlab script for creating visualization of results on your ow
 -------------------------------------------------------------------------------
 
 		
-5) COMPLETE EXAMPLE ============= =============================================
-(i) Normal and one tumor
+5) COMPLETE EXAMPLE ==========================================================
 
 	bin/RunTHetA example/PD4120a.intervals
 
-Runs the efficient n=2 algorithm and generally considers a max copy number 
-of 3 (default value).  By default, the algorithm uses a bound heuristic to set 
-reasonable lower and upper bounds on the copy number considered for each 
-interval. For this input, the program will take ~5 minutes to complete using
-a single process  and will produce three files (or four if you have matlab installed): 
+Runs THetA for the case of normal and one tumor subpopulation, as well as normal and two tumor
+subpopulations. By default, the algorithm uses a bound heuristic to set reasonable lower 
+and upper bounds on the copy number considered for each interval. For this input,
+the program will take ~5 minutes to complete using a single process and will produce
+three files (or four if you have matlab installed): 
 
-File 1: example/PD4120a.n2.results 
-
-containing the a single solution with 34.5% normal and 65.4% tumor, output in the following format
+Results Files:
+File 1: PD4120a.n2.results 
+containing a single solution with 34.5% normal and 65.4% tumor, output in the following format
 (only part of the output is written here as indicated by ...)
 
 #NLL    mu      C       p*
 12534652744.8   0.345525386958,0.654474613042	2:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:2:2:3:2:2:2:2:2:1:2:3:2:3:3: ...	4.97752475775e-06,1.75115814182e-05,0.000709237511777,0.000598878358733,0.00158303218873,0.0007845646391,4.17929289805e-05,0.000858662779858,0.00212827237416, ...
 
-** Notice that only the tumor component is written.  The normal genome is assumed to contain
-all segments with the expected copy number.**
+File 2: PD4120a.n3.results
+containing a single solution wih 31.6% normal and two tumor subpopulations at 55.8%
+and 12.4% each. 
 
-and 
+#NLL    mu      C       p*
+12533388199.9   0.316798996672,0.558861427378,0.124339575949    2,3:1,2:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1: ...	 5.29201137218e-06,1.87738182607e-05,0.000694756604183,0.000586650717035,0.00155071051586,0.0007685457345,4.09396188657e-05,0.000841130971172,0.00208481822083,0.000502870137658,0.000445582453407,0.000489368296792,0.000298445523978, ...
 
-File 2: example/PD4120a.n2.withBounds
+** Notice that only the tumor components of C are written.  It is assumed that the normal component contains all segments with the expected copy number. **
 
+File 3: PD4120a.BEST.results
+In this case, as indicated by command line output, the solution consisting of a normal 
+and two tumor subpopulations is selected. PD4120a.BEST.results will contain a copy of
+PD4120a.n3.results
+
+Visualization Files:
+a pdf visualization of the results from THetA, similar to those seen in the original publication.
+
+File 1 (if matlab is installed): example/PD4120a.n2.results.pdf
+File 2 (if matlab is installed): example/PD4120a.n3.results.pdf
+
+Bounds Files:
+File 1: example/PD4120a.n2.withBounds
 containing information about the individual upper and lower bounds for all intervals
 as set by the bounds heuristic.  Bounds set to a value of "X" indicate that the interval
 was not used in the initial estimate phase:
@@ -229,35 +235,7 @@ start_1_16975301:end_1_20498000 1       16975301        20498000        2149097 
 start_1_20498001:end_1_29426500 1       20498001        29426500        5413316 1440799 2       0
 ...				...	...		...		...	...	...	...
 
-File 3: example/PD4120a.RunN3.bash
-
-a script that can be run to do analysis of the genome while considering a mixture of normal cells
-and two distinct tumor populations
-
-File 4 (if matlab is installed): example/PD4120a.n2.results.pdf
-
-a pdf visualization of the results from THetA, similar to those seen in the original publication.
-
-(ii) Normal and 2 tumor subpopulations
-
-	bash example/PD4120a.RunN3.bash
-
-Runs the n=3 algorithm. For this input, the program will take ~2 hours to 
-complete using a single process and will produce two files (or three if you
-have matlab installed):
-
-File 1: example/PD4120a.n3.results
-#NLL    mu      C       p*
-12533388199.9   0.316798996672,0.558861427378,0.124339575949    2,3:1,2:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1: ...	 5.29201137218e-06,1.87738182607e-05,0.000694756604183,0.000586650717035,0.00155071051586,0.0007685457345,4.09396188657e-05,0.000841130971172,0.00208481822083,0.000502870137658,0.000445582453407,0.000489368296792,0.000298445523978, ...
-
-** Notice that only the tumor components of C are written.  It is assumed that the normal component contains all segments with the expected copy number. **
-
-
 File 2: example/PD4120a.n3.withBounds
-
-containing information about the individual upper and lower bounds for all intervals as
-set by the various bound heuristics.  Bounds set to a value of "X" indicates that the
-interval was not used in the initial estimate phase.
 
 #ID     chrm    start   end     tumorCount      normalCount     UpperBound      LowerBound
 start_1_10001:end_1_564400      1       10001   564400  13751   2267    X       X
@@ -276,25 +254,10 @@ start_1_35371601:end_1_36569200 1       35371601        36569200        785215  
 start_1_36569201:end_1_51348300 1       36569201        51348300        9600613 2573086 2       1
 ...				...	...		...		...	...	...	...
 
-
-
-File 3 (if matlab is installed): example/PD4120a.n3.results.pdf
-
-a pdf visualization of the results from THetA, similar to those seen in the the original publication.
-
-
--------------------------------------------------------------------------------
-
-If you then want to visualize these results you can run (at a matlab prompt):
-
->> cd bin
->> plotResultsFromFile('../example/PD4120a.n2.results','../example/PD4120a.intervals','PD4120a',11,4)
-
-
-This creates a pdf that visualizes the tumor genome by copy number and includes
-purity information in the title.  See file example/example.pdf for what the
-output should look like.
-
+N = 3 Script:
+File 1: example/PD4120a.RunN3.bash
+a script that can be run to rerun analysis of n = 3 while considering a mixture of normal cells
+and two distinct tumor populations. 
 
 NOTES:
 - example/ contains the example described above - created from real data:
@@ -318,25 +281,43 @@ There are a variety of optional parameters that can be passed to THetA
 
 -------------------------------------------------------------------------------
 
-(1) --N, -n (Integer) -- the number of subpopulations to consider. 2 for mixture of 
-				normal and one tumor population. 3 for mixture of normal and 
-				two tumor populations and requires the use of either
-				the --RESULTS flag or the --NO_INTERVAL_SELECTION
-				flag.
+(1) --NUM_PROCESSES (Integer) -- The number of processes to use for computation.
+				    Using more processes increases memory usage, but can also 
+					provide significant speed-ups.  
 
-		Usage: bin/RunTHetA interval_count_file --N (-n) 2
+		Usage: bin/RunTHetA interval_count_file --NUM_PROCESSES 8
 
-		Default: 2
-
-		NOTE: If you want to run for a value of 3, first running with
-		      a value of 2 (the default) will now output a bash script
-		      of the name [prefix].RunN3.bash that can be run to 
-		      automatically do analysis with a value of 3 (or multiple
-		      tumor populations).
+		Default: 1
 
 -------------------------------------------------------------------------------
 
-(2) --TAU, -t (Integer) -- the expected copy in the normal genome
+(2) --OUTPUT_PREFIX, -p (String) -- allows the user to specify a different prefix for 
+					the output files.
+
+		Usage: bin/RunTHetA interval_count_file --OUTPUT_PREFIX (-p) prefix
+
+-------------------------------------------------------------------------------
+
+(3) --DIRECTORY, -d (String) -- allows the user to specify a target directory for
+					 output files
+	
+			
+		Usage: bin/RunTHetA interval_count_file --DIR (-d) /path/to/directory
+		
+		Default : ./
+
+-------------------------------------------------------------------------------
+
+(4) --MAX_NORMAL, -m (Double) -- allows the user the change the maximum fraction of
+					normal admixture in the sample. This is only enforced 
+					for the case of N=2 (normal and one tumor)
+		
+		Usage: bin/RunTHetA interval_count_file --MAX_NORMAL (-m) 0.5
+
+		Default: 0.5
+
+-------------------------------------------------------------------------------
+(5) --TAU, -t (Integer) -- the expected copy in the normal genome
 
 		Usage: bin/RunTHetA interval_count_file --TAU (-t) 2
 
@@ -344,7 +325,7 @@ There are a variety of optional parameters that can be passed to THetA
 
 -------------------------------------------------------------------------------
 
-(3) --MAX_K, -k (Integer) -- the maximum copy number to consider in the genome
+(6) --MAX_K, -k (Integer) -- the maximum copy number to consider in the genome
 
 		Usage: bin/RunTHetA interval_count_file --MAX_K (-k) 3
 
@@ -355,34 +336,7 @@ There are a variety of optional parameters that can be passed to THetA
 
 -------------------------------------------------------------------------------
 
-(4) --OUTPUT_PREFIX, -p (String) -- allows the user to specify a different prefix for 
-					the output files.
-
-		Usage: bin/RunTHetA interval_count_file --OUTPUT_PREFIX (-p) prefix
-
--------------------------------------------------------------------------------
-
-(5) --DIRECTORY, -d (String) -- allows the user to specify a target directory for
-					 output files
-	
-			
-		Usage: bin/RunTHetA interval_count_file --DIR (-d) /path/to/directory
-		
-		Default : ./
-
--------------------------------------------------------------------------------
-
-(6) --MAX_NORMAL, -m (Double) -- allows the user the change the maximum fraction of
-					normal admixture in the sample. This is only enforced 
-					for the case of N=2 (normal and one tumor)
-		
-		Usage: bin/RunTHetA interval_count_file --MAX_NORMAL (-m) 0.5
-
-		Default: 0.5
-
--------------------------------------------------------------------------------
-
-(8) --BOUND_HEURISTIC (Double) --  allows user to decide if to use bound heuristic
+(7) --BOUND_HEURISTIC (Double) --  allows user to decide if to use bound heuristic
 					for setting lower and upper bounds on the copy number
 					considered for each interval. 
 		
@@ -392,7 +346,7 @@ There are a variety of optional parameters that can be passed to THetA
 
 -------------------------------------------------------------------------------
 
-(9) --NORMAL_BOUND_HEURISTIC (Integer) -- allows a user to set a different value
+(8) --NORMAL_BOUND_HEURISTIC (Integer) -- allows a user to set a different value
 					for the expected copy number in a tumor. When this 
 					parameter is supplied, the lower and upper bounds
 					for the copy numbers tested for each interval depend 
@@ -405,7 +359,7 @@ There are a variety of optional parameters that can be passed to THetA
 
 -------------------------------------------------------------------------------
 
-(10) --HEURISTIC_LB (Double) -- Only applies if the NORMAL_BOUND_HEURISTIC has been
+(9) --HEURISTIC_LB (Double) -- Only applies if the NORMAL_BOUND_HEURISTIC has been
 					supplied.  All intervals with tumor/normal read 
 					depth ratio less than HEURISTIC_LB will have lower
 					bound of 0 and upper bound of NORMAL_BOUND_HEURISTIC.
@@ -423,7 +377,7 @@ There are a variety of optional parameters that can be passed to THetA
 
 -------------------------------------------------------------------------------
 
-(11) --HEURISTIC_UB (Double) -- Only applies if the NORMAL_BOUND_HEURISTIC has been
+(10) --HEURISTIC_UB (Double) -- Only applies if the NORMAL_BOUND_HEURISTIC has been
 					 supplied.  All intervals with tumor/normal read 
 					 depth ratio less than HEURISTIC_LB will have lower
 					 bound of 0 and upper bound of NORMAL_BOUND_HEURISTIC.
@@ -440,29 +394,7 @@ There are a variety of optional parameters that can be passed to THetA
 		Default: 1.1 (when NORMAL_BOUND_HEURISTIC is supplied)
 
 -------------------------------------------------------------------------------
-
-(12) --NUM_PROCESSES (Integer) -- The number of processes to use for computation.
-				    Using more processes increases memory usage, but can also 
-					provide significant speed-ups.  
-
-		Usage: bin/RunTHetA interval_count_file --NUM_PROCESSES 8
-
-		Default: 1
-
--------------------------------------------------------------------------------
-
-(13) --BOUNDS_ONLY (Boolean Flag) -- Calculates the bounds with the specified 
-					heuristic values and writes out a .withBounds file without 
-					running the rest of the program. 
-					
-
-		Usage: bin/RunTHetA interval_count_file --BOUNDS_ONLY
-
-		Default: False
-
--------------------------------------------------------------------------------
-
-(14) --NO_MULTI_EVENT (Boolean Flag) -- Prohibits multiple distinct copy number events
+(11) --NO_MULTI_EVENT (Boolean Flag) -- Prohibits multiple distinct copy number events
 					to be predicted for a single interval.
 					If set, a perfect phylogeny assumption
 					is made for all copy number events over 
@@ -474,29 +406,7 @@ There are a variety of optional parameters that can be passed to THetA
 
 -------------------------------------------------------------------------------
 
-(15) --RESULTS (String) -- A results file output from a run with one tumor population
-			   (-n 2 or --N 2).  Either the --RESULTS or 
-			   --NO_INTERVAL_SELECTION flag is required when considering 
-			   multiple tumor populations (-n 3 or --N 3).
-	
-		Usage: bin/RunTHetA interval_count_file -n 3 --RESULTS result_file
-
-		Default: Only applies when multiple tumor populations are considered
-			 (-n 3 or --N 3).
-
-
-------------------------------------------------------------------------------
-
-(16) --NUM_INTERVALS (Integer) -- Changes the maximum number of intervals used 
-			in the high confidence step of the two step processes. 
-
-		Usage: bin/RunTHetA interval_count_file --NUM_INTERVALS 50
-
-		Defualt: 100 for n=2, 20 for n=3
-
-------------------------------------------------------------------------------
-
-(16) --NO_INTERVAL_SELECTION (Boolean Flag) -- Turns off automatic interval selection
+(12) --NO_INTERVAL_SELECTION (Boolean Flag) -- Turns off automatic interval selection
 						for determining which intervals should
 						be used in the optimization procedure.
 						When set to TRUE all supplied intervals
@@ -506,6 +416,59 @@ There are a variety of optional parameters that can be passed to THetA
 		Usage: bin/RunTHetA interval_count_file --NO_INTERVAL_SELECTION
 
 		Default: False
+
+------------------------------------------------------------------------------
+
+Advanced Options: The following options should only be used when running THetA 
+directly from the python file, instead of the provided bash script. The python
+file only runs theta for one value of N (number of tumor populations) and doesn't
+incorportate model selection. 
+
+(13) --N, -n (Integer) -- the number of subpopulations to consider. 2 for mixture of 
+				normal and one tumor population. 3 for mixture of normal and 
+				two tumor populations and requires the use of either
+				the --RESULTS flag or the --NO_INTERVAL_SELECTION
+				flag.
+
+		Usage: python/RunTHetA.py interval_count_file --N (-n) 2
+
+		Default: 2
+
+		NOTE: If you want to run for a value of 3, first running with
+		      a value of 2 (the default) will now output a bash script
+		      of the name [prefix].RunN3.bash that can be run to 
+		      automatically do analysis with a value of 3 (or multiple
+		      tumor populations).
+
+-------------------------------------------------------------------------------
+
+(14) --BOUNDS_ONLY (Boolean Flag) -- Calculates the bounds with the specified 
+					heuristic values and writes out a .withBounds file without 
+					running the rest of the program. 
+
+		Usage: python/RunTHetA.py interval_count_file --BOUNDS_ONLY
+
+github raphael-group theta		Default: False
+
+-------------------------------------------------------------------------------
+
+(15) --NUM_INTERVALS (Integer) -- Changes the maximum number of intervals used 
+			in the high confidence step of the two step processes. 
+
+		Usage: python/RunTHetA.py interval_count_file --NUM_INTERVALS 50
+
+		Defualt: 100 for n=2, 20 for n=3
+
+------------------------------------------------------------------------------
+
+(16) --RESULTS (String) -- A results file output from a run with one tumor population
+			   (-n 2 or --N 2).  Either the --RESULTS or 
+			   --NO_INTERVAL_SELECTION flag is required when considering 
+			   multiple tumor populations (-n 3 or --N 3).
+
+		Usage: python/RunTHetA.py interval_count_file -n 3 --RESULTS result_file
+
+		Default: No default. Required for multiple tumor populations (-n 3 or --N 3).
 
 ------------------------------------------------------------------------------
 
@@ -542,7 +505,7 @@ OPTIONS:
 
 		Usage: java -jar bin/runBICToTHetA.jar file.bicseg -OUTPUT_PREFIX /the/path/to/save/to/prefix
 
-		Default: file.bicseg
+		Default: file.bicsgithub raphael-group thetaeg
 
 -------------------------------------------------------------------------------
 
