@@ -14,4 +14,7 @@ ant
 echo "Creating executable for visualization code..."
 cp matlab/mainMethod/plotResultsFromFile.m bin
 
+echo "Installing CreateExomeInput..."
+cp python/CreateExomeInput bin
+
 echo "Installation complete.  Check for errors."
