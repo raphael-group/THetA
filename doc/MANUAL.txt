@@ -53,7 +53,8 @@ This document contains the following sections:
 4) BASIC USAGE
 5) COMPLETE EXAMPLE
 6) OPTIONAL PARAMETERS
-7) OPTIONAL PREPROCSSING SCRIPTS
+8) WHOLE-GENOME PREPROCESSING SCRIPTS
+9) WHOLE-EXOME PREPROCESSING SCRIPTS
 
 
 2) REQUIREMENTS===================================================================
@@ -508,13 +509,13 @@ There are a variety of optional parameters that can be passed to THetA
 
 ------------------------------------------------------------------------------
 
-7) OPTIONAL PREPROCESSING SCRIPTS==============================================
+7) WHOLE-GENOME PREPROCESSING SCRIPTS==============================================
 
-While THetA can be used with any segmentation algorithm, we provide code to 
-convert BIC-Seq output (from their perl pipeline) into the 
+While THetA can be used with any segmentation algorithm applied to whole-genome data,
+we provide code to convert BIC-Seq output (from their perl pipeline) into the 
 appropriate input for THetA since that is what we use in the results presented
 in our paper.  With the latest version of THetA, we suggest running BIC-Seq
-with the default parameters.
+with the *default* parameters (i.e. lambda=2).
 
 BIC-Seq can be obtained from: http://compbio.med.harvard.edu/Supplements/PNAS11.html
 
@@ -554,4 +555,102 @@ OPTIONS:
 		Default: 0
 
 -------------------------------------------------------------------------------
+
+8) WHOLE-EXOME PREPROCESSING SCRIPTS==========================================
+
+The most recent THetA release works with Exome data.  Once you have created
+input data for THetA for whole-exome data, there is no difference in how you
+run the algorithm.  We include here a script that can be used with any algorithm
+that segments (and predicts copy numbers) from whole-exome data to create THetA
+input.  In particular, we provide specific support for segmentations determined
+from running ExomeCNV and EXCAVATOR.
+
+ExomeCNV can be obtained from here:
+https://secure.genome.ucla.edu/index.php/ExomeCNV_User_Guide
+
+EXCAVATOR can be obtained from here:
+http://sourceforge.net/projects/excavatortool/
+
+-------------------------------------------------------------------------------
+REQUIREMENTS:
+
+        This script requires:
+        (1) samtools (http://samtools.sourceforge.net/)
+        (2) python (2.7 or higher)
+        (3) *nix OS
+--------------------------------------------------------------------------------
+
+Run Code:
+
+        * bash bin/CreateExomeInput -s segment_file -t tumor_bam -n normal_bam --FA fasta_file --EXON_FILE exon_bed_file [Options}
+
+        INPUT:
+        * segment_file: Tab delimited file with a set of intervals of the reference
+                        genome returned by running an exome segmenter/copy number program.
+                        This file has the the following columns:
+                        (1) chrm
+                        (2) start
+                        (3) end
+
+                Note: If using ExomeCNV this file is: FILE_NAME.segment.copynumber.txt
+                      If using EXCAVATOR this file is: FastCallResults_FILE_NAME.txt
+
+        * tumor_bam: the tumor bam file (should be indexed and sorted)
+        * normal_bam: the matched normal bam file (should be indexed and sorted)
+        * fasta_file: reference genome file used in mapping the raw reads
+        * exon_bed_file: bed file of all exons (data/ contains bed files for hg18 and hg19)
+                data/hg18.exons.bed
+                data/hg19.exons.bed
+
+        * [Options] - see later section on all optional parameters.
+
+
+        OUTPUT:
+        * theta_input: a file that is properly formatted as input to the THetA algorithm
+
+-------------------------------------------------------------------------------
+
+OPTIONS:
+
+There are several optional parameters.
+
+-------------------------------------------------------------------------------
+
+(1) --DIR (String) -- allows the user to specify a target directory for
+                                output files.
+
+
+                Usage: bin/CreateExomeInput -s segment_file -t tumor_bam -n normal_bam --FA fasta_file --EXON_FILE exon_bed_file --DIR /path/to/directory
+
+                Default: ./
+
+-------------------------------------------------------------------------------
+
+(2) --OUTPUT_PREFIX (String) -- allows the user to specify a different prefix 
+                                for the output files.
+
+
+                Usage: bin/CreateExomeInput -s segment_file -t tumor_bam -n normal_bam --FA fasta_file --EXON_FILE exon_bed_file --OUTPUT_PREFIX prefix
+
+
+-------------------------------------------------------------------------------
+
+(3) --QUALITY (Integer) -- specify a minimum alignment quality to use
+
+                Usage: bin/CreateExomeInput -s segment_file -t tumor_bam -n normal_bam --FA fasta_file --EXON_FILE exon_bed_file --QUALITY 30
+
+                Default: 30
+
+-------------------------------------------------------------------------------
+
+(4) --EXCAVATOR (String) -- if running with EXCAVATOR segmentation, chromosome ends file 
+                                (see data/ for hg18 and hg19) must be provided. This file
+				contains the following columns:
+				(1) chrm
+				(2) chrm start
+				(3) chrm end
+
+                Usage: bin/CreateExomeInput -s segment_file -t tumor_bam -n normal_bam --FA fasta_file --EXON_FILE exon_bed_file --EXCAVATOR data/hg19.ends.txt
+
+-----------------------------------------------------------------------------------
 
