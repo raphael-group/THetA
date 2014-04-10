@@ -32,7 +32,7 @@ import argparse
 N_VALS = [2,3]
 MAX_K = 7
 
-def parse_arguments():
+def parse_arguments(silent=False):
 	"""
 	Parse command line arguments 
 	
@@ -136,29 +136,29 @@ def parse_arguments():
 	num_intervals = args.NUM_INTERVALS
 	if n == 3 and num_intervals == 100: num_intervals = 20
 	
-	print "================================================="
-	print "Arguments are:"
-	print "\tQuery File:", filename
-	if n == 3 and results is not None: print "\tResults File:", results
-	print "\tn:", n
-	print "\tk:", k
-	print "\ttau:", tau
-	print "\tOutput Directory:", directory
-	print "\tOutput Prefix:", prefix
-	if n == 2: print "\tMax Normal:", max_normal
-	if not(interval_selection): print "\tInterval Selection:", interval_selection
-	if bound_heuristic is not False:
-		print "\tBound Heuristic:", bound_heuristic
-	if normal_bound_heuristic is not False:
-		print "\tNormal Bound Heuristic:", normal_bound_heuristic
-		print "\tHeuristic Lower Bound:", heuristic_lb
-		print "\tHeuristic Upper Bound:", heuristic_ub
-	print "\tNum Processes:", num_processes
-	if bounds_only: print "\tBounds Only:", bounds_only
-	if force: print "\tForce:", force
-	if get_values: print "\tGet Values:", get_values
-
-	print "================================================="
+	if not silent:
+		print "================================================="
+		print "Arguments are:"
+		print "\tQuery File:", filename
+		if n == 3 and results is not None: print "\tResults File:", results
+		print "\tn:", n
+		print "\tk:", k
+		print "\ttau:", tau
+		print "\tOutput Directory:", directory
+		print "\tOutput Prefix:", prefix
+		if n == 2: print "\tMax Normal:", max_normal
+		if not(interval_selection): print "\tInterval Selection:", interval_selection
+		if bound_heuristic is not False:
+			print "\tBound Heuristic:", bound_heuristic
+		if normal_bound_heuristic is not False:
+			print "\tNormal Bound Heuristic:", normal_bound_heuristic
+			print "\tHeuristic Lower Bound:", heuristic_lb
+			print "\tHeuristic Upper Bound:", heuristic_ub
+		print "\tNum Processes:", num_processes
+		if bounds_only: print "\tBounds Only:", bounds_only
+		if force: print "\tForce:", force
+		if get_values: print "\tGet Values:", get_values
+		print "================================================="
 	
 	return filename,results,n,k,tau,directory,prefix,max_normal,bound_heuristic, \
 			normal_bound_heuristic, heuristic_lb, heuristic_ub, num_processes, \
