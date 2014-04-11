@@ -26,6 +26,7 @@
 
 import sys
 import math 
+import os.path
 
 inputFile = sys.argv[1]
 n2Result = sys.argv[2]
@@ -75,15 +76,29 @@ with open(n3Result) as f:
 P_NLL_N2 = 2*n2NLL + (numIntervals+1) * math.log(numTumor + numNormal)
 P_NLL_N3 = 2*n3NLL + (numIntervals+1) * 2 * math.log(numTumor + numNormal)
 
+from subprocess import call
+
 if P_NLL_N2 < P_NLL_N3:
 	filename = n2Result.replace(".n2.results", ".BEST.results")
-	print "Selected n=2 solution. Writing result to", filename
+	print "Selected n=2 solution. Writing result to", filename,
 	with open(filename, 'w') as out, open(n2Result) as n2In:
 		for line in n2In:
 			out.write(line)
+	pdfFileN2 = n2Result + ".pdf"
+	pdfFileBest = filename + ".pdf"
+	if os.path.isfile(pdfFileN2):
+		call(["cp", pdfFileN2, pdfFileBest])
+		print ",", pdfFileBest
+	else: print ""
 else:
 	filename = n3Result.replace(".n3.results", ".BEST.results")
-	print "Selected n=3 solution. Writing result to", filename
+	print "Selected n=3 solution. Writing result to", filename,
 	with open(filename, 'w') as out, open(n3Result) as n3In:
 		for line in n3In:
 			out.write(line)
+	pdfFileN3 = n3Result + ".pdf"
+	pdfFileBest = filename + ".pdf"
+	if os.path.isfile(pdfFileN3):
+		call(["cp", pdfFileN3, pdfFileBest])
+		print ",", pdfFileBest
+	else: print ""
