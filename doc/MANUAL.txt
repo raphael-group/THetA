@@ -222,6 +222,7 @@ a pdf visualization of the results from THetA, similar to those seen in the orig
 
 File 1 (if matlab is installed): example/PD4120a.n2.results.pdf
 File 2 (if matlab is installed): example/PD4120a.n3.results.pdf
+File 3 (if matlab is installed): example/PD4120a.BEST.results.pdf
 
 Bounds Files:
 File 1: example/PD4120a.n2.withBounds
