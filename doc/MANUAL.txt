@@ -283,7 +283,7 @@ NOTES:
 
 6) OPTIONAL PARAMETERS=========================================================
 
-There are a variety of optional parameters that can be passed to THetA 
+Basic Options: There are a variety of optional parameters that can be passed to THetA 
 
 -------------------------------------------------------------------------------
 
