@@ -250,13 +250,13 @@ def main():
 
 	r,rN,sorted_index = sort_r(normCounts,tumorCounts)
 
-	if bound_heuristic is not False or upper_bounds is None and lower_bounds is None:
+	if normal_bound_heuristic is not False:
+		upper_bounds,lower_bounds = calculate_bounds_normal_heuristic( \
+			normal_bound_heuristic, heuristic_lb, heuristic_ub, r, rN, m, k)
+	elif bound_heuristic is not False or upper_bounds is None and lower_bounds is None:
 		if bound_heuristic is False: bound_heuristic = 0.5
 		upper_bounds,lower_bounds = calculate_bounds_heuristic(float(bound_heuristic),\
 			 r, rN, m, tau, k)
-	elif normal_bound_heuristic is not False:
-		upper_bounds,lower_bounds = calculate_bounds_normal_heuristic( \
-			normal_bound_heuristic, heuristic_lb, heuristic_ub, r, rN, m, k)
 	else: 
 		if upper_bounds is not None: upper_bounds = sort_by_sorted_index(upper_bounds,\
 			sorted_index)
