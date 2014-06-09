@@ -32,7 +32,8 @@ from Enumerator import Enumerator
 from Optimizer import Optimizer
 from TimeEstimate import *
 from CalcAllC import *
-from PlotResults import *
+from plotResults import *
+
 
 from multiprocessing import JoinableQueue, Queue, Process, Array, current_process
 import os
@@ -312,7 +313,7 @@ def main():
 	# Make Results Plots
 	###
 	print "Plotting results as a PDF..."
-	plot_results(directory, filename, n, prefix)
+	plot_results(directory, filename, prefix, n)
 
 import time
 if __name__ == '__main__':

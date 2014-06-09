@@ -1,0 +1,4 @@
+IntervalFile: /research/compbio/users/layla/THetA/exome/results/readDepth/TCGA-06-0214-exome.txt
+Software: PREGO
+ConcordantFile: /ltmp/laylaTemp/TCGA-06-0214-exome/TCGA-06-0214-exome-tumor/91000519-ca30-4db9-a7f7-e5fea2a230d9/TCGA-06-0214-exome.concordant
+ConcordantFile: /ltmp/laylaTemp/TCGA-06-0214-exome/TCGA-06-0214-exome-normal/ad75a2d0-6094-48ce-910e-d12c0fe92677/TCGA-06-0214-exome-normal_Catch-60686.concordant
