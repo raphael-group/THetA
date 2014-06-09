@@ -1,2 +1,0 @@
-class Spam:
-    pass

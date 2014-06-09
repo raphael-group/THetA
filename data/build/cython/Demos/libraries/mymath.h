@@ -1,1 +1,0 @@
-double sinc(double);
