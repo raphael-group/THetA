@@ -315,6 +315,8 @@ def main():
 	print "Plotting results as a PDF..."
 	plot_results(directory, filename, prefix, n)
 
+	#plot_results(directory, results_file, interval_file, concordant_file, prefix, num_subpop)
+
 import time
 if __name__ == '__main__':
 	main()

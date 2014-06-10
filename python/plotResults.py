@@ -7,11 +7,11 @@ import os
 __author__ = "David Liu"
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-Given a results file and a bound file, this script renders the copy number graph as a pdf.
+Given a results, interval, and concordant read file, this script outputs the graph as a pdf.
 
 Usage:
 
-python <results_file> <results_bound_file>
+python <results_file> <interval_file> <concordant_file> <prefix> <n_subpops>
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
@@ -20,11 +20,10 @@ python <results_file> <results_bound_file>
 Read input results, interval, concordant files
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-def plot_results(out_dir, interval_file, concordant_file, prefix, n_subpops):
+def plot_results(out_dir, results_file, interval_file, concordant_file, prefix, n_subpops):
 
 	#results file
-	results_filename = prefix + ".n" + str(n_subpops) + ".results"
-	results_path = os.path.abspath(os.path.join(out_dir, results_filename))
+	results_path = os.path.abspath(results_file)
 
 	#interval file
 	interval_path = os.path.abspath(interval_file)
@@ -295,22 +294,41 @@ def plot_results(out_dir, interval_file, concordant_file, prefix, n_subpops):
 	Main method + Show
 	"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+
 	with open(results_path, "r+") as results_file:
 		global lines
 		lines = results_file.readlines()
 		#Skip header
 		del lines[0]
-		fig = plt.figure(2, facecolor='w', dpi = 150, edgecolor='k', figsize=(12, len(lines) * 3))
-		# fig, axarr = plt.subplots(len(lines))
-		title_text = sample
-		fig.suptitle(title_text, fontsize = 16, x = 0.45)		
-		for i, result in enumerate(lines):
-			make_subplot(fig, result, i)
 
-	plt.subplots_adjust(hspace = 0.4, left = 0.05, right = 0.85, top = 0.82, bottom = 0.15)
-	# fig.tight_layout()
-	#Save to output path		
+		#Only one plot, format this way.
+		if len(lines) == 1:
+
+			fig = plt.figure(facecolor='w', dpi = 150, edgecolor='k', figsize=(12, len(lines) * 3))
+			# fig, axarr = plt.subplots(len(lines))
+			title_text = sample
+			fig.suptitle(title_text, fontsize = 16, x = 0.45)		
+			for i, result in enumerate(lines):
+				make_subplot(fig, result, i)
+
+			plt.subplots_adjust(hspace = 0.4, left = 0.05, right = 0.85, top = 0.82, bottom = 0.15)
+
+		#More than one plot.
+		elif len(lines) > 1:
+
+			fig = plt.figure(facecolor='w', dpi = 150, edgecolor='k', figsize=(12, len(lines) * 3))
+			# fig, axarr = plt.subplots(len(lines))
+			title_text = sample
+			fig.suptitle(title_text, fontsize = 16, x = 0.45)	
+			for i, result in enumerate(lines):
+				make_subplot(fig, result, i)
+
+			plt.tight_layout()
+
+			plt.subplots_adjust(hspace = 0.45, left = 0.05, right = 0.85, top = 0.86, bottom = 0.15)
+
+		
 	plt.savefig(output_path)
 
 
-plot_results("", sys.argv[1], sys.argv[4], sys.argv[2], sys.argv[3])
+plot_results("", sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
