@@ -1,10 +1,37 @@
+###
+ # 2014 Brown University, Providence, RI.
+ #
+ #                       All Rights Reserved
+ #
+ # Permission to use, copy, modify, and distribute this software and its
+ # documentation for any purpose other than its incorporation into a
+ # commercial product is hereby granted without fee, provided that the
+ # above copyright notice appear in all copies and that both that
+ # copyright notice and this permission notice appear in supporting
+ # documentation, and that the name of Brown University not be used in
+ # advertising or publicity pertaining to distribution of the software
+ # without specific, written prior permission.
+ #
+ # BROWN UNIVERSITY DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
+ # INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR ANY
+ # PARTICULAR PURPOSE.  IN NO EVENT SHALL BROWN UNIVERSITY BE LIABLE FOR
+ # ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ # WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ # http://cs.brown.edu/people/braphael/software.html
+ # 
+ # @author Layla Oesper, Ahmad Mahmoody, Benjamin J. Raphael, Gryte Satas, David Liu
+ ###
+
+
+
+
 import sys, traceback
 import matplotlib.pyplot as plt
 import csv
 from collections import defaultdict
 import os
-
-__author__ = "David Liu"
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 Given a results, interval, and concordant read file, this script outputs the graph as a pdf.
@@ -20,12 +47,15 @@ python <results_file> <interval_file> <concordant_file> <prefix> <n_subpops>
 Read input results, interval, concordant files
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-def plot_results(out_dir, results_file, interval_file, concordant_file, prefix, n_subpops):
+def plot_results(out_dir, filename, prefix, concordant_file, n_subpops):
 
+	
 	#results file
+	results_file = os.path.join(out_dir,prefix + ".n"+str(n_subpops)+".results")
 	results_path = os.path.abspath(results_file)
 
 	#interval file
+	interval_file = os.path.join(out_dir,prefix+".n"+str(n_subpops)+".withBounds")
 	interval_path = os.path.abspath(interval_file)
 
 	#concordant file
@@ -331,4 +361,4 @@ def plot_results(out_dir, results_file, interval_file, concordant_file, prefix, 
 	plt.savefig(output_path)
 
 
-plot_results("", sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
+#plot_results("", sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])

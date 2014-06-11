@@ -2,7 +2,7 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )"&& pwd )"
 
 Filename=`python $DIR/../python/GetPrefix.py "$@"`
-echo $Filename
+echo "FILENAME:" $Filename
 
 n2Results=${Filename}.n2.results
 n2Bounds=${Filename}.n2.withBounds

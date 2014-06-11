@@ -93,6 +93,7 @@ def parse_arguments(silent=False):
 	parser.add_argument("--FORCE", action = "store_true", default=False, required=False)
 	parser.add_argument("--GET_VALUES", action = "store_true", default=False, required=False)
 	parser.add_argument("--NO_INTERVAL_SELECTION", action = "store_true", default=False, required=False)
+	parser.add_argument("--READ_DEPTH_FILE", metavar="FILENAME",  default=None, required=False)
 	args = parser.parse_args()
 
 	filename = args.QUERY_FILE
@@ -134,6 +135,7 @@ def parse_arguments(silent=False):
 	get_values = args.GET_VALUES
 	interval_selection = not(args.NO_INTERVAL_SELECTION)
 	num_intervals = args.NUM_INTERVALS
+	read_depth_file = args.READ_DEPTH_FILE
 	if n == 3 and num_intervals == 100: num_intervals = 20
 	
 	if not silent:
@@ -158,11 +160,12 @@ def parse_arguments(silent=False):
 		if bounds_only: print "\tBounds Only:", bounds_only
 		if force: print "\tForce:", force
 		if get_values: print "\tGet Values:", get_values
+		if read_depth_file is not None: print "Read depth file:", read_depth_file
 		print "================================================="
 	
 	return filename,results,n,k,tau,directory,prefix,max_normal,bound_heuristic, \
 			normal_bound_heuristic, heuristic_lb, heuristic_ub, num_processes, \
-			bounds_only, multi_event, force, get_values, interval_selection, num_intervals
+			bounds_only, multi_event, force, get_values, interval_selection, num_intervals, read_depth_file
 
 def read_interval_file(filename):
 	"""

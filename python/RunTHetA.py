@@ -209,7 +209,8 @@ def main():
 	##
 	filename, results, n, k, tau, directory, prefix, max_normal, bound_heuristic, \
 		normal_bound_heuristic,heuristic_lb, heuristic_ub, num_processes, \
-		bounds_only, multi_event, force, get_values, choose_intervals, num_intervals = parse_arguments()
+		bounds_only, multi_event, force, get_values, choose_intervals, num_intervals, \
+		read_depth_file = parse_arguments()
 
 	global pre
 	pre = prefix
@@ -313,9 +314,9 @@ def main():
 	# Make Results Plots
 	###
 	print "Plotting results as a PDF..."
-	plot_results(directory, filename, prefix, n)
+	#plot_results(directory, filename, prefix, n)
 
-	#plot_results(directory, results_file, interval_file, concordant_file, prefix, num_subpop)
+	plot_results(directory, filename, prefix, read_depth_file, n)
 
 import time
 if __name__ == '__main__':
