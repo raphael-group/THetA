@@ -25,8 +25,6 @@
  ###
 
 
-
-
 import sys, traceback
 import matplotlib.pyplot as plt
 import csv
@@ -58,8 +56,10 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops):
 	interval_file = os.path.join(out_dir,prefix+".n"+str(n_subpops)+".withBounds")
 	interval_path = os.path.abspath(interval_file)
 
-	#concordant file
-	concordant_path = os.path.abspath(concordant_file)
+	concordant_path = None
+	if concordant_file:
+		#concordant file
+		concordant_path = os.path.abspath(concordant_file)
 
 	#Output file
 	output_filename = prefix + ".n" + str(n_subpops) + ".graph.pdf"
@@ -120,20 +120,22 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops):
 	num_plots = 0
 	current_chrm = '1'
 
-	with open(concordant_path, "r+") as concordant_read_file:
-		reader = csv.reader(concordant_read_file, delimiter = "\t")
-		num_plots = len(concordant_read_file.readline()) - 6
-		for row in reader:
-			if row[1] != current_chrm:
-				totals[current_chrm] = (int(tumor_total), (normal_total))
-				current_chrm = row[1]
-				tumor_total = 0
-				normal_total = 0
-			bins[current_chrm].append( ((int(row[2]) + int(row[3]))/2 , int(row[4]), int(row[5])) )
-			tumor_total += int(row[4])
-			normal_total += int(row[5])
-		#At the very end
-		totals[current_chrm] = (tumor_total, normal_total)
+	#If the read depth file exists
+	if concordant_path:
+		with open(concordant_path, "r+") as concordant_read_file:
+			reader = csv.reader(concordant_read_file, delimiter = "\t")
+			num_plots = len(concordant_read_file.readline()) - 6
+			for row in reader:
+				if row[1] != current_chrm:
+					totals[current_chrm] = (int(tumor_total), (normal_total))
+					current_chrm = row[1]
+					tumor_total = 0
+					normal_total = 0
+				bins[current_chrm].append( ((int(row[2]) + int(row[3]))/2 , int(row[4]), int(row[5])) )
+				tumor_total += int(row[4])
+				normal_total += int(row[5])
+			#At the very end
+			totals[current_chrm] = (tumor_total, normal_total)
 
 	def make_subplot(a_plt, line, number):
 
@@ -219,31 +221,32 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops):
 		"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 		Plot grey dots: tumor to normal read ratio
 		"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-		names = [ ]
-		namez = totals.keys()
-		for name in namez:
-			try:
-				names.append(int(name))
-			except:
-				names.append(name)
-		names.sort()
-		for n, name in enumerate(names):
-			this_chrom_bins = bins[str(name)]
-			this_tumor_total = totals[str(name)][0]
-			this_normal_total = totals[str(name)][1]
-			x = [] #Interval midpoints
-			y = [] #Ratios
-			for bin in this_chrom_bins:
-				if n == 0:
-					x.append(bin[0])
-				else:
-					x.append(bin[0] + chromosome_cummulative[n - 1])
+		if concordant_path:
+			names = [ ]
+			namez = totals.keys()
+			for name in namez:
 				try:
-					y.append(2 * (bin[1]/float(this_tumor_total))/(bin[2]/float(this_normal_total)) )
+					names.append(int(name))
 				except:
-					del x[-1]
-					continue
-			ax.scatter(x,y, marker = '.', facecolor='0.75', lw = 0, s = 5)
+					names.append(name)
+			names.sort()
+			for n, name in enumerate(names):
+				this_chrom_bins = bins[str(name)]
+				this_tumor_total = totals[str(name)][0]
+				this_normal_total = totals[str(name)][1]
+				x = [] #Interval midpoints
+				y = [] #Ratios
+				for bin in this_chrom_bins:
+					if n == 0:
+						x.append(bin[0])
+					else:
+						x.append(bin[0] + chromosome_cummulative[n - 1])
+					try:
+						y.append(2 * (bin[1]/float(this_tumor_total))/(bin[2]/float(this_normal_total)) )
+					except:
+						del x[-1]
+						continue
+				ax.scatter(x,y, marker = '.', facecolor='0.75', lw = 0, s = 5)
 
 
 		"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
