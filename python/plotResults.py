@@ -24,9 +24,11 @@
  # @author Layla Oesper, Ahmad Mahmoody, Benjamin J. Raphael, Gryte Satas, David Liu
  ###
 
-
+import matplotlib
+matplotlib.use('Agg')
 import sys, traceback
 import matplotlib.pyplot as plt
+plt.ioff()
 import csv
 from collections import defaultdict
 import os
@@ -44,10 +46,7 @@ python <results_file> <interval_file> <concordant_file> <prefix> <n_subpops>
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 Read input results, interval, concordant files
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-def plot_results(out_dir, filename, prefix, concordant_file, n_subpops):
-
-	
+def plot_results(out_dir, filename, prefix, concordant_file, n_subpops, extension):
 	#results file
 	results_file = os.path.join(out_dir,prefix + ".n"+str(n_subpops)+".results")
 	results_path = os.path.abspath(results_file)
@@ -62,7 +61,7 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops):
 		concordant_path = os.path.abspath(concordant_file)
 
 	#Output file
-	output_filename = prefix + ".n" + str(n_subpops) + ".graph.pdf"
+	output_filename = prefix + ".n" + str(n_subpops) + ".graph" + extension
 	output_path = os.path.abspath(os.path.join(out_dir, output_filename))
 
 	sample = prefix
@@ -108,7 +107,7 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops):
 	for i,c in enumerate(chromosome_names):
 		minor_locations.append(chromosome_cummulative[i] - chromosome_lengths[str(c)]/2)
 
-
+	
 	#Concordant files
 	#Dictionary of (k,v): (Chromosome#: [( (start + end)/2, tumor_count, normal_count)])
 	bins = defaultdict(list)
@@ -140,7 +139,6 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops):
 	def make_subplot(a_plt, line, number):
 
 		parts = line.split("\t")
-
 		#Store the copy number data
 		#The first part doesn't seem to mean anything.
 		del parts[0]
@@ -149,7 +147,10 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops):
 
 		#Split the comma-seperated values.
 		def split_seperate(alist):
-			returnArray = [[]] * num_subpop
+			#returnArray = [[]] * num_subpop
+			returnArray = []
+			for i in range(num_subpop):
+				returnArray.append([])
 			for entry in alist:
 				values = entry.split(",")
 				for n, value in enumerate(values):
@@ -164,7 +165,7 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops):
 		elif num_subpop > 1:
 			C = split_seperate(parts[1].split(":"))
 
-		p = [float(p) for p in parts[2].split(",")]
+		#p = [float(p) for p in parts[2].split(",")]
 
 		max_copy_number = 0
 		max_copy_number = max(max(pop) for pop in C)
@@ -173,7 +174,6 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops):
 		"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 		Make axes
 		"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
 
 		#Actual Plot
 		ax = fig.add_subplot(len(lines), 1, number + 1)
@@ -263,7 +263,7 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops):
 			name = str(name)
 			chrom_intervals = intervals[name]
 			for i in chrom_intervals:
-				if i[1] - i[0] < 100000:
+				if i[1] - i[0] < 10000:
 					interval_num += 1
 					continue
 				else: 
@@ -274,8 +274,8 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops):
 						x1 = i[0] + chromosome_cummulative[n - 1]
 						x2 = i[1] + chromosome_cummulative[n - 1]
 					if interval_num == 0:
-						ax.plot((x1,x2), (2,2), color = 'k', linewidth = 4, label = labels[0], solid_capstyle = "butt")
-					ax.plot((x1, x2), (2, 2), color = 'k', linewidth = 4, solid_capstyle = "butt")
+						ax.plot((x1,x2), (2,2), color = 'k', linewidth = 3, label = labels[0], solid_capstyle = "butt")
+					ax.plot((x1, x2), (2, 2), color = 'k', linewidth = 3, solid_capstyle = "butt")
 					interval_num += 1
 
 
@@ -291,7 +291,7 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops):
 			chrom_intervals = intervals[name]
 			for i in chrom_intervals:
 				#Don't plot intervals with less than 100000bp
-				if i[1] - i[0] < 100000:
+				if i[1] - i[0] < 10000:
 					interval_num += 1
 					continue
 				else:
@@ -306,9 +306,9 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops):
 						# + 0.1 for no overlap.
 						#Add the label only once.
 						if interval_num == 0:
-							ax.plot((x1, x2), (C[j - 1][interval_num] + 0.10 *j, C[j - 1][interval_num] + 0.10 *j), color = colors[j - 1], linewidth = 4, label = labels[j], solid_capstyle = "butt")
+							ax.plot((x1, x2), (C[j - 1][interval_num] + 0.10 *j, C[j - 1][interval_num] + 0.10 *j), color = colors[j - 1], linewidth = 3, label = labels[j], solid_capstyle = "butt")
 						else:
-							ax.plot((x1, x2), (C[j - 1][interval_num] + 0.10 *j, C[j - 1][interval_num] + 0.10 *j), color = colors[j - 1], linewidth = 4, solid_capstyle = "butt")
+							ax.plot((x1, x2), (C[j - 1][interval_num] + 0.10 *j, C[j - 1][interval_num] + 0.10 *j), color = colors[j - 1], linewidth = 3, solid_capstyle = "butt")
 					interval_num += 1
 
 
@@ -364,4 +364,4 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops):
 	plt.savefig(output_path)
 
 
-#plot_results("", sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
+#plot_results(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], ".pdf")

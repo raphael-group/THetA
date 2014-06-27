@@ -94,6 +94,7 @@ def parse_arguments(silent=False):
 	parser.add_argument("--GET_VALUES", action = "store_true", default=False, required=False)
 	parser.add_argument("--NO_INTERVAL_SELECTION", action = "store_true", default=False, required=False)
 	parser.add_argument("--READ_DEPTH_FILE", metavar="FILENAME",  default=None, required=False)
+	parser.add_argument("--GRAPH_FORMAT", , help = "Options are .pdf, .jpg, .png, .eps" , default = ".pdf", required = False) 
 	args = parser.parse_args()
 
 	filename = args.QUERY_FILE
@@ -136,6 +137,7 @@ def parse_arguments(silent=False):
 	interval_selection = not(args.NO_INTERVAL_SELECTION)
 	num_intervals = args.NUM_INTERVALS
 	read_depth_file = args.READ_DEPTH_FILE
+	graph_format = args.GRAPH_FORMAT
 	if n == 3 and num_intervals == 100: num_intervals = 20
 	
 	if not silent:
@@ -157,6 +159,7 @@ def parse_arguments(silent=False):
 			print "\tHeuristic Lower Bound:", heuristic_lb
 			print "\tHeuristic Upper Bound:", heuristic_ub
 		print "\tNum Processes:", num_processes
+		print "\tGraph extension:", graph_format
 		if bounds_only: print "\tBounds Only:", bounds_only
 		if force: print "\tForce:", force
 		if get_values: print "\tGet Values:", get_values
