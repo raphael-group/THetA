@@ -202,11 +202,6 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops, extensio
 			if i != num_subpop - 1:
 				subtitle += ", "
 		ax.set_title(subtitle)
-		# plt.text(0.5, 1.08, subtitle,
-  #        horizontalalignment='center',
-  #        fontsize=20,
-  #        transform = ax.transAxes)
-
 
 		#Colors, assuming there are fewer than 9 subpopulations
 		#black = k
