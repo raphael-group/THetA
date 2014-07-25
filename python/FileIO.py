@@ -94,7 +94,7 @@ def parse_arguments(silent=False):
 	parser.add_argument("--GET_VALUES", action = "store_true", default=False, required=False)
 	parser.add_argument("--NO_INTERVAL_SELECTION", action = "store_true", default=False, required=False)
 	parser.add_argument("--READ_DEPTH_FILE", metavar="FILENAME",  default=None, required=False)
-	parser.add_argument("--GRAPH_FORMAT", , help = "Options are .pdf, .jpg, .png, .eps" , default = ".pdf", required = False) 
+	parser.add_argument("--GRAPH_FORMAT", help = "Options are .pdf, .jpg, .png, .eps" , default = ".pdf", required = False) 
 	args = parser.parse_args()
 
 	filename = args.QUERY_FILE
