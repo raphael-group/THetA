@@ -1,5 +1,3 @@
 /data/build
 *.pdf
 *.pyc
-bin/
-java/build/
