@@ -94,7 +94,7 @@ def parse_arguments(silent=False):
 	parser.add_argument("--GET_VALUES", action = "store_true", default=False, required=False)
 	parser.add_argument("--NO_INTERVAL_SELECTION", action = "store_true", default=False, required=False)
 	parser.add_argument("--READ_DEPTH_FILE", metavar="FILENAME",  default=None, required=False)
-	parser.add_argument("--GRAPH_FORMAT", help = "Options are .pdf, .jpg, .png, .eps" , default = ".pdf", required = False) 
+	parser.add_argument("--GRAPH_FORMAT", help = "Options are .pdf, .jpg, .png, .eps" , default = ".pdf", required=False) 
 	args = parser.parse_args()
 
 	filename = args.QUERY_FILE
@@ -168,7 +168,7 @@ def parse_arguments(silent=False):
 	
 	return filename,results,n,k,tau,directory,prefix,max_normal,bound_heuristic, \
 			normal_bound_heuristic, heuristic_lb, heuristic_ub, num_processes, \
-			bounds_only, multi_event, force, get_values, interval_selection, num_intervals, read_depth_file
+			bounds_only, multi_event, force, get_values, interval_selection, num_intervals, read_depth_file, graph_format
 
 def read_interval_file(filename):
 	"""
