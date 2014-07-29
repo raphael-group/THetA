@@ -212,7 +212,6 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops, extensio
 		for i in range(num_subpop):
 			labels.append("Tumor " + str(i + 1))
 
-
 		"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 		Plot grey dots: tumor to normal read ratio
 		"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -231,13 +230,21 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops, extensio
 				this_normal_total = totals[str(name)][1]
 				x = [] #Interval midpoints
 				y = [] #Ratios
+				last_ratio = 1
+				current_ratio = 0
 				for bin in this_chrom_bins:
 					if n == 0:
 						x.append(bin[0])
 					else:
 						x.append(bin[0] + chromosome_cummulative[n - 1])
 					try:
-						y.append(2 * (bin[1]/float(this_tumor_total))/(bin[2]/float(this_normal_total)) )
+						current_ratio = 2 * (bin[1]/float(this_tumor_total))/(bin[2]/float(this_normal_total))
+						#Filter number of grey dots to make figures smaller. The ratio difference must be more than 0.05 or it must be not covered by the black line.
+						if abs(last_ratio - current_ratio < 0.05) or (current_ratio > 2 and current_ratio < 2.1):
+							del x[-1]
+						else:
+							y.append(current_ratio)
+						last_ratio = current_ratio
 					except:
 						del x[-1]
 						continue
