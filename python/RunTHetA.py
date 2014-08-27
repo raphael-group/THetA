@@ -120,7 +120,12 @@ def do_optimization(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 	enum = Enumerator(n, m, k, tau, lower_bounds, upper_bounds, multi_event)
 	opt = Optimizer(r, rN, m, n,tau, upper_bound=max_normal)
 	MAX_QUEUE_SIZE = int(10E6)
-	queue = Queue(MAX_QUEUE_SIZE) #Task queue for the processes
+	try:
+		queue = Queue(MAX_QUEUE_SIZE) #Task queue for the processes
+	except OSError:
+		MAX_QUEUE_SIZE = 2**15-1
+		queue = Queue(MAX_QUEUE_SIZE)
+
 	returnQueue = Queue(MAX_QUEUE_SIZE) #Shared queue for processes to return results
 
 	processes = start_processes(max_processes, queue, opt, returnQueue, \
