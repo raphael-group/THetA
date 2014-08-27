@@ -175,6 +175,11 @@ public class BICSeqToTHetA
 		System.out.println("\n=====================================");
 	}
 	
+    public Long parseLongSci(String input)
+    {
+        return Double.valueOf(input).longValue();
+    }
+	
 	public void loadData()
 	{
 		try
@@ -219,10 +224,10 @@ public class BICSeqToTHetA
 			    	continue;
 			    }
 				
-				vals[0] = Long.parseLong(parts[1]);
-				vals[1] = Long.parseLong(parts[2]);
-				vals[2] = Long.parseLong(parts[3]);
-				vals[3] = Long.parseLong(parts[4]);
+				vals[0] = parseLongSci(parts[1]);
+				vals[1] = parseLongSci(parts[2]);
+				vals[2] = parseLongSci(parts[3]);
+				vals[3] = parseLongSci(parts[4]);
 
 
 				
