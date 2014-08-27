@@ -165,7 +165,10 @@ def parse_arguments(silent=False):
 		if get_values: print "\tGet Values:", get_values
 		if read_depth_file is not None: print "Read depth file:", read_depth_file
 		print "================================================="
-	
+
+
+	# NOTE: If you add an argument here, you must update both RunTHetA.py and GetPrefix.py to accept
+	# the new argument
 	return filename,results,n,k,tau,directory,prefix,max_normal,bound_heuristic, \
 			normal_bound_heuristic, heuristic_lb, heuristic_ub, num_processes, \
 			bounds_only, multi_event, force, get_values, interval_selection, num_intervals, read_depth_file, graph_format
