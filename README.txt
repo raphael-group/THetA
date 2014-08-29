@@ -33,8 +33,8 @@ heterogeneity from high-throughput DNA sequencing data.  Genome Biology.  14:R80
 contact: layla@cs.brown.edu
 	 braphael@cs.brown.edu
 
-Beta Version: 0.60
-Version data: March, 2014
+Beta Version: 0.61
+Version data: August, 2014
 
 WEBSITE:
 http://compbio.cs.brown.edu/software/
