@@ -226,10 +226,10 @@ def get_formatted_chrm(chr_string):
 
 	#Check for X
 	if chr_string.lower() == "x":
-		chr_string = 23
+		return 23
 
 	if chr_string.lower() == "y":
-		chr_string = 24
+		return 24
 
 	if chr_string.isdigit():
 		return int(chr_string)
