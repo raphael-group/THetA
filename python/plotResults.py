@@ -373,5 +373,5 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops, extensio
 		
 	plt.savefig(output_path)
 
-
-plot_results(sys.argv[1], sys.argv[2], sys.argv[3], None, sys.argv[5], ".pdf")
+if __name__ == '__main__':
+	plot_results(sys.argv[1], sys.argv[2], sys.argv[3], None, sys.argv[5], ".pdf")

@@ -1,6 +1,13 @@
 #Get the location of the script
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )"&& pwd )"
 
+if [ $1 == "-h" ]
+then
+	python $DIR/../python/GetPrefix.py "$@"
+	exit 0
+fi
+
+
 Filename=`python $DIR/../python/GetPrefix.py "$@"`
 echo "FILENAME:" $Filename
 
