@@ -154,14 +154,14 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops, extensio
 			for entry in alist:
 				values = entry.split(",")
 				for n, value in enumerate(values):
-					returnArray[n].append(int(value))
+					returnArray[n].append(value)
 			return returnArray
 
 		#C is a list of lists. Index 0 maps to subpopulation 1.
 		C = []
 
 		if num_subpop ==1:
-			C = [[int(i) for i in parts[1].split(":")]]
+			C = [[i for i in parts[1].split(":")]]
 		elif num_subpop > 1:
 			C = split_seperate(parts[1].split(":"))
 
@@ -297,6 +297,7 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops, extensio
 					interval_num += 1
 					continue
 				else:
+					
 					if n == 0:
 						x1 = i[0]
 						x2 = i[1]
@@ -305,12 +306,19 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops, extensio
 						x2 = i[1] + chromosome_cummulative[n - 1]
 					for j in range(num_subpop):
 						j = j + 1
+					
+						#Ignore intervals that weren't assigned a copy number (These have an 'X' in C)
+						try:
+							copy = int(C[j-1][interval_num])
+						except:
+							continue
+
 						# + 0.1 for no overlap.
 						#Add the label only once.
 						if interval_num == 0:
-							ax.plot((x1, x2), (C[j - 1][interval_num] + 0.10 *j, C[j - 1][interval_num] + 0.10 *j), color = colors[j - 1], linewidth = 3, label = labels[j], solid_capstyle = "butt")
+							ax.plot((x1, x2), (copy + 0.10 *j, copy + 0.10 *j), color = colors[j - 1], linewidth = 3, label = labels[j], solid_capstyle = "butt")
 						else:
-							ax.plot((x1, x2), (C[j - 1][interval_num] + 0.10 *j, C[j - 1][interval_num] + 0.10 *j), color = colors[j - 1], linewidth = 3, solid_capstyle = "butt")
+							ax.plot((x1, x2), (copy + 0.10 *j, copy + 0.10 *j), color = colors[j - 1], linewidth = 3, solid_capstyle = "butt")
 					interval_num += 1
 
 
@@ -366,4 +374,4 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops, extensio
 	plt.savefig(output_path)
 
 
-#plot_results(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], ".pdf")
+plot_results(sys.argv[1], sys.argv[2], sys.argv[3], None, sys.argv[5], ".pdf")
