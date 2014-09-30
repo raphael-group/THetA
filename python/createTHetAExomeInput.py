@@ -359,21 +359,23 @@ def create_pileup(bam, exons, fasta, quality):
 	col = 3
 
 	
-	e = os.system("samtools mpileup -f "+fasta+" -l "+exons+" -q "+str(quality)+" "+bam+" > "+ pileup)
+	e = os.system('samtools mpileup -f "%s" -l "%s" -q %s "%s" > "%s"'
+		% (fasta, exons, quality, bam, pileup))
 
 	#if invalid try just pileup command
 	if e != 0:
 
 		#try pileup
 		bam_quality=os.path.abspath(bam).split(".bam")[0]+".q"+str(quality)+".bam"
-		e = os.system("samtools view -bh -q "+str(quality)+ " "+ bam + " > " + bam_quality)
-
+		e = os.system('samtools view -bh -q %s "%s" > "%s"'
+			% (quality, bam, bam_quality))
 		if e != 0:
-			print "Wanring!  samtools unable to filter for quality."
+			print "Warning!  samtools unable to filter for quality."
 			exit(1)
 
 
-		e = os.system("samtools pileup -c -f "+fasta+" -r 0.0000007 -l "+exons+" "+bam+" > "+ pileup)
+		e = os.system('samtools pileup -c -f "%s" -r 0.0000007 -l "%s" "%s" > "%s"'
+			% (fasta, exons, bam, pileup))
 
 		if e != 0:
 			print "Warning! samtools unable to make pileup file."
