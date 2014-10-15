@@ -7,7 +7,16 @@
   <property name="srcTHetA" location="java/src" />
   <property name="buildTHetA" location="java/build" />
   <property name="dist" location="bin"/>
+  <property name="lib" location="jarfiles"/>
 
+  <!-- include external jars -->
+  <path id="THetA.classpath">
+	  <fileset dir="${lib}" >
+		  <include name="sam-1.78.jar"/>
+	  </fileset>
+  </path>
+  
+  
   <target name="clean"
         description="clean up" >
     <!-- Delete the ${build} directory tree -->
@@ -26,7 +35,7 @@
   <target name="compileTHetA" depends="init"
         description="compile the source " >
     <!-- Compile the java code from ${srcTHetA} into ${buildTHetA} -->
-    <javac srcdir="${srcTHetA}" includeantruntime="false" destdir="${buildTHetA}"/>
+    <javac srcdir="${srcTHetA}" includeantruntime="false" classpathref="THetA.classpath" destdir="${buildTHetA}"/>
   </target>
 
   <target name="distBuildBICToTHetA" depends="compileTHetA"
@@ -40,7 +49,20 @@
 	</jar>
  </target>
 
-  <target name="distJars" depends="distBuildBICToTHetA"
+ <target name="distBuildAlleleCounts" depends="distBuildBICToTHetA"
+	 description="generate the distribution getAlleleCoutns.jar" >
+
+	 <!-- make jar file -->
+	 <jar jarfile="${dist}/getAlleleCounts.jar" basedir="${buildTHetA}">
+		 
+		<zipgroupfileset dir="${lib}" includes="*.jar" />
+		<manifest>
+			<attribute name="Main-Class" value="getAlleleCounts"/>
+		 </manifest>
+	 </jar>
+ </target>
+
+  <target name="distJars" depends="distBuildAlleleCounts"
         description="generates all jar files" >
   </target>
 

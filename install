@@ -9,9 +9,13 @@ echo "Installing RunTHetA..."
 cp python/RunTHetA bin
 
 echo "Installing BICSeqToTHetA..."
+echo "Installing getAlleleCounts..."
 ant
 
 echo "Installing CreateExomeInput..."
 cp python/CreateExomeInput bin
+
+echo "Installing runBAFGaussianModel..."
+cp matlab/runBAFGaussianModel.m bin
 
 echo "Installation complete.  Check for errors."
