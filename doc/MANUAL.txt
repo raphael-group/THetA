@@ -22,10 +22,15 @@ http://cs.brown.edu/people/braphael/software.html
 
 README file for Tumor Heterogeneity Analysis (THetA)
 
+**Note - the latest version of THetA is now called THetA2**
+
 Software that estimates tumor purity and clonal/subclonal copy number 
 aberrations directly from high-throughput DNA sequencing data.
 
 If you use this software in your research, please cite:
+
+L. Oesper, G. Satas, B.J. Raphael. (2014) Quantifying tumor heterogeneity
+in whole-genome and whole-exome sequencing data.  Bioinformatics.
 
 L. Oesper, A. Mahmoody, B.J. Raphael. (2013)  THetA: Inferring intra-tumor 
 heterogeneity from high-throughput DNA sequencing data.  Genome Biology. 14:R80.
@@ -33,8 +38,8 @@ heterogeneity from high-throughput DNA sequencing data.  Genome Biology. 14:R80.
 contact: layla@cs.brown.edu
 	 braphael@cs.brown.edu
 
-Beta Version: 0.61
-Version date: August, 2014
+Beta Version: 0.62
+Version date: October, 2014
 
 WEBSITE:
 http://compbio.cs.brown.edu/software/
@@ -55,6 +60,7 @@ This document contains the following sections:
 6) OPTIONAL PARAMETERS
 7) WHOLE-GENOME PREPROCESSING SCRIPTS
 8) WHOLE-EXOME PREPROCESSING SCRIPTS
+9) BAF MODEL (see THetA2 paper)
 
 
 2) REQUIREMENTS===================================================================
@@ -65,7 +71,7 @@ Requirements to run:
 	b. scipy (tested with 0.10.1)
 2. *nix OS
 3. Java 1.6 (optional, for preprocessing script)
-4. Matlab (optional, for visualization code)
+4. Matlab (optional, for BAF code)
 
 
 Tested with: Python 2.7, Java 6, MATLAB R2011b
@@ -84,8 +90,9 @@ Tested with: Python 2.7, Java 6, MATLAB R2011b
 
 	bin/RunTHetA
 	bin/runBICSeqToTHetA.jar
+	bin/getAlleleCounts.jar
 	bin/CreateExomeInput	
-	bin/plotResultsFromFile.m
+	bin/runBAFGaussianModel.m
 
 4) BASIC USAGE ===================================================================
 This section gives the basic instructions for running THetA.
@@ -155,32 +162,10 @@ is tab delimited containing the following fields:
 		The chosen solution will be in a file with postfix ".BEST.results".
 		THetA will also output the individual solutions for n=2 and n=3 in 
 		in files ending in ".n3.results" and ".n3.results" respectively
-	* results plots: if matlab is installed on your system, PDFs that visualize
-	  the results will automatically be created.  
+	* results plots: PDFs that visualize the results will automatically be created.  
 	* bounds files: a copy of the interval_count_file with additional 
 	  columns for the upper and lower bounds used for the copy number
-      estimate of each genomic interval for n=2 and n=3 (see example 
-	  for details).
-
-3. Visualize results:
-
-We also provide a matlab script for creating visualization of results on your own. If you have
-matlab installed on your system, this will automatically be run.
-
-	Run Visualization Code (in Matlab):
-
-	* cd bin/
-	* plotResultsFromFile('results_file', 'interval_count_file', 'genome_name', width, height)
-
-	INPUT:
-	* results_file (String): output from step 2 above (postfix .results).
-	* interval_count_file (String): input file from step 1 (in sorted order).
-	* genome_name (String): name of the genome (used for figure title).
-	* width (Integer): width in inches of the pdf to output.
-	* height (Integer) height in inches of the pdf to output.
-
-	OUTPUT:
-	* results_plot: pdf of all inferred cancer genomes along with purity
+      	  estimate of each genomic interval for n=2 and n=3 (see example for details).
 	
 -------------------------------------------------------------------------------
 
@@ -220,9 +205,9 @@ PD4120a.n3.results
 Visualization Files:
 a pdf visualization of the results from THetA, similar to those seen in the original publication.
 
-File 1 (if matlab is installed): example/PD4120a.n2.results.pdf
-File 2 (if matlab is installed): example/PD4120a.n3.results.pdf
-File 3 (if matlab is installed): example/PD4120a.BEST.results.pdf
+File 1: example/PD4120a.n2.results.pdf
+File 2: example/PD4120a.n3.results.pdf
+File 3: example/PD4120a.BEST.results.pdf
 
 Bounds Files:
 File 1: example/PD4120a.n2.withBounds
@@ -623,4 +608,109 @@ There are several optional parameters.
                 Usage: bin/CreateExomeInput -s segment_file -t tumor_bam -n normal_bam --FA fasta_file --EXON_FILE exon_bed_file --EXCAVATOR data/hg19.ends.txt
 
 -----------------------------------------------------------------------------------
+
+(9) BAF Model==================================================================
+
+The most recent paper on THetA2 included a generative model of BAF that can be
+used to distinguish between multiple equally likely solutions using read depth
+alone.  We now include scripts that will allow a user to to use this generative
+model to select the tumor reconstruction where the likelihood of the observed
+BAF is the highest under our generative model.  This requires a two-step 
+process described below.  
+
+--------------------------------------------------------------------------------
+REQUIREMENTS
+	(1) Java
+	(2) Matlab
+	(3) *nix OS
+--------------------------------------------------------------------------------
+
+Step 1: Obtain BAF information:  First we provide a script that can be used to
+	obtain observed BAF information for a provided BAM file and set of 
+	candidate SNP positions.  This step must be followed for both tumor and
+	normal BAM files, using the same SNP_FILE.
+
+RUN CODE
+
+	* java -jar bin/getAlleleCounts.jar config_file
+
+	* INPUT:
+	 config_file - a file with the following format:
+
+		SNP_FILE=/full/path/to/SNP/file
+		OUTPUT_PREFIX=/prefix/to/use/for/output/files
+		BAM_FILE=/full/path/to/BAM/file
+
+	    	where:
+		
+		SNP_FILE - A tab delimted file with the following fields for a set of
+			   potential SNP sites.
+			(1) ID - a unique identifier (e.g. rs#####)
+			(2) Chrm (must be numeric)
+			(3) pos (the position in the chromosome)
+			(4) strand (+/-)
+			(5) refAllele - the allele in the reference genome (A/C/G/T)
+			(5) mutAllele - the mutant allele (A/C/G/T)
+
+		*** Several SNP_FILES for the SNPs on the Affymetrix 6.0 SNP array can be 
+		    downloaded from: http://compbio.cs.brown.edu/projects/theta/
+
+	* OUTPUT:
+		OUTPUT_PREFIX.withCounts - A tab delimited file with the following columns.
+			(1) Chrm
+			(2) pos
+			(3) A -  # reads with A at this position
+			(4) C - # reads with C at this position
+			(5) G - # reads with G at this position
+			(6) T - # reads with T at this position
+			(7) Total - the # reads at this position
+			(8) refCount - # reads with the reference allele (indicated in SNP file)
+			(9) mutCount - # reads with the mutant allele (indicated in SNP file)a
+
+-----------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------
+
+Step 2: Calculate the likelihood of the data under the BAF model described in the THetA2 paper.  We
+	provide a script that will calculate the likelihood of the BAF data for the models output
+	by THetA(2).
+
+RUN_CODE
+
+	* (in Matlab) bin/runBAFGaussianModel(tumorSNP, normalSNP, intervalFile, resultsFile, chrmsToUse, prefix, size)
+
+	* INPUT:
+		tumorSNP - is full path of file output from Step 1 for tumor BAM.
+		normalSNP - is full path of file output from Step 1 for normal BAM.
+		intervalFile - the interval file used as input to THetA
+		resultsFile -  a THetA results file
+		chrmsToUse - an array of chromosomes to use, i.e. [1:22]
+		prefix - the prefix to use for all files output
+		size - an array [w,h] where w is the width and h is the height of the pdf to create
+
+	* OUTPUT:
+		prefix.BAF.BEST.pdf - a pdf showing the observed and expected BAF for the model with
+				      the best likelihood under the generative model for BAFs.
+		
+		prefix.BAF.NLL.results - a copy of the original results file with an extra column 
+					 (BAF_NLL) showing the NLL of the BAF model for that result.
+
+--------------------------------------------------------------------------------------------------------
+OPTIONS 
+
+	PLOT ALL SOLUTIONS - an extra parameter may be added to create a plot of the observed
+			     and expected BAF for all solutions returned by THetA.
+
+	* (in Matlab) bin/runBAFGaussianModel(tumorSNP, normalSNP, intervalFile, resultsFile, chrmsToUse, prefix, size, 'all')
+
+	* OUTPUT:
+		prefix.BAF.ALL.pdf - a pdf showing the observed and expected BAF for all the different
+				     solutions in the THetA results file. 
+	
+		prefix.BAF.NLL.results - same as above
+
+
+		
+
+	
+
 

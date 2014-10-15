@@ -614,6 +614,70 @@ public class getAlleleCounts
 	}
 	
 	
+	public void saveToFileShort()
+	{
+		String fileName = OUTPUT_PREFIX + ".withCounts";
+		
+		try
+		{
+			//Use append by setting second parameter to true
+			FileOutputStream fos = new FileOutputStream(fileName);
+			Writer aWriter = new OutputStreamWriter(fos);
+			BufferedWriter out = new BufferedWriter(aWriter);
+			
+			StringBuffer header = new StringBuffer();
+			header.append("#Chrm");
+			header.append(TAB);
+			header.append("pos");
+			
+			String[] alleles = SNPRecord.ALLELES;
+			
+			for (int i = 0; i < alleles.length; i++)
+			{
+				header.append(TAB);
+				header.append(alleles[i]);
+			}
+			
+			header.append(TAB);
+			header.append("total");
+			header.append(TAB);
+			header.append("refAllele");
+			header.append(TAB);
+			header.append("refCount");
+			header.append(TAB);
+			header.append("mutAllele");
+			header.append(TAB);
+			header.append("mutCount");
+			
+			out.write(header.toString());
+			
+			Set<Integer> keySet = chrmToSNP.keySet();
+			for (int key : keySet)
+			{
+				ArrayList<SNPRecord> snps = chrmToSNP.get(key);
+				
+				for (int i = 0; i < snps.size(); i++)
+				{
+					SNPRecord curRec = snps.get(i);
+					String line = curRec.toStringForCountFile();
+					out.newLine();
+					out.write(line);
+				}
+			}
+			
+			out.close();
+			aWriter.close();
+			fos.close();
+		}
+		catch (IOException e)
+		{
+			System.err.println("Error!  Cannot write to:" + fileName);
+			e.printStackTrace();
+			System.exit(-1);
+		}
+	}
+
+
 	public void saveToFile()
 	{
 		String fileName = OUTPUT_PREFIX + ".withCounts";
