@@ -667,12 +667,11 @@ RUN CODE
 			(8) refCount - # reads with the reference allele (indicated in SNP file)
 			(9) mutCount - # reads with the mutant allele (indicated in SNP file)a
 
------------------------------------------------------------------------------------------------------
------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
-Step 2: Calculate the likelihood of the data under the BAF model described in the THetA2 paper.  We
-	provide a script that will calculate the likelihood of the BAF data for the models output
-	by THetA(2).
+Step 2: Calculate the likelihood of the data under the BAF model described
+	in the THetA2 paper.  We provide a script that will calculate the 
+	likelihood of the BAF data for the models output by THetA(2).
 
 RUN_CODE
 
@@ -685,27 +684,29 @@ RUN_CODE
 		resultsFile -  a THetA results file
 		chrmsToUse - an array of chromosomes to use, i.e. [1:22]
 		prefix - the prefix to use for all files output
-		size - an array [w,h] where w is the width and h is the height of the pdf to create
+		size - an array [w,h] where w is the width and h is the height of
+			 the pdf to create
 
 	* OUTPUT:
-		prefix.BAF.BEST.pdf - a pdf showing the observed and expected BAF for the model with
-				      the best likelihood under the generative model for BAFs.
+		prefix.BAF.BEST.pdf - a pdf showing the observed and expected BAF
+					 for the model with the best likelihood under the
+					 generative model for BAFs.
 		
-		prefix.BAF.NLL.results - a copy of the original results file with an extra column 
-					 (BAF_NLL) showing the NLL of the BAF model for that result.
+		prefix.BAF.NLL.results - a copy of the original results file with
+					 an extra column (BAF_NLL) showing the NLL of the BAF model for that result.
 
---------------------------------------------------------------------------------------------------------
-OPTIONS 
+	* OPTIONS:
 
-	PLOT ALL SOLUTIONS - an extra parameter may be added to create a plot of the observed
-			     and expected BAF for all solutions returned by THetA.
+		PLOT ALL SOLUTIONS - an extra parameter, 'all', may be added to
+				 create a plot of the observed  and expected BAF for
+				 ALL solutions returned by THetA.
 
-	* (in Matlab) bin/runBAFGaussianModel(tumorSNP, normalSNP, intervalFile, resultsFile, chrmsToUse, prefix, size, 'all')
+		* (in Matlab) bin/runBAFGaussianModel(tumorSNP, normalSNP, intervalFile, resultsFile, chrmsToUse, prefix, size, 'all')
 
-	* OUTPUT:
-		prefix.BAF.ALL.pdf - a pdf showing the observed and expected BAF for all the different
-				     solutions in the THetA results file. 
+		* OUTPUT:
+			prefix.BAF.ALL.pdf - a pdf showing the observed and expected BAF 
+					for all the different solutions in the THetA results file. 
 	
-		prefix.BAF.NLL.results - same as above
+			prefix.BAF.NLL.results - same as above
 
 
