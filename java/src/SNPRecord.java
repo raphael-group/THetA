@@ -227,6 +227,30 @@ public class SNPRecord implements Comparable<SNPRecord>
 		
 	}
 
+	public String toStringForCountFileShort()
+	{
+		StringBuffer sb =  new StringBuffer();
+		sb.append(chrm);
+		sb.append(TAB);
+		sb.append(pos);
+		
+		for (int i = 0; i < allCounts.length; i++)
+		{
+			sb.append(TAB);
+			sb.append(allCounts[i]);
+		}
+		
+		sb.append(TAB);
+		sb.append(total);
+		sb.append(TAB);
+		sb.append(refCount);
+		sb.append(TAB);
+		sb.append(mutCount);
+		
+		return sb.toString();
+		
+	}
+
 	@Override
 	public int compareTo(SNPRecord other) 
 	{

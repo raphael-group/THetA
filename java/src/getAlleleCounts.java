@@ -67,7 +67,7 @@ public class getAlleleCounts
 		counts.updateCountStatistics();
 		
 		//Step 4. Print results to file
-		counts.saveToFile();
+		counts.saveToFileShort();
 		
 		
 	}
@@ -641,11 +641,7 @@ public class getAlleleCounts
 			header.append(TAB);
 			header.append("total");
 			header.append(TAB);
-			header.append("refAllele");
-			header.append(TAB);
 			header.append("refCount");
-			header.append(TAB);
-			header.append("mutAllele");
 			header.append(TAB);
 			header.append("mutCount");
 			
@@ -659,7 +655,7 @@ public class getAlleleCounts
 				for (int i = 0; i < snps.size(); i++)
 				{
 					SNPRecord curRec = snps.get(i);
-					String line = curRec.toStringForCountFile();
+					String line = curRec.toStringForCountFileShort();
 					out.newLine();
 					out.write(line);
 				}
