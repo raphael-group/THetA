@@ -24,4 +24,9 @@ Beta_0.6 (March 2014) - (1) Added two step process
 			 (2) Automatically generate pdfs when matlab is installed
 			 (3) Changed example data to use one dataset for n=2 and n=3
 ------------------------------------------------------------------------------
-Beta_0.61 (March 2014) - (1) Moved plotting code into python
+Beta_0.61 (August 2014) - (1) Moved plotting code into python
+
+------------------------------------------------------------------------------
+Beta_0.62 (October 2014) - (1) Added support for BAF model to distinguish between
+			       equally likely solutions determined using read
+			       depth alone.  See THetA2 paper for details. 

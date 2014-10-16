@@ -27,14 +27,17 @@ aberrations directly from high-throughput DNA sequencing data.
 
 If you use this software in your research, please cite:
 
+L. Oesper, G. Satas, B.J. Raphael.  (2014)  Quantifying Tumor Heterogeneity
+in Whole-Genome and Whole-Exome Sequencing Data.  Bioinformatics. (In Press).
+
 L. Oesper, A. Mahmoody, B.J. Raphael. (2013)  THetA: Inferring intra-tumor 
 heterogeneity from high-throughput DNA sequencing data.  Genome Biology.  14:R80.
 
 contact: layla@cs.brown.edu
 	 braphael@cs.brown.edu
 
-Beta Version: 0.61
-Version data: August, 2014
+Beta Version: 0.62
+Version data: October, 2014
 
 WEBSITE:
 http://compbio.cs.brown.edu/software/
@@ -53,12 +56,15 @@ CONTENTS ======================================================================
 * Release Notes; RELEASE_NOTES.txt - List of changes between different versions.
 * License; LICENSE.txt - The complete license that goes with the software.
 
-(ii) Software (Main code in python/  Additional code in java/src/ and 
-matlab/mainMethod subdirectories):
-* Source code in python/, java/src and matlab/mainMethod
+(ii) Software (Main code in python/  Additional code in java/src/, 
+jarfiles, and matlab/ subdirectories):
+* Source code in python/, java/src and matlab/
 
 (iii) Executables (in bin/ subdirectory ):
 * Executables for compiling and running code
 
 (iv) Example (in example/ subdirectory)
 * Example input/output files
+
+(v) Data (in data/ subdirectory)
+* Useful data files for use with whole-exome sequencing data

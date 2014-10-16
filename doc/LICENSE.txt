@@ -23,5 +23,8 @@ REFERENCES:
 
 If you use our code in your research, please cite:
 
+L. Oesper, G. Satas, and B.J. Rapahel.  (2014) Quantifying Tumor Heterogeneity
+in Whole-Genome and Whole-Exome Sequencing Data.  Bioinformatics.  (In Press).
+
 L. Oesper, A. Mahmoody, and B.J. Raphael. (2013) THetA: Inferring Intra-Tumor 
 Heterogeneity from High-Throughput DNA Sequencing Data. Genome Biology. 14:R80.

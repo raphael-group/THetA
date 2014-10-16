@@ -611,11 +611,11 @@ There are several optional parameters.
 
 (9) BAF Model==================================================================
 
-The most recent paper on THetA2 included a generative model of BAF that can be
-used to distinguish between multiple equally likely solutions using read depth
+The most recent paper on THetA2 included a generative model of BAFs that can be
+used to distinguish between equally likely solutions determined using read depth
 alone.  We now include scripts that will allow a user to to use this generative
 model to select the tumor reconstruction where the likelihood of the observed
-BAF is the highest under our generative model.  This requires a two-step 
+BAF is the highest under this generative model.  This requires a two-step 
 process described below.  
 
 --------------------------------------------------------------------------------
@@ -707,10 +707,5 @@ OPTIONS
 				     solutions in the THetA results file. 
 	
 		prefix.BAF.NLL.results - same as above
-
-
-		
-
-	
 
 
