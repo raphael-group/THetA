@@ -198,11 +198,11 @@ def read_interval_file(filename):
 			if line.startswith("#"): continue
 
 
-			line = line.strip().replace(" ","\t").split("\t")	
+			line = line.strip().replace(" ","\t").split()	
 			numLine += 1
 			
 			if len(line) < 6 or len(line) > 8:
-				sys.stderr.write("Invalid input file format in interval file line #"+str(numLine)+":\n" + str(l)+"\nToo few/many columns. Exiting...\n")
+				sys.stderr.write("Invalid input file format in interval file line #"+str(numLine)+":\n" + str(line)+"\nToo few/many columns. Exiting...\n")
 				sys.exit(1)
 			# Read Lengths
 			start = int(line[2])
