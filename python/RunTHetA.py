@@ -35,6 +35,7 @@ from CalcAllC import *
 from plotResults import *
 
 
+
 from multiprocessing import JoinableQueue, Queue, Process, Array, current_process
 import os
 
@@ -56,7 +57,9 @@ def process_loop(queue, opt, returnQueue, sorted_index, get_values):
 	while True:
 		C = queue.get()
 		if C is 0:
+			print "Process " + str(current_process().name) + " Received halt signal"
 			returnQueue.put(best)
+			print "Process " + str(current_process().name) + " Added results to queue"
 			break
 		soln = opt.solve(C)
 		if soln is not None:
@@ -90,6 +93,7 @@ def start_processes(max_processes, queue, opt, returnQueue, sorted_index, get_va
 	for p in processes:
 		p.daemon = True
 		p.start()
+		print "Process " + str(p.name) + " Starting"
 	return processes
 
 def find_mins(best):
@@ -133,6 +137,7 @@ def do_optimization(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 	
 	C = enum.generate_next_C()
 	count = 0
+	print "Main Process Starting Enumeration"
 	while C is not False:
 		count += 1
 		queue.put(C, True)
@@ -143,15 +148,18 @@ def do_optimization(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 
 	# Send STOP signal to all processes
 	for i in range(max_processes-1):
+		print "Main Process Sending Halt to ", i
 		queue.put(0)
 
 	best = []
 	for i in range(len(processes)):
+		print "Main Process received results from " + str(i+1)
 		item = returnQueue.get()
 		best.append(item)
 
 	for p in processes:
 		p.join()
+		print "Process "+ str(p.name) + " Finished"
 
 	best = find_mins(best)
 	return best
