@@ -20,7 +20,7 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 # http://cs.brown.edu/software/
-# 
+#
 # @author Layla Oesper, Ahmad Mahmoody, Benjamin J. Raphael and Gryte Satas
 ###
 
@@ -31,6 +31,11 @@ import os
 import sys
 import argparse
 import subprocess
+import signal
+
+
+def restore_sigpipe():
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
 
 def parse_arguments():
@@ -138,10 +143,10 @@ def read_excavator_seg_file(segment, excavator):
 			continue
 
 		line = l.strip().replace(" ","\t").split("\t")
-        
+
 		chrm = get_formatted_chrm(line[0])
-		
-		#skip non-integer values		
+
+		#skip non-integer values
 		if chrm == -1:
 			continue
 
@@ -162,7 +167,7 @@ def read_excavator_seg_file(segment, excavator):
 			end_of_chrm = chrm_ends[prevChrm]
 			seg_data.append((prevChrm, chrm_start, end_of_chrm))
 			prevChrm+=1
-                        
+
 		#Add previous interval if necessary
 		if (start > prevPos):
 			seg_data.append((chrm,prevPos, start-1))
@@ -200,7 +205,7 @@ def getChrmEnds(chrm_end_file):
 	f.close()
 
 	chrm_ends = dict()
-        
+
 	for l in lines:
 
 		#skip header
@@ -235,7 +240,7 @@ def get_formatted_chrm(chr_string):
 		return int(chr_string)
 	else:
 		return -1
-		
+
 
 
 def count_reads(seg_data, length, pileup, col):
@@ -257,7 +262,7 @@ def count_reads(seg_data, length, pileup, col):
 		for line in f:
 
 			vals=line.strip().replace(" ","\t").split("\t")
-			
+
 			#Process chromosome info, continue is not numeric
 			chrm_str=vals[0]
 			chrm=get_formatted_chrm(chrm_str)
@@ -290,7 +295,7 @@ def count_reads(seg_data, length, pileup, col):
 				elif cur_end >= position:
 					valid = 1
 				else:
-					
+
 					if cur_idx == num_segs-1:
 						done=1
 						break
@@ -302,7 +307,7 @@ def count_reads(seg_data, length, pileup, col):
 
 			if done == 1:
 				break
-									
+
 
 			#Check if contained in current interval
 			if chrm == cur_chrm and cur_start <= position and position<= cur_end:
@@ -335,7 +340,7 @@ def write_out_results(directory, prefix, seg_data, tumor, norm):
 def create_pileup(bam, exons, fasta, quality):
 	"""
 	Creates a pileup file for the specified bam file
-	
+
 	Args:
 		bam - the bam file
 		exons - the bed file with the list of exons
@@ -353,12 +358,12 @@ def create_pileup(bam, exons, fasta, quality):
 	except subprocess.CalledProcessError:
 		print "Warning!  samtools is required."
 		exit(1)
-	
+
 
 	pileup=os.path.abspath(bam).split(".bam")[0]+".pileup"
 	col = 3
 
-	
+
 	e = os.system('samtools mpileup -f "%s" -l "%s" -q %s "%s" > "%s"'
 		% (fasta, exons, quality, bam, pileup))
 
@@ -397,12 +402,14 @@ def get_read_length(bam):
 		exit(1)
 
 	#use subprocess to get the 10th column (index 9) of an entry.  Length is read length
-	out1=subprocess.Popen(['samtools', 'view', bam], stdout=subprocess.PIPE)
-	out2=subprocess.check_output(['head', '-n 1'] ,stdin=out1.stdout)
+	out1=subprocess.Popen(['samtools', 'view', bam], stdout=subprocess.PIPE,
+                       preexec_fn=restore_sigpipe)
+	out2=subprocess.check_output(['head', '-n 1'] ,stdin=out1.stdout,
+                              preexec_fn=restore_sigpipe)
 	length = len(out2.strip().replace(" ","\t").split("\t")[9])
 
 	return length
-		
+
 
 def main():
 	###
@@ -431,7 +438,7 @@ def main():
 	print("Tumor Read Length: " + str(t_len))
 	n_len=get_read_length(normal)
 	print("Normal Read Length: " + str(n_len))
-	
+
 	norm_reads = count_reads(seg_data, n_len, pileup_normal,n_col)
 	tumor_reads = count_reads(seg_data, t_len, pileup_tumor, t_col)
 
