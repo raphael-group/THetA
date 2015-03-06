@@ -80,12 +80,12 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops, extensio
 		for row in reader: # read a row as {column1: value1, column2: value2,...}
 		    for (k,v) in row.items(): # go over each column name and value 
 		        columns[k].append(v) # append the value into the appropriate list based on column name k
-
+		
 		#Read in the intervals/chromosomes
 		for i in range(len(columns["#ID"])):
 			intervals[columns["chrm"][i]].append((int(columns["start"][i]), int(columns["end"][i])))
-
-		for i in range(1, len(intervals) + 1):
+		
+		for i in intervals: 
 			i = str(i)
 			chromosome_lengths[i] = intervals[i][-1][1]
 
