@@ -167,6 +167,8 @@ end
 
 function[h1] = plotOurEstimate(tumor, normal, intervals, chrmsToUse,C,mu,opts)
 
+h1 = [];
+
 %Fixed parameters
 MIN_SIZE=opts.MIN_SIZE;
 MIN_SNP=opts.MIN_SNP;
@@ -203,7 +205,7 @@ for i=1:numChrms
        temp3 = intersect(temp2, posReads);
        rows = intersect(temp3,end_rows);
 
-       if (numel(rows > MIN_SNP) && (length > MIN_SIZE))
+       if ((numel(rows) > MIN_SNP) && (length > MIN_SIZE))
             xCoords = tumor(rows,2);
             tumor_yCoords = tumorBAF(rows);
             %Get rid of any NaN
