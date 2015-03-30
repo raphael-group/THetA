@@ -518,13 +518,17 @@ input data for THetA for whole-exome data, there is no difference in how you
 run the algorithm.  We include here a script that can be used with any algorithm
 that segments (and predicts copy numbers) from whole-exome data to create THetA
 input.  In particular, we provide specific support for segmentations determined
-from running ExomeCNV and EXCAVATOR.
+from running ExomeCNV and EXCAVATOR.  We also note that the program CNVKit
+provides built in support for generating the input required by THetA.
 
 ExomeCNV can be obtained from here:
 https://secure.genome.ucla.edu/index.php/ExomeCNV_User_Guide
 
 EXCAVATOR can be obtained from here:
 http://sourceforge.net/projects/excavatortool/
+
+CNVKit for producing the input to THetA:
+http://cnvkit.readthedocs.org/en/latest/heterogeneity.html#using-cnvkit-with-theta2
 
 -------------------------------------------------------------------------------
 REQUIREMENTS:
