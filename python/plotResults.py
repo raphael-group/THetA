@@ -196,9 +196,11 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops, extensio
 
 
 		#Title
-		subtitle = "Normal:" + str(round(float(mu[0]) * 100, 1)) + "%, "
+		#subtitle = "Normal:" + str(round(float(mu[0]) * 100, 1)) + "%, "
+		subtitle = "Normal:" + str(round(float(mu[0]) * 100, 1)) + r'$\%$'
 		for i in range(num_subpop):
-			subtitle += "Tumor" + str(i + 1) + ":" + str(round(float(mu[i + 1]) * 100, 1)) + "%"
+			#subtitle += "Tumor" + str(i + 1) + ":" + str(round(float(mu[i + 1]) * 100, 1)) + "%"
+			subtitle += "Tumor" + str(i + 1) + ":" + str(round(float(mu[i + 1]) * 100, 1)) + r'$\%$'
 			if i != num_subpop - 1:
 				subtitle += ", "
 		ax.set_title(subtitle)
@@ -288,6 +290,8 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops, extensio
 		x1 = 0
 		x2 = 0
 
+		legend_plotted = [False]*(num_subpop+1)
+
 		for n, name in enumerate(chromosome_names):
 			name = str(name)
 			chrom_intervals = intervals[name]
@@ -315,8 +319,9 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops, extensio
 
 						# + 0.1 for no overlap.
 						#Add the label only once.
-						if interval_num == 0:
+						if legend_plotted[j] is False:
 							ax.plot((x1, x2), (copy + 0.10 *j, copy + 0.10 *j), color = colors[j - 1], linewidth = 3, label = labels[j], solid_capstyle = "butt")
+							legend_plotted[j] = True
 						else:
 							ax.plot((x1, x2), (copy + 0.10 *j, copy + 0.10 *j), color = colors[j - 1], linewidth = 3, solid_capstyle = "butt")
 					interval_num += 1
