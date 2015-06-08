@@ -475,6 +475,17 @@ public class getAlleleCounts
 		}
 	
 		boolean isDone = false;
+
+		//lko 6/8/15 -- Reset starting position to account for multiple values.
+		while (!isDone)
+		{
+			if (insert > 0 && start <= snps.get(insert-1).pos)
+				insert--;
+			else
+				isDone = true;
+		}
+
+		isDone = false;
 		
 		while (!isDone)
 		{
