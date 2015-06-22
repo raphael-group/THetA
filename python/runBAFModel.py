@@ -1,0 +1,502 @@
+#!/usr/bin/python
+
+from FileIO import *
+from math import *
+from os.path import basename
+import matplotlib.pyplot as plt
+from numpy import linspace
+
+def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, chrmsToUse=range(1, 23), prefix=None, directory="./", plotOption="all", model="gaussian", width=12.0, height=12.0):
+	"""
+	Runs the BAF model on SNP and interval data.
+
+	Arguments:
+		tumorSNP (string): location of tumor SNP data
+		normalSNP (string): location of normal SNP data
+		intervalFile (string): location of original input file for THetA
+		resultsFile (string): location of original output file for THetA
+		chrmsToUse (list of ints): a list of chromosomes on which the BAF model should be run.
+		prefix (string): prefix used for output file
+		directory (string): directory where the output file is saved
+		plotOption (string): option for plotting; "all" to plot all results,
+								"best" to plot the optimal result only
+		model (string): distribution used for the BAF model (note: only "gaussian"
+						is currently supported)
+		width (float): width of output plot in inches
+		height (float): height of output plot in inches
+	"""
+
+	#filtering options
+	options = {'MIN_SIZE': 2000000, #lower bound on interval size
+			   'MIN_SNP': 10, #lower bound on number of reads
+			   'MIN_HET': 0.4, #lower bound on normal BAF
+			   'MAX_HET': 0.6} #upper bound on normal BAF
+
+	#determining tumor file format and reading in data
+	tumorOption = 'het' if 'BAF.txt' in tumorSNP else 'normal'
+	tumor = read_snp_file(tumorSNP, tumorOption)
+
+	#reading in normal snp data, interval data, and THetA results
+	normal = read_snp_file(normalSNP)
+	intervals = read_interval_file_BAF(intervalFile)
+	results = read_results_file_full(resultsFile)
+	
+	#possible parameters estimated by THetA
+	k = results['k']
+	C = results['C']
+	mu = results['mu']
+
+	#arrays for storing results
+	BAFVec = []
+	meansVec = []
+	posVec = []
+	chrmVec = []
+	NLLVec = []
+
+	#run model on each THetA output
+	for i in range(k):
+		print "Calculating NLL for model " + str(i + 1)
+
+		currC = C[i]
+		currMu = mu[i]
+
+		if model == "gaussian":
+			currBAF, currMeans, currPos, currChrmVec, currNLL = get_gaussian_NLL(tumor, normal, 
+																				 intervals, chrmsToUse, 
+																				 currC, currMu, options)
+		else:
+			print model + " is not a supported model. Exiting program..."
+			exit(1)
+
+		BAFVec.append(currBAF)
+		meansVec.append(currMeans)
+		posVec.append(currPos)
+		chrmVec.append(currChrmVec)
+		NLLVec.append(currNLL)
+
+	plotDim = (width, height)
+
+	if prefix == None:
+		prefix = basename(tumorSNP.split(".")[0])
+
+	plot_results(BAFVec, meansVec, posVec, chrmVec, NLLVec, chrmsToUse, plotOption, directory, prefix, plotDim)
+	results['BAF_NLL'] = NLLVec
+	write_out_NLL_result(directory, prefix, results)
+
+def plot_single_result(BAF, means, pos, chrm, NLL, chrmsToUse, numberResults, fig, colors, i):
+	"""
+	Creates a subplot from the BAF model calculations for one THetA output.
+
+	Arguments:
+		BAF (list of floats): BAFs calculated by the model
+		means (list of floats): means calculated by the model
+		pos (list of ints): interval number for the SNP associated with each BAF
+		chrm (list of ints): chromosome number for the SNP associated with each BAF
+		NLL (float): negative log likelihood calculated by the model
+		chrmsToUse (list of ints): a list of chromosomes on which the BAF model was run
+		numberResults (int): number of results that theta output
+		fig (matplotlib figure): figure used for plotting the data
+		colors (matplotlib colors): colors used for distinguishing plot points by chromsome number]
+		i (int): result number, used to choose which subplot the plot is placed on
+
+	Returns:
+		fig with a new subplot added for result i
+	"""
+
+	print "Plotting model " + str(i)
+
+	#create new subplot
+	ax = fig.add_subplot(numberResults, 1, i)
+	
+	#parameter for plotting chromosome separations
+	mag = 6
+
+	dataArray = zip(BAF, means, pos, chrm)
+	dataDict = dict(zip(chrmsToUse, map(lambda x: [], chrmsToUse)))
+	#sorting by chromosome number
+	for row in dataArray:
+		dataDict[row[3]].append(row[:3])
+		
+	#sets offset for each chromosome
+	offset = 0
+
+	#stores location for setting xticks to chromosome numbers
+	xlabelPoints = []
+
+	#ensuring chromosomes are in sorted order
+	chrmsToUse = sorted(chrmsToUse)
+	for chrm in chrmsToUse:
+		relevantData = dataDict[chrm]
+		
+		xs = []
+		ys = []
+		mus = []
+
+		color = colors[chrm - 1]
+
+		#determines offset for next chromosome
+		maxPos = offset
+		for row in relevantData:
+			BAF = row[0]
+			mean = row[1]
+			pos = row[2]
+			x = pos + offset
+
+			xs.append(x)
+			ys.append(BAF)
+			mus.append(mean)
+
+			maxPos = x if x > maxPos else maxPos
+
+		#plotting chromosome points
+		xlabelPoints.append((offset + maxPos) / 2.0)
+		offset = maxPos + (2 * (10**mag))
+		ax.plot(xs, ys, 'o', color=color, ms=2, markeredgecolor='none', zorder=1)
+		ax.plot(xs, mus, 's', color='black', ms=2, zorder=2)
+		ax.plot([maxPos + (10**mag), maxPos + (10**mag)], [0, 1], color='black', zorder=3, linewidth=2)
+			
+	#formatting plot
+	ax.set_title('BAF Model NLL: ' + str(NLL))
+	ax.set_xticks(xlabelPoints)
+	ax.set_xticklabels(chrmsToUse)
+	ax.set_xlabel('Chromosome')
+	ax.set_ylabel('BAF')
+	ax.set_xlim([0, maxPos])
+
+	return fig
+
+def plot_results(BAFVec, meansVec, posVec, chrmVec, NLLVec, chrmsToUse, plotOption, directory, prefix, plotDim):
+	"""
+	Plots results from BAF model.
+
+	Arguments:
+		BAFVec (list of lists of floats): BAFs calculated for each THetA output
+		meansVec (list of lists of floats): means calculated for each THetA output
+		posVec (list of lists of ints): interval numbers for the SNPs associated with the BAFs in each THetA output
+		chrmVec (list of lists of ints): chromsome numbers for the SNPs associated with the BAFs in each THetA output
+		NLLVec (list of ints): negative log likelihood calculated by the BAF model for each THetA output
+		chrmsToUse (list of ints): a list of chromosomes on which the BAF model was run
+		plotOption (string): option for plotting; "all" to plot all results,
+									"best" to plot the optimal result only
+		directory (string): directory where the output file is saved
+		prefix (string): prefix used for output file
+		plotDim (2-tuple of floats): dimensions of output plot, stored as (width, height)
+	"""
+
+	numberChrms = len(chrmsToUse)
+	numberResults = len(NLLVec)
+	
+	#calculating colors used for distinguishing data by chromosome number
+	cmap = plt.get_cmap('gist_rainbow')
+	colors = [cmap(i) for i in linspace(0, 1, numberChrms)]
+
+	fig = plt.figure(figsize=plotDim)
+
+	if plotOption == "all":
+		#plot all results
+		for i in range(numberResults):
+			fig = plot_single_result(BAFVec[i], meansVec[i], posVec[i], 
+									 chrmVec[i], NLLVec[i], chrmsToUse,
+									 numberResults, fig, colors, i)
+	elif plotOption == "best":
+		#determine the optimal result
+		currBestInd = 0
+		currBest = NLLVec[0]
+		for i, NLL in enumerate(NLLVec):
+			if NLL < currBest:
+				currBestInd = i
+				currBest = NLL
+
+		i = currBestInd
+		#plot best result
+		fig = plot_single_result(BAFVec[i], meansVec[i], posVec[i], 
+									 chrmVec[i], NLLVec[i], chrmsToUse,
+									 1, fig, colors, 1)
+	else:
+		print "Plot option not recognized. Exiting..."
+		exit(1)
+
+	#formatting and saving plot
+	fig.tight_layout()
+	plt.savefig(directory + prefix + ".BAF.plot." + plotOption +".png")
+
+def calculate_BAF(tumorData, normalData, lower, upper, chrmsToUse, minSNP):
+	"""
+	Calculates the BAF for tumor SNP data and normal SNP data. Also filters for useful data using a variety of
+	heuristics.
+
+	Arguments:
+		tumorData (2D list): 2D list representing the tumor data
+		normalData (2D list): 2D list representing the normal data
+		lower (float): lower bound on normal BAF, used to filter out homozygous SNPs
+		upper (float): upper bound on normal BAF, used to filter out homozygous SNPs
+		chrmsToUse (list of ints): a list of chromosomes on which the BAF model should be run
+		minSNP (int): lower bound on number of SNP reads, used to filter out data that doesn't have enough information
+
+	Returns:
+		tumorBAF (list of floats): BAF calculated for each tumor SNP
+		normalBAF (list of floats): BAF calcualted for each normal SNP
+		newTumorData (2D list): tumorData filtered for relevant rows
+		newNormalData (2D list): normalData filtered for relevant rows
+	"""
+
+	#function to select columns from a 2D list
+	select_col = lambda array, colNum: map(lambda x: x[colNum], array)
+
+	#vectors of tumor data
+	tumorMutCount = select_col(tumorData, 3)
+	tumorRefCount = select_col(tumorData, 2)
+
+	#vectors of normal data
+	normalMutCount = select_col(normalData, 3)
+	normalRefCount = select_col(normalData, 2)
+
+	#denominators for BAFs
+	tumorDenom = map(sum, zip(tumorMutCount, tumorRefCount))
+	normalDenom = map(sum, zip(normalMutCount, normalRefCount))
+
+	tumorBAF = []
+	normalBAF = []
+	newTumorData = []
+	newNormalData = []
+	for i in range(len(tumorData)):
+		chrm = tumorData[i][0]
+		#filter out data that uses irrelevant chromosomes
+		if chrm not in chrmsToUse: continue
+		#filter out data where there aren't enough tumor reads
+		if tumorMutCount[i] + tumorRefCount[i] < minSNP: continue
+		#filter out data where there aren't enough normal reads
+		if normalMutCount[i] + normalRefCount[i] < minSNP: continue
+
+		currTumorNum = tumorMutCount[i]
+		currTumorDenom = tumorDenom[i]
+
+		currNormalNum = normalMutCount[i]
+		currNormalDenom = normalDenom[i]
+
+		#filter out points with denominators that are 0 to prevent zero division error
+		if currTumorDenom == 0 or currNormalDenom == 0: continue
+		else:
+			tumorBAFj = currTumorNum / currTumorDenom
+			normalBAFj = currNormalNum / currNormalDenom
+			#filter out data where normal BAFs do not fit in bounds correctly
+			if (normalBAFj >= lower) and (normalBAFj <= upper):
+				tumorBAF.append(tumorBAFj)
+				normalBAF.append(normalBAFj)
+				newTumorData.append(tumorData[i])
+				newNormalData.append(normalData[i])
+			else:
+				continue
+
+	return tumorBAF, normalBAF, newTumorData, newNormalData
+
+def generate_delta(C, mu):
+	"""
+	Generates delta for the BAF gaussian model, which corresponds to the
+	distribution mean. See the THetA2 supplement for an explanation of delta 
+	and the helper method phi.
+
+	Arguments:
+		C (list of lists of ints): copy number count matrix calculated using THetA
+		mu (list of floats): tumor population distribution calculated using THetA
+
+	returns:
+		delta (list of floats): delta parameters calculated for each interval
+	"""
+
+	def phi(a):
+		if a == 0:
+			return 0
+		elif a == 3:
+			return 2
+		else:
+			return 1
+
+	delta = []
+	for row in C:
+		numerator = sum(map(lambda (a, b): phi(a) * b, zip(row, mu)))
+		denominator = sum(map(lambda (a, b): a * b, zip(row, mu)))
+		deltaj = (numerator / denominator) - 0.5
+		delta.append(deltaj)
+
+	return delta
+
+def generate_pi(intervals):
+	"""
+	Generates pi for the BAF gaussian model, which maps from SNP location to
+	interval number. In this implementation, pi maps from a chromsome number to
+	ranges of positions and the interval number associated with that range. See
+	the THetA2 supplement for a more in-depth explanation
+
+	Arguments:
+		intervals (2D list): 2D list of data taken from the intervals file
+
+	Returns:
+		pi (dict of lists of ints): pi map
+	"""
+
+	pi = {}
+	j = 0
+	for chrm, start_pos, end_pos in intervals:
+		try:
+			pi[chrm].append((start_pos, end_pos, j))
+		except KeyError:
+			pi[chrm] = [(start_pos, end_pos, j)]
+		j += 1
+
+	return pi
+
+def calculate_interval(pi, chrm, pos):
+	"""
+	Determines how a position is mapped to an interval number using pi.
+
+	Arguments:
+		pi (dict of lists of ints): the pi map
+		chrm (int): chromosome number
+		pos (int): SNP location
+	Returns:
+		The interval associated with pos on chrm if the mapping is successful, otherwise None
+	"""
+
+	try:
+		chrmArray = pi[chrm]
+		for start, end, ind in chrmArray:
+			if start <= pos and pos <= end:
+				return ind
+		#position was not found in intervals
+		return None
+	except KeyError:
+		#chromosome was not found in pi
+		return None
+
+def generate_sigma(normal, normalBAF, pi, m):
+	"""
+	Generates sigma for the BAF gaussian model, which corresponds to the
+	distribution's standard deviation.
+
+	Arguments:
+		normal (2D list): 2D list of normal snp data
+		normalBAF (list of floats): BAFs calculated from the normal snp data
+		pi (dict of lists of ints): pi map
+		m: number of intervals
+
+	Returns:
+		sigma (list of floats): sigma parameter calculated for each interval
+	"""
+
+	numerator = [0] * m
+	denominator = [0] * m
+	for row, BAF in zip(normal, normalBAF):
+		chrm = row[0]
+		pos = row[1]
+		j = calculate_interval(pi, chrm, pos)
+		#ignore data whose interval can't be found
+		if j is None: continue
+
+		numerator[j] += (BAF - 0.5)**2
+		denominator[j] += 1
+
+	sigma = map(lambda (n, d): n / d if d != 0 else None, zip(numerator, denominator))
+	return sigma
+
+def normal_BAF_pdf(x, delta, sigma):
+	"""
+	Calculates the normal distribution values used in the BAF model.
+
+	Arguments:
+		x (float): input for the distribution
+		delta (float): delta parameter used to calculate mu
+		sigma (float): standard deviation of the distribution
+
+	Returns:
+		mu (float): the mean of the distribution
+		p (float): the probability of seeing x in the distribution
+	"""
+	#sgn is used to calculate mu. See the THetA2 supplement for a full explanation.
+	sgn = lambda y: 1 if y >= 0 else -1
+	mu = 0.5 + (sgn(x - 0.5) * delta)
+	coef = (1 / sqrt(2 * pi * sigma))
+	expNumerator = -1 * ((x - mu)**2)
+	expDenominator = 2 * sigma
+	p = coef * (e**(expNumerator / expDenominator))
+	return mu, p
+
+def get_gaussian_NLL(tumor, normal, intervals, chrmsToUse, C, mu, options):
+	"""
+	Calculates the negative log likelihood of seeing a result from THetA using a gaussian distribution.
+
+	Arguments:
+		tumor (2D list): A 2D list of tumor snp data
+		normal (2D list): A 2D list of normal snp data
+		intervals (2D list): A 2D list of intervals data
+		chrmsToUse (list of ints): a list of chromosomes on which the BAF model should be run
+		C (list of lists of ints): copy number count matrix calculated using THetA
+		mu (list of floats): tumor population distribution calculated using THetA
+		options (dict): a dictionary containing restrictions on the snp data that is used
+	Returns:
+		tumorBAF (list of floats): The BAFs calculated for relevant tumor SNPs
+		means (list of floats): The mean calculated for each relevant tumor SNP
+		posVec (list of ints): The positions corresponding to each tumor SNP that is used
+		chrmVec (list of ints): The chromosome number corresponding to each tumor SNP that is used
+		NLL (float): the negative log likelihood of seeing C and mu assuming that the BAF in a sample
+					 is generated by a gaussian distribution
+	"""
+
+	#unpacking data restrictions
+	minSize = options['MIN_SIZE']
+	minSNP = options['MIN_SNP']
+	minHET = options['MIN_HET']
+	maxHET = options['MAX_HET']
+
+	#calculate the BAFs
+	tumorBAF, normalBAF, tumor, normal = calculate_BAF(tumor, normal, minHET, maxHET, chrmsToUse, minSNP)
+
+	#generate the pi map
+	pi = generate_pi(intervals)
+	
+	#filter out irrelevant intervals data
+	intervals = filter(lambda (chrm, start, end): (end - start + 1) >= minSize, intervals)
+
+	#calculating distribution parameters
+	delta = generate_delta(C, mu)
+	sigma = generate_sigma(normal, normalBAF, pi, len(C)) #not sure about len(C)
+
+	NLL = 0
+	means = []
+	posVec = []
+	chrmVec = []
+	for i in range(len(tumorBAF)):
+		chrm = tumor[i][0]
+		pos = tumor[i][1]
+		j = calculate_interval(pi, chrm, pos)
+		#ignore snps whose intervals cannot be calculated, or have a 0 standard deviation
+		if j is None or sigma[j] is None or sigma[j] == 0: continue
+		else:
+			mean, val = normal_BAF_pdf(tumorBAF[i], delta[j], sigma[j])
+			NLL += -1 * log(val)
+			means.append(mean)
+			posVec.append(pos)
+			chrmVec.append(chrm)
+
+	return tumorBAF, means, posVec, chrmVec, NLL
+
+if __name__ == "__main__":
+	tumorNames = ['6847e993-1414-4e6f-a2af-39ebe218dd7c',
+				  '6aa00162-6294-4ce7-b6b7-0c3452e24cd6',
+				  'c1b44966-0f72-4c4f-8783-ab3ffe7f17b2',
+				  'c66c92d5-df65-46e6-861d-d8a98808e6a3']
+	normalNames = ['80b03480-5d28-481e-a447-59140d82f1f8',
+				   '8475f0ef-158e-493e-82b5-44e895dfc0a7',
+				   'af722e36-4912-45c4-b431-a2ceff596bac',
+				   'd6e91f4c-38c0-4393-9cb7-be076663dff3']
+
+	for tumorName, normalName in zip(tumorNames, normalNames):
+		print "Running on " + tumorName
+		dataDir = '/data/compbio/datasets/ICGC/pilot64/' + tumorName + '/'
+		tumorSNP = dataDir + tumorName + ".withCounts"
+		normalSNP = dataDir + normalName + ".withCounts"
+		researchDir = '/research/compbio/projects/THetA/ICGC-PanCan/results/pilot64/' + tumorName + '/' + tumorName
+		run_BAF_model(tumorSNP, normalSNP,
+						researchDir + '.input',
+						researchDir + '.n2.results',
+						directory="./results/")

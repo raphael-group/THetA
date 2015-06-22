@@ -33,6 +33,7 @@ from Optimizer import Optimizer
 from TimeEstimate import *
 from CalcAllC import *
 from plotResults import *
+from runBAFModel import run_BAF_model
 
 
 from multiprocessing import JoinableQueue, Queue, Process, Array, current_process
@@ -215,7 +216,7 @@ def main():
 	filename, results, n, k, tau, directory, prefix, max_normal, bound_heuristic, \
 		normal_bound_heuristic,heuristic_lb, heuristic_ub, num_processes, \
 		bounds_only, multi_event, force, get_values, choose_intervals, num_intervals, \
-		read_depth_file, graph_format = parse_arguments()
+		read_depth_file, graph_format, runBAF, tumorSNP, normalSNP = parse_arguments()
 
 	global pre
 	pre = prefix
@@ -321,6 +322,17 @@ def main():
 	print "Plotting results as a " + graph_format + "..."
 	#plot_results(directory, filename, prefix, n)
 	plot_results(directory, filename, prefix, read_depth_file, n, graph_format)
+
+	#run BAF model on results to determine most likely solution
+	if runBAF and tumorSNP is not None and normalSNP is not None:
+		resultsFile = prefix + ".n"+str(n)+".results"
+		resultsPath = os.path.join(directory, resultsFile)
+		try:
+			run_BAF_model(tumorSNP, normalSNP, filename, resultsPath, prefix=prefix, directory=directory)
+		except IOError:
+			print "Invalid locations for tumor and normal SNP files. The BAF model will not be run. You can try running the BAF model again directly from the runBAFModel.py script."
+	elif runBAF and (tumorSNP is None or normalSNP is None):
+		print "Need file location for tumor and normal SNP files to run the BAF model. The BAF model will not be run. You can try running the BAF model again directly from the runBAFModel.py script."
 
 import time
 if __name__ == '__main__':

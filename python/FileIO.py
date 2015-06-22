@@ -94,7 +94,10 @@ def parse_arguments(silent=False):
 	parser.add_argument("--GET_VALUES", action = "store_true", default=False, required=False)
 	parser.add_argument("--NO_INTERVAL_SELECTION", action = "store_true", default=False, required=False)
 	parser.add_argument("--READ_DEPTH_FILE", metavar="FILENAME",  default=None, required=False)
-	parser.add_argument("--GRAPH_FORMAT", help = "Options are .pdf, .jpg, .png, .eps" , default = ".pdf", required=False) 
+	parser.add_argument("--GRAPH_FORMAT", help = "Options are .pdf, .jpg, .png, .eps" , default = ".pdf", required=False)
+	parser.add_argument("--BAF", help="Option to run the BAF model.", default=False, metavar="BAF", required=False, type=bool)
+	parser.add_argument("--TUMOR_SNP", help="File location for tumor SNP file used in the BAF model.", default=None, metavar="TUMOR_SNP", required=False)
+	parser.add_argument("--NORMAL_SNP", help="File location for the normal SNP file used in the BAF model.", default=None, metavar="NORMAL_SNP", required=False)
 	args = parser.parse_args()
 
 	filename = args.QUERY_FILE
@@ -138,6 +141,9 @@ def parse_arguments(silent=False):
 	num_intervals = args.NUM_INTERVALS
 	read_depth_file = args.READ_DEPTH_FILE
 	graph_format = args.GRAPH_FORMAT
+	runBAF = args.BAF
+	tumorSNP = args.TUMOR_SNP
+	normalSNP = args.NORMAL_SNP
 	if n == 3 and num_intervals == 100: num_intervals = 20
 	
 	if not silent:
@@ -164,6 +170,9 @@ def parse_arguments(silent=False):
 		if force: print "\tForce:", force
 		if get_values: print "\tGet Values:", get_values
 		if read_depth_file is not None: print "Read depth file:", read_depth_file
+		if runBAF:
+			print "\t Tumor SNP File Location: ", tumorSNP
+			print "\t Normal SNP File Location: ", normalSNP
 		print "================================================="
 
 
@@ -171,7 +180,44 @@ def parse_arguments(silent=False):
 	# the new argument
 	return filename,results,n,k,tau,directory,prefix,max_normal,bound_heuristic, \
 			normal_bound_heuristic, heuristic_lb, heuristic_ub, num_processes, \
-			bounds_only, multi_event, force, get_values, interval_selection, num_intervals, read_depth_file, graph_format
+			bounds_only, multi_event, force, get_values, interval_selection, \
+			num_intervals, read_depth_file, graph_format, runBAF, tumorSNP, normalSNP
+def read_binned_file(filename):
+	"""
+	Parses the data in a .binned.txt file.
+
+	Arguments:
+		filename (str): the location of the .binned.txt file
+
+	Returns:
+		data (2D list): A 2D list, where each row is [chromosome number, start interval,
+						        	end interval, tumor counts,
+								normal counts, count ratio, mean BAF,
+								number SNPs]
+	"""
+
+	data = []
+
+	with open(filename) as f:
+		for line in f:
+			if line.startswith("#"): continue
+
+			chrm, start, end, tumorCounts, normalCounts, corrRatio, meanBAF, numSNPs = line.split("\t")
+
+			chrm = int(chrm)
+			start = int(start)
+			end = int(end)
+			tumorCounts = int(tumorCounts)
+			normalCounts = int(normalCounts)
+			corrRatio = float(corrRatio)
+			meanBAF = float(meanBAF)
+			numSNPs = int(numSNPs)
+
+			if (corrRatio == -1) or (meanBAF == -1): continue
+
+			data.append([chrm, start, end, tumorCounts, normalCounts, corrRatio, meanBAF, numSNPs])
+
+	return data
 
 def read_interval_file(filename):
 	"""
@@ -234,6 +280,34 @@ def read_interval_file(filename):
 
 	return (lengths, tumor_counts, norm_counts, m, upper_bounds, lower_bounds)
 
+def read_interval_file_BAF(filename):
+	"""
+	Parses an interval file for information relevant to the BAF model.
+
+	Args:
+		filname: location of results file
+
+	Returns:
+		dataArray: a 2D array, with rows defined as (chromosome number, start position, end position).
+				   Rows are stored as tuples.
+	"""
+
+	print "Reading interval file at " + filename
+	chrmArray = []
+	startPosArray = []
+	endPosArray = []
+	with open(filename) as f:
+		for line in f:
+			if line.startswith("#"): continue
+
+			iden, chrm, startPos, endPos, tCount, nCount = line.strip().split("\t")
+			chrmArray.append(int(chrm))
+			startPosArray.append(int(startPos))
+			endPosArray.append(int(endPos))
+
+	dataArray = zip(chrmArray, startPosArray, endPosArray)
+	return dataArray
+
 def read_results_file(filename):
 	"""
 	For n=3 with automatic interval selection, reads in the results file to get C
@@ -255,6 +329,108 @@ def read_results_file(filename):
 	soln = lines[0].strip().split("\t")
 	copy = [i for i in soln[2].split(":")]
 	return copy
+
+def read_results_file_full(filename):
+	"""
+	Parses a results file.
+	Args:
+		filename: location of results file
+	Returns:
+		results: a dictionary of the results with the following keys:
+			-NLL: an array of negative log likelihoods.
+			-mu: an array of mu vectors
+			-C: an array of C matrices
+			-p: an array of p* vectors
+			-k: number of solutions contained in results file
+	"""
+
+	print "Reading results file at " + filename
+	negLLArray = []
+	muArray = []
+	cMatArray = []
+	pArray = []
+	k = 0
+	with open(filename) as f:
+		for line in f:
+			if line.startswith("#"): continue
+
+			negLL, mu, c, p = line.strip().split("\t")
+			negLLArray.append(float(negLL))
+
+			mu = map(float, mu.split(","))
+			muHead = [mu[0]]
+			muTail = mu[1:]
+			n = len(muTail)
+			muTail = zip(range(n), muTail)
+			muTail = sorted(muTail, key=lambda x: x[1], reverse=True)
+			ind, muTail = zip(*muTail)
+			mu = muHead + list(muTail)
+			muArray.append(mu)
+
+			c = c.split(":")
+			c = map((lambda x: x.split(",")), c)
+			for i in range(len(c)):
+				temp = range(n + 1)
+				if c[i][0] == "X":
+					temp = [-1] * (n + 1)
+				else:
+					temp[0] = 2
+					for j in range(n):
+						temp[j + 1] = int(c[i][ind[j]])
+				c[i] = temp
+			cMatArray.append(c)
+
+			p = map(lambda x: -1 if x == "X" else float(x), p.split(","))
+			pArray.append(p)
+
+			k += 1
+
+	results = {'NLL': negLLArray, 'mu': muArray, 'C': cMatArray, 'p': pArray, 'k': k}
+	return results
+
+
+
+def read_snp_file(filename, option="normal"):
+	"""
+	Converts an SNP file to a 2D array.
+
+	Args:
+		filename: location of SNP file
+	Returns:
+		data: data from SNP file in a 2D array, where each row is [chromosome, position, ref count, mut count]
+	"""
+
+	chrmInd = 0
+	posInd = 1
+	if option == "het":
+		refInd = 2
+		mutInd = 3
+	else:
+		refInd = 7
+		mutInd = 8
+
+	print "Reading SNP file at " + filename
+
+	data = []
+	with open(filename) as f:
+		for line in f:
+			if line.startswith("#"): continue
+
+			vals = line.split("\t")
+
+			if vals[0] == "X":
+				chrm = 23
+			elif vals[0] == "Y":
+				chrm = 24
+			else:
+				chrm = int(vals[chrmInd])
+
+			position = int(vals[posInd])
+			refCount = float(vals[refInd])
+			mutCount = float(vals[mutInd])
+			data.append([chrm, position, refCount, mutCount])
+
+	return data
 
 def write_out_result(directory, prefix, results, n):
 	"""
@@ -299,6 +475,56 @@ def write_out_result(directory, prefix, results, n):
 		f.write(C_str)
 		f.write(val_str)
 		f.write("\n")
+	f.close()
+
+def write_out_NLL_result(directory, prefix, results):
+	"""
+	Writes out the file containing the results from the BAF model
+
+	Args:
+		directory (string): Target directory for output files
+		prefix (string): Prefix for output files. Output file will be named
+			prefix.BAF.NLL.results
+		results (dictionary): dictionary of results produced by runBAFModel.py
+	"""
+	NLL = results['NLL']
+	mu = results['mu']
+	C = results['C']
+	p = results['p']
+	BAF_NLL = results['BAF_NLL']
+
+	filename = prefix + ".BAF.NLL.results"
+	path = os.path.join(directory, filename)
+
+	print "Writing results file to", path
+
+	f = open(path, 'w')
+
+	f.write("#NLL\tmu\tC\tp*\tBAF_NLL\n")
+	for i in range(results['k']):
+		to_csv = lambda x: ",".join(map(lambda y: str(y) if y != -1 else "X", x))
+
+		currNLL = NLL[i]
+		NLLstr = str(currNLL)
+		f.write(NLLstr + "\t")
+
+		currMu = mu[i]
+		muStr = to_csv(currMu)
+		f.write(muStr + "\t")
+
+		currC = C[i]
+		commaSV = map(lambda x: to_csv(x[1:]), currC)
+		colonSV = ":".join(commaSV)
+		f.write(colonSV + "\t")
+
+		currP = p[i]
+		pStr = to_csv(currP)
+		f.write(pStr + "\t")
+
+		currBAF_NLL = BAF_NLL[i]
+		BAF_NLLStr = str(currBAF_NLL)
+		f.write(BAF_NLLStr + "\n")
+
 	f.close()
 
 def write_out_bounds(directory, prefix, inputFile, upper_bounds, lower_bounds, n, order=None):
@@ -366,5 +592,3 @@ def write_out_N3_script(directory, prefix, inputFile):
 		string = "python "+ argString.replace("-n 2", "").replace(inputFile, boundsFile) +" -n 3" + " --RESULTS " + resultsFile
 		f.write("#!/bin/bash\n")
 		f.write(string)
-
-
