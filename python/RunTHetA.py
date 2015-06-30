@@ -33,7 +33,7 @@ from Optimizer import Optimizer
 from TimeEstimate import *
 from CalcAllC import *
 from plotResults import *
-from runBAFModel import run_BAF_model
+from RunBAFModel import run_BAF_model
 
 
 from multiprocessing import JoinableQueue, Queue, Process, Array, current_process

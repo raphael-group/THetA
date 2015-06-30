@@ -5,8 +5,9 @@ from math import *
 from os.path import basename
 import matplotlib.pyplot as plt
 from numpy import linspace
+from scipy.stats import beta, norm
 
-def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, chrmsToUse=range(1, 23), prefix=None, directory="./", plotOption="all", model="gaussian", width=12.0, height=12.0):
+def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, prefix=None, directory="./", plotOption="all", model="gaussian", width=12.0, height=12.0, gamma=0.01):
 	"""
 	Runs the BAF model on SNP and interval data.
 
@@ -15,7 +16,6 @@ def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, chrmsToUse=ran
 		normalSNP (string): location of normal SNP data
 		intervalFile (string): location of original input file for THetA
 		resultsFile (string): location of original output file for THetA
-		chrmsToUse (list of ints): a list of chromosomes on which the BAF model should be run.
 		prefix (string): prefix used for output file
 		directory (string): directory where the output file is saved
 		plotOption (string): option for plotting; "all" to plot all results,
@@ -24,13 +24,10 @@ def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, chrmsToUse=ran
 						is currently supported)
 		width (float): width of output plot in inches
 		height (float): height of output plot in inches
+		gamma (float): parameter for determining heterozygosity of an allele
 	"""
-
-	#filtering options
-	options = {'MIN_SIZE': 2000000, #lower bound on interval size
-			   'MIN_SNP': 10, #lower bound on number of reads
-			   'MIN_HET': 0.4, #lower bound on normal BAF
-			   'MAX_HET': 0.6} #upper bound on normal BAF
+	minSize = 2000000 #lower bound on interval size
+	minSNP = 10 #lower bound on number of reads
 
 	#determining tumor file format and reading in data
 	tumorOption = 'het' if 'BAF.txt' in tumorSNP else 'normal'
@@ -38,13 +35,22 @@ def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, chrmsToUse=ran
 
 	#reading in normal snp data, interval data, and THetA results
 	normal = read_snp_file(normalSNP)
-	intervals = read_interval_file_BAF(intervalFile)
+	chrmsToUse, intervals = read_interval_file_BAF(intervalFile)
 	results = read_results_file_full(resultsFile)
 	
 	#possible parameters estimated by THetA
 	k = results['k']
 	C = results['C']
 	mu = results['mu']
+
+	#calculate the BAFs
+	tumorBAF, normalBAF, tumor, normal = calculate_BAF(tumor, normal, chrmsToUse, minSNP, gamma)
+
+	#filter out irrelevant intervals data
+	intervals = filter(lambda (chrm, start, end): (end - start + 1) >= minSize, intervals)
+
+	#generate the pi map
+	pi = generate_pi(intervals)
 
 	#arrays for storing results
 	BAFVec = []
@@ -61,9 +67,7 @@ def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, chrmsToUse=ran
 		currMu = mu[i]
 
 		if model == "gaussian":
-			currBAF, currMeans, currPos, currChrmVec, currNLL = get_gaussian_NLL(tumor, normal, 
-																				 intervals, chrmsToUse, 
-																				 currC, currMu, options)
+			currBAF, currMeans, currPos, currChrmVec, currNLL = get_gaussian_NLL(tumor, tumorBAF, normal, normalBAF, currC, currMu, pi)
 		else:
 			print model + " is not a supported model. Exiting program..."
 			exit(1)
@@ -220,7 +224,29 @@ def plot_results(BAFVec, meansVec, posVec, chrmVec, NLLVec, chrmsToUse, plotOpti
 	fig.tight_layout()
 	plt.savefig(directory + prefix + ".BAF.plot." + plotOption +".png")
 
-def calculate_BAF(tumorData, normalData, lower, upper, chrmsToUse, minSNP):
+def is_heterozygous(n_a, n_b, gamma):
+	"""
+	Determines if an allele should be considered heterozygous.
+
+	Arguments:
+		n_a (int): number of a alleles counted. Used as alpha parameter for the beta distribution
+		n_b (int): number of b alleles counted. Used as beta parameter for the beta distribution
+		gamma (float): parameter used for deciding heterozygosity; determined via a beta distribution
+						with 1 - gamma confidence
+
+	Returns:
+		A boolean indicating whether or not the allele should be considered heterozygous.
+	"""
+
+	if n_a == -1 or n_b == -1: return False
+
+	p_lower = gamma / 2.0
+	p_upper = 1 - p_lower
+
+	[c_lower, c_upper] = beta.ppf([p_lower, p_upper], n_a + 1, n_b + 1)
+	return c_lower <= 0.5 and c_upper >= 0.5
+
+def calculate_BAF(tumorData, normalData, chrmsToUse, minSNP, gamma):
 	"""
 	Calculates the BAF for tumor SNP data and normal SNP data. Also filters for useful data using a variety of
 	heuristics.
@@ -228,10 +254,9 @@ def calculate_BAF(tumorData, normalData, lower, upper, chrmsToUse, minSNP):
 	Arguments:
 		tumorData (2D list): 2D list representing the tumor data
 		normalData (2D list): 2D list representing the normal data
-		lower (float): lower bound on normal BAF, used to filter out homozygous SNPs
-		upper (float): upper bound on normal BAF, used to filter out homozygous SNPs
 		chrmsToUse (list of ints): a list of chromosomes on which the BAF model should be run
 		minSNP (int): lower bound on number of SNP reads, used to filter out data that doesn't have enough information
+		gamma (float): parameter for determining heterozygosity of an allele
 
 	Returns:
 		tumorBAF (list of floats): BAF calculated for each tumor SNP
@@ -259,7 +284,11 @@ def calculate_BAF(tumorData, normalData, lower, upper, chrmsToUse, minSNP):
 	normalBAF = []
 	newTumorData = []
 	newNormalData = []
+	j = 0
 	for i in range(len(tumorData)):
+		if floor((float(i) / float(len(tumorData))) * 100.0) > j:
+			j += 1
+			print str(j) + "%"
 		chrm = tumorData[i][0]
 		#filter out data that uses irrelevant chromosomes
 		if chrm not in chrmsToUse: continue
@@ -280,7 +309,7 @@ def calculate_BAF(tumorData, normalData, lower, upper, chrmsToUse, minSNP):
 			tumorBAFj = currTumorNum / currTumorDenom
 			normalBAFj = currNormalNum / currNormalDenom
 			#filter out data where normal BAFs do not fit in bounds correctly
-			if (normalBAFj >= lower) and (normalBAFj <= upper):
+			if is_heterozygous(normalRefCount[i], normalMutCount[i], gamma):
 				tumorBAF.append(tumorBAFj)
 				normalBAF.append(normalBAFj)
 				newTumorData.append(tumorData[i])
@@ -306,11 +335,11 @@ def generate_delta(C, mu):
 
 	def phi(a):
 		if a == 0:
-			return 0
+			return 0.0
 		elif a == 3:
-			return 2
+			return 2.0
 		else:
-			return 1
+			return 1.0
 
 	delta = []
 	for row in C:
@@ -318,7 +347,6 @@ def generate_delta(C, mu):
 		denominator = sum(map(lambda (a, b): a * b, zip(row, mu)))
 		deltaj = (numerator / denominator) - 0.5
 		delta.append(deltaj)
-
 	return delta
 
 def generate_pi(intervals):
@@ -412,27 +440,31 @@ def normal_BAF_pdf(x, delta, sigma):
 		mu (float): the mean of the distribution
 		p (float): the probability of seeing x in the distribution
 	"""
+	
+	#casting values as floats for safety
+	x = float(x)
+	delta = float(delta)
+	sigma = sqrt(float(sigma)) # scipy.stats.norm takes in variance rather than s.d. as parameter
+
 	#sgn is used to calculate mu. See the THetA2 supplement for a full explanation.
-	sgn = lambda y: 1 if y >= 0 else -1
+	sgn = lambda y: 1.0 if y >= 0 else -1.0
 	mu = 0.5 + (sgn(x - 0.5) * delta)
-	coef = (1 / sqrt(2 * pi * sigma))
-	expNumerator = -1 * ((x - mu)**2)
-	expDenominator = 2 * sigma
-	p = coef * (e**(expNumerator / expDenominator))
+	p = norm(mu, sigma).pdf(x)
 	return mu, p
 
-def get_gaussian_NLL(tumor, normal, intervals, chrmsToUse, C, mu, options):
+def get_gaussian_NLL(tumor, tumorBAF, normal, normalBAF, C, mu, pi):
 	"""
 	Calculates the negative log likelihood of seeing a result from THetA using a gaussian distribution.
 
 	Arguments:
 		tumor (2D list): A 2D list of tumor snp data
+		tumorBAF (list of floats): a list of the BAFs for the tumor sample
 		normal (2D list): A 2D list of normal snp data
-		intervals (2D list): A 2D list of intervals data
+		normalBAF (list of floats): a list of the BAFs for the normal sample
 		chrmsToUse (list of ints): a list of chromosomes on which the BAF model should be run
 		C (list of lists of ints): copy number count matrix calculated using THetA
 		mu (list of floats): tumor population distribution calculated using THetA
-		options (dict): a dictionary containing restrictions on the snp data that is used
+		pi (dict of lists of ints): map for determining the interval that a SNP sits on
 	Returns:
 		tumorBAF (list of floats): The BAFs calculated for relevant tumor SNPs
 		means (list of floats): The mean calculated for each relevant tumor SNP
@@ -441,21 +473,6 @@ def get_gaussian_NLL(tumor, normal, intervals, chrmsToUse, C, mu, options):
 		NLL (float): the negative log likelihood of seeing C and mu assuming that the BAF in a sample
 					 is generated by a gaussian distribution
 	"""
-
-	#unpacking data restrictions
-	minSize = options['MIN_SIZE']
-	minSNP = options['MIN_SNP']
-	minHET = options['MIN_HET']
-	maxHET = options['MAX_HET']
-
-	#calculate the BAFs
-	tumorBAF, normalBAF, tumor, normal = calculate_BAF(tumor, normal, minHET, maxHET, chrmsToUse, minSNP)
-
-	#generate the pi map
-	pi = generate_pi(intervals)
-	
-	#filter out irrelevant intervals data
-	intervals = filter(lambda (chrm, start, end): (end - start + 1) >= minSize, intervals)
 
 	#calculating distribution parameters
 	delta = generate_delta(C, mu)
@@ -490,13 +507,16 @@ if __name__ == "__main__":
 				   'af722e36-4912-45c4-b431-a2ceff596bac',
 				   'd6e91f4c-38c0-4393-9cb7-be076663dff3']
 
-	for tumorName, normalName in zip(tumorNames, normalNames):
-		print "Running on " + tumorName
-		dataDir = '/data/compbio/datasets/ICGC/pilot64/' + tumorName + '/'
-		tumorSNP = dataDir + tumorName + ".withCounts"
-		normalSNP = dataDir + normalName + ".withCounts"
-		researchDir = '/research/compbio/projects/THetA/ICGC-PanCan/results/pilot64/' + tumorName + '/' + tumorName
-		run_BAF_model(tumorSNP, normalSNP,
-						researchDir + '.input',
-						researchDir + '.n2.results',
-						directory="./results/")
+	#for tumorName, normalName in zip(tumorNames, normalNames):
+	tumorName = tumorNames[3]
+	normalName = normalNames[3]
+	print "Running on " + tumorName
+	dataDir = '/data/compbio/datasets/ICGC/pilot64/' + tumorName + '/'
+	tumorSNP = dataDir + tumorName + ".withCounts"
+	normalSNP = dataDir + normalName + ".withCounts"
+	researchDir = '/research/compbio/projects/THetA/ICGC-PanCan/results/pilot64/' + tumorName + '/' + tumorName
+	run_BAF_model(tumorSNP, normalSNP,
+					researchDir + '.input',
+					researchDir + '.n2.results',
+					prefix=tumorName + ".3",
+					directory="./results/")

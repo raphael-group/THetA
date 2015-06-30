@@ -296,17 +296,20 @@ def read_interval_file_BAF(filename):
 	chrmArray = []
 	startPosArray = []
 	endPosArray = []
+	chrmsToUse = set()
 	with open(filename) as f:
 		for line in f:
 			if line.startswith("#"): continue
 
 			iden, chrm, startPos, endPos, tCount, nCount = line.strip().split("\t")
 			chrmArray.append(int(chrm))
+			chrmsToUse.add(int(chrm))
 			startPosArray.append(int(startPos))
 			endPosArray.append(int(endPos))
 
 	dataArray = zip(chrmArray, startPosArray, endPosArray)
-	return dataArray
+	chrmsToUse = list(chrmsToUse)
+	return chrmsToUse, dataArray
 
 def read_results_file(filename):
 	"""
