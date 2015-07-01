@@ -330,9 +330,9 @@ def main():
 		try:
 			run_BAF_model(tumorSNP, normalSNP, filename, resultsPath, prefix=prefix, directory=directory)
 		except IOError:
-			print "Invalid locations for tumor and normal SNP files. The BAF model will not be run. You can try running the BAF model again directly from the runBAFModel.py script."
+			print "ERROR: Invalid locations for tumor and normal SNP files. The BAF model will not be run. You can try running the BAF model again directly from the runBAFModel.py script."
 	elif runBAF and (tumorSNP is None or normalSNP is None):
-		print "Need file location for tumor and normal SNP files to run the BAF model. The BAF model will not be run. You can try running the BAF model again directly from the runBAFModel.py script."
+		print "ERROR: Need file location for tumor and normal SNP files to run the BAF model. The BAF model will not be run. You can try running the BAF model again directly from the runBAFModel.py script."
 
 import time
 if __name__ == '__main__':

@@ -58,6 +58,9 @@ def parse_arguments(silent=False):
 		force: ignores certain warnings and forces THetA to run
 		get_values: collects and prints out values for C, mu and likelihood for
 			all Cs considered, for development purposes
+		runBAF: flag indicating if the BAF post-processing model should be run.
+		tumorSNP: file location for tumor SNP file used in the BAF post-processing model.
+		normalSNP: file location for the normal SNP file used in the BAF post-processing model.
 	"""
 
 	parser = argparse.ArgumentParser()
@@ -95,7 +98,7 @@ def parse_arguments(silent=False):
 	parser.add_argument("--NO_INTERVAL_SELECTION", action = "store_true", default=False, required=False)
 	parser.add_argument("--READ_DEPTH_FILE", metavar="FILENAME",  default=None, required=False)
 	parser.add_argument("--GRAPH_FORMAT", help = "Options are .pdf, .jpg, .png, .eps" , default = ".pdf", required=False)
-	parser.add_argument("--BAF", help="Option to run the BAF model.", default=False, metavar="BAF", required=False, type=bool)
+	parser.add_argument("--BAF", help="Option to run the BAF model.", , action='store_true', default=False, required=False, metavar="BAF")
 	parser.add_argument("--TUMOR_SNP", help="File location for tumor SNP file used in the BAF model.", default=None, metavar="TUMOR_SNP", required=False)
 	parser.add_argument("--NORMAL_SNP", help="File location for the normal SNP file used in the BAF model.", default=None, metavar="NORMAL_SNP", required=False)
 	args = parser.parse_args()
