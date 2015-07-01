@@ -5,7 +5,7 @@ from math import *
 from os.path import basename
 import matplotlib.pyplot as plt
 from numpy import linspace
-from scipy.stats import beta, norm
+from scipy.stats import norm, beta
 
 def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, prefix=None, directory="./", plotOption="all", model="gaussian", width=12.0, height=12.0, gamma=0.01):
 	"""
@@ -343,6 +343,9 @@ def generate_delta(C, mu):
 
 	delta = []
 	for row in C:
+		if -1 in row:
+			delta.append(None)
+			continue
 		numerator = sum(map(lambda (a, b): phi(a) * b, zip(row, mu)))
 		denominator = sum(map(lambda (a, b): a * b, zip(row, mu)))
 		deltaj = (numerator / denominator) - 0.5
@@ -487,7 +490,7 @@ def get_gaussian_NLL(tumor, tumorBAF, normal, normalBAF, C, mu, pi):
 		pos = tumor[i][1]
 		j = calculate_interval(pi, chrm, pos)
 		#ignore snps whose intervals cannot be calculated, or have a 0 standard deviation
-		if j is None or sigma[j] is None or sigma[j] == 0: continue
+		if j is None or sigma[j] is None or sigma[j] == 0 or delta[j] is None: continue
 		else:
 			mean, val = normal_BAF_pdf(tumorBAF[i], delta[j], sigma[j])
 			NLL += -1 * log(val)
