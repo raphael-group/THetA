@@ -309,6 +309,9 @@ def main():
 		else:
 			best = calc_all_c_3_multi_event(best, r, rN, allTumor, allNormal, order)
 
+		#lko 7-6-15 Fix multiple solutions to only return the solution with the overal min NLL
+		best = find_mins(best)
+
 	###
 	#  Write results out to file
 	###
