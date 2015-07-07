@@ -58,6 +58,10 @@ def parse_arguments(silent=False):
 		force: ignores certain warnings and forces THetA to run
 		get_values: collects and prints out values for C, mu and likelihood for
 			all Cs considered, for development purposes
+		ratio_dev: the deviation away from 1.0 for a ratio to indicate a potential
+			copy number event  
+		min_frac: the minimum fraction of the genome that must contain a potential
+			copy number event for a sample to be considered with THetA.
 	"""
 
 	parser = argparse.ArgumentParser()
@@ -94,7 +98,11 @@ def parse_arguments(silent=False):
 	parser.add_argument("--GET_VALUES", action = "store_true", default=False, required=False)
 	parser.add_argument("--NO_INTERVAL_SELECTION", action = "store_true", default=False, required=False)
 	parser.add_argument("--READ_DEPTH_FILE", metavar="FILENAME",  default=None, required=False)
-	parser.add_argument("--GRAPH_FORMAT", help = "Options are .pdf, .jpg, .png, .eps" , default = ".pdf", required=False) 
+	parser.add_argument("--GRAPH_FORMAT", help = "Options are .pdf, .jpg, .png, .eps" , default = ".pdf", required=False)
+	parser.add_argument("--RATIO_DEV", help = "The deviation away from 1.0 that a ratio must be to be considered\
+			a potential copy number aberration.", type=float, default=0.1, metavar="RATIO_DEV", required=False)
+	parser.add_argument("--MIN_FRAC", help = "The minimum fraction of the genome that must have a potential copy number\
+			aberration to be a valid sample for THetA analysis.", type=float, default=0.05, metavar="MIN_FRAC", required=False) 
 	args = parser.parse_args()
 
 	filename = args.QUERY_FILE
@@ -139,6 +147,16 @@ def parse_arguments(silent=False):
 	read_depth_file = args.READ_DEPTH_FILE
 	graph_format = args.GRAPH_FORMAT
 	if n == 3 and num_intervals == 100: num_intervals = 20
+
+	ratio_dev = args.RATIO_DEV
+	if ratio_dev < 0:
+		err_msg = "Invalid value for ratio_dev: "+str(ratio_dev)+". Ratio_dev must be non-negative."
+		raise ValueError(err_msg)
+
+	min_frac = args.MIN_FRAC
+	if min_frac < 0 or min_frac > 1:
+		err_msg = "Invalid value for min_frac: "+str(min_frac)+". Min_frac must be between 0 and 1."
+		raise ValueError(err_msg)
 	
 	if not silent:
 		print "================================================="
@@ -164,6 +182,9 @@ def parse_arguments(silent=False):
 		if force: print "\tForce:", force
 		if get_values: print "\tGet Values:", get_values
 		if read_depth_file is not None: print "Read depth file:", read_depth_file
+		print "\nValid sample for THetA analysis:"
+		print "\tRatio Deviation:", ratio_dev
+		print "\tMin Fraction of Genome Aberrated:", min_frac
 		print "================================================="
 
 
@@ -171,7 +192,8 @@ def parse_arguments(silent=False):
 	# the new argument
 	return filename,results,n,k,tau,directory,prefix,max_normal,bound_heuristic, \
 			normal_bound_heuristic, heuristic_lb, heuristic_ub, num_processes, \
-			bounds_only, multi_event, force, get_values, interval_selection, num_intervals, read_depth_file, graph_format
+			bounds_only, multi_event, force, get_values, interval_selection, \
+			num_intervals, read_depth_file, graph_format, ratio_dev, min_frac
 
 def read_interval_file(filename):
 	"""

@@ -218,6 +218,16 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops, extensio
 		Plot grey dots: tumor to normal read ratio
 		"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 		if concordant_path:
+
+			#Calculate total read counts for normalization
+			t_total = 0
+			n_total = 0
+
+			for key in totals.keys():
+				t,n = totals[key]
+				t_total+=t
+				n_total+=n
+
 			names = [ ]
 			namez = totals.keys()
 			for name in namez:
@@ -240,7 +250,11 @@ def plot_results(out_dir, filename, prefix, concordant_file, n_subpops, extensio
 					else:
 						x.append(bin[0] + chromosome_cummulative[n - 1])
 					try:
-						current_ratio = 2 * (bin[1]/float(this_tumor_total))/(bin[2]/float(this_normal_total))
+						#lko 7-6-2015 Remove Bug where normalization done by chromosome
+						#current_ratio = 2 * (bin[1]/float(this_tumor_total))/(bin[2]/float(this_normal_total))
+						current_ratio = 2 * (bin[1]/float(t_total))/(bin[2]/float(n_total))
+
+
 						#Filter number of grey dots to make figures smaller. The ratio difference must be more than 0.05 or it must be not covered by the black line.
 						if abs(last_ratio - current_ratio < 0.05) or (current_ratio > 2 and current_ratio < 2.1):
 							del x[-1]

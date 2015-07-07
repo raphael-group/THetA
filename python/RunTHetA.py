@@ -215,7 +215,7 @@ def main():
 	filename, results, n, k, tau, directory, prefix, max_normal, bound_heuristic, \
 		normal_bound_heuristic,heuristic_lb, heuristic_ub, num_processes, \
 		bounds_only, multi_event, force, get_values, choose_intervals, num_intervals, \
-		read_depth_file, graph_format = parse_arguments()
+		read_depth_file, graph_format, ratio_dev, min_frac = parse_arguments()
 
 	global pre
 	pre = prefix
@@ -224,9 +224,18 @@ def main():
 	lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds = read_interval_file(filename)
 
 	###
+	#	Determine is sample has enough copy number aberrations to run
+	###
+	frac = determine_frac_copy_num(normCounts, tumorCounts, lengths, ratio_dev)
+	print "Frac with potential copy numbers:", frac
+	if frac < min_frac:
+		print "ERROR: This sample does not have enough large copy number aberrations to be a good candidate for tumor composition estimation using THetA.  See --RATIO_DEVIATION and --MIN_FRAC flags to modify how the potential presence of large copy number aberrations is determined.  Exiting..."
+		exit(1)
+	###
 	#	Automatically Select Intervals
 	#	note: This is the default behavior
 	###
+
 
 	if choose_intervals:
 		print "Selecting intervals..."
