@@ -328,7 +328,7 @@ def main():
 		resultsFile = prefix + ".n"+str(n)+".results"
 		resultsPath = os.path.join(directory, resultsFile)
 		try:
-			run_BAF_model(tumorSNP, normalSNP, filename, resultsPath, prefix=prefix, directory=directory)
+			run_BAF_model(tumorSNP, normalSNP, filename, resultsPath, prefix=prefix + ".n" + str(n), directory=directory)
 		except IOError:
 			print "ERROR: Invalid locations for tumor and normal SNP files. The BAF model will not be run. You can try running the BAF model again directly from the runBAFModel.py script."
 	elif runBAF and (tumorSNP is None or normalSNP is None):

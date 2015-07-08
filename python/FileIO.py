@@ -28,6 +28,7 @@ import string
 import os
 import sys
 import argparse
+import gzip
 
 N_VALS = [2,3]
 MAX_K = 7
@@ -98,7 +99,7 @@ def parse_arguments(silent=False):
 	parser.add_argument("--NO_INTERVAL_SELECTION", action = "store_true", default=False, required=False)
 	parser.add_argument("--READ_DEPTH_FILE", metavar="FILENAME",  default=None, required=False)
 	parser.add_argument("--GRAPH_FORMAT", help = "Options are .pdf, .jpg, .png, .eps" , default = ".pdf", required=False)
-	parser.add_argument("--BAF", help="Option to run the BAF model.", , action='store_true', default=False, required=False, metavar="BAF")
+	parser.add_argument("--BAF", help="Option to run the BAF model.", action='store_true', default=False, required=False, metavar="BAF")
 	parser.add_argument("--TUMOR_SNP", help="File location for tumor SNP file used in the BAF model.", default=None, metavar="TUMOR_SNP", required=False)
 	parser.add_argument("--NORMAL_SNP", help="File location for the normal SNP file used in the BAF model.", default=None, metavar="NORMAL_SNP", required=False)
 	args = parser.parse_args()
@@ -185,6 +186,71 @@ def parse_arguments(silent=False):
 			normal_bound_heuristic, heuristic_lb, heuristic_ub, num_processes, \
 			bounds_only, multi_event, force, get_values, interval_selection, \
 			num_intervals, read_depth_file, graph_format, runBAF, tumorSNP, normalSNP
+
+def parse_BAF_arguments():
+	"""
+	Parse command line arguments for RunBAFModel.py.
+
+	Returns:
+		kwargs: A dictionary containing keys that are the argument names for run_BAF_model, with values set by the user.
+	"""
+
+	parser = argparse.ArgumentParser()
+	parser.add_argument("TUMOR_SNP", help="File location for tumor SNP file used in the BAF model.", metavar="TUMOR_SNP")
+	parser.add_argument("NORMAL_SNP", help="File location for the normal SNP file used in the BAF model.", metavar="NORMAL_SNP")
+	parser.add_argument("INTERVALS", help="File location for the interval file used as input for THetA.", metavar="INTERVALS")
+	parser.add_argument("RESULTS", help="File location for the results file produced by THetA.", metavar="RESULTS")
+	parser.add_argument("-P", help="Prefix used for output files.", default=None, metavar="P", required=False)
+	parser.add_argument("-O", help="Output directory.", metavar="O", required=False, default=None)
+	parser.add_argument("--PLOT_OPTION", help="Choose to plot either results for all models ('ALL'), or the optimal model ('BEST').",
+						metavar="PLOT_OPTION", required=False, default=None)
+	parser.add_argument("--M", help="Sets the model that is used in BAF post-processing (for now, only 'gaussian' is supported).",
+						metavar="M", required=False, default=None)
+	parser.add_argument("--WIDTH", help="Sets the output plot's width.", metavar="WIDTH", type=float, required=False, default=None)
+	parser.add_argument("--HEIGHT", help="Sets the output plot's height.", metavar="HEIGHT", type=float, required=False, default=None)
+	parser.add_argument("--G", help="Sets the gamma value used as a parameter for determining SNP heterozygosity.",
+						metavar="G", type=float, required=False, default=None)
+	args = parser.parse_args()
+
+	kwargs = {}
+	kwargs['tumorSNP'] = args.TUMOR_SNP
+	kwargs['normalSNP'] = args.NORMAL_SNP
+	kwargs['intervalFile'] = args.INTERVALS
+	kwargs['resultsFile'] = args.RESULTS
+
+	if args.P is not None:
+		kwargs['prefix'] = args.P
+
+	if args.O is not None:
+		kwargs['directory'] = args.O
+
+	if args.PLOT_OPTION == "ALL":
+		kwargs['plotOption'] = "all"
+	elif args.PLOT_OPTION == "BEST":
+		kwargs['plotOption'] = "best"
+	elif args.PLOT_OPTION is not None:
+		err_msg = "Invalid value for plot option:", args.PLOT_OPTION + ". Supported options are 'ALL' and 'BEST'."
+		raise ValueError(err_msg)
+
+	validModels = ['gaussian']
+	if args.M is not None:
+		if args.M not in validModels:
+			err_msg = "Invalid value for model:", args.M + ". Supported options are" + ",".join(map(lambda x: " '" + x + "'", validModels))
+			raise ValueError(err_msg)
+		else:
+			kwargs['model'] = args.M
+
+	if args.WIDTH is not None:
+		kwargs['width'] = args.WIDTH
+
+	if args.HEIGHT is not None:
+		kwargs['height'] = args.HEIGHT
+
+	if args.G is not None:
+		kwargs['gamma'] = args.G
+
+	return kwargs
+
 def read_binned_file(filename):
 	"""
 	Parses the data in a .binned.txt file.
@@ -305,8 +371,19 @@ def read_interval_file_BAF(filename):
 			if line.startswith("#"): continue
 
 			iden, chrm, startPos, endPos, tCount, nCount = line.strip().split("\t")
-			chrmArray.append(int(chrm))
-			chrmsToUse.add(int(chrm))
+
+			chrm = chrm.lower()
+			if chrm.startswith("chrm"):
+				chrm = chrm[4:]
+			if chrm == "x":
+				chrm = 23
+			elif chrm == "y":
+				chrm = 24
+			else:
+				chrm = int(chrm)
+			
+			chrmArray.append(chrm)
+			chrmsToUse.add(chrm)
 			startPosArray.append(int(startPos))
 			endPosArray.append(int(endPos))
 
@@ -396,7 +473,7 @@ def read_results_file_full(filename):
 
 
 
-def read_snp_file(filename, option="normal"):
+def read_snp_file(filename):
 	"""
 	Converts an SNP file to a 2D array.
 
@@ -406,35 +483,47 @@ def read_snp_file(filename, option="normal"):
 		data: data from SNP file in a 2D array, where each row is [chromosome, position, ref count, mut count]
 	"""
 
-	chrmInd = 0
-	posInd = 1
-	if option == "het":
-		refInd = 2
-		mutInd = 3
-	else:
-		refInd = 7
-		mutInd = 8
-
 	print "Reading SNP file at " + filename
 
 	data = []
-	with open(filename) as f:
-		for line in f:
-			if line.startswith("#"): continue
 
-			vals = line.split("\t")
+	f = gzip.open(filename, "r") if ".gz" in filename else open(filename, "r")
+	splitChar = "," if ".csv" in filename else "\t"
 
-			if vals[0] == "X":
-				chrm = 23
-			elif vals[0] == "Y":
-				chrm = 24
-			else:
-				chrm = int(vals[chrmInd])
+	chrmInd = 0
+	posInd = 1
 
-			position = int(vals[posInd])
-			refCount = float(vals[refInd])
-			mutCount = float(vals[mutInd])
-			data.append([chrm, position, refCount, mutCount])
+	for line in f:
+		if line.strip() == "": continue
+		if line.startswith("#"): continue
+
+		if len(line.split(splitChar)) < 8:
+			refInd = 2
+			mutInd = 3
+		else:
+			refInd = 7
+			mutInd = 8
+
+		vals = line.split(splitChar)
+
+		chrm = vals[chrmInd].lower()
+
+		if chrm.startswith("chrm"):
+			chrm = chrm[4:]
+		if chrm.startswith("chr"):
+			chrm = chrm[3:]
+
+		if chrm == "x":
+			chrm = 23
+		elif chrm == "y":
+			chrm = 24
+		else:
+			chrm = int(chrm)
+
+		position = int(vals[posInd])
+		refCount = float(vals[refInd])
+		mutCount = float(vals[mutInd])
+		data.append([chrm, position, refCount, mutCount])
 
 	return data
 

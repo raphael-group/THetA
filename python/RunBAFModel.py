@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from numpy import linspace
 from scipy.stats import norm, beta
 
-def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, prefix=None, directory="./", plotOption="all", model="gaussian", width=12.0, height=12.0, gamma=0.01):
+def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, prefix=None, directory="./", plotOption="all", model="gaussian", width=12.0, height=12.0, gamma=0.05):
 	"""
 	Runs the BAF model on SNP and interval data.
 
@@ -26,12 +26,12 @@ def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, prefix=None, d
 		height (float): height of output plot in inches
 		gamma (float): parameter for determining heterozygosity of an allele
 	"""
+
 	minSize = 2000000 #lower bound on interval size
 	minSNP = 10 #lower bound on number of reads
 
-	#determining tumor file format and reading in data
-	tumorOption = 'het' if 'BAF.txt' in tumorSNP else 'normal'
-	tumor = read_snp_file(tumorSNP, tumorOption)
+	#reading in tumor BAF data
+	tumor = read_snp_file(tumorSNP)
 
 	#reading in normal snp data, interval data, and THetA results
 	normal = read_snp_file(normalSNP)
@@ -43,14 +43,8 @@ def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, prefix=None, d
 	C = results['C']
 	mu = results['mu']
 
-	#calculate the BAFs
+	#calculate the BAFs and remove irrelevant data
 	tumorBAF, normalBAF, tumor, normal = calculate_BAF(tumor, normal, chrmsToUse, minSNP, gamma)
-
-	#filter out irrelevant intervals data
-	intervals = filter(lambda (chrm, start, end): (end - start + 1) >= minSize, intervals)
-
-	#generate the pi map
-	pi = generate_pi(intervals)
 
 	#arrays for storing results
 	BAFVec = []
@@ -63,15 +57,27 @@ def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, prefix=None, d
 	for i in range(k):
 		print "Calculating NLL for model " + str(i + 1)
 
+		#unpack model parameters
 		currC = C[i]
 		currMu = mu[i]
 
+		#filter out intervals that are too small or have invalid entries in C matrix
+		filteredData = filter(lambda ((chrm, start, end), cj): (end - start + 1) >= minSize and -1 not in cj, zip(intervals, currC))
+		currIntervals, currC = zip(*filteredData)
+		currIntervals = list(currIntervals)
+		currC = list(currC)
+
+		#pi maps from chromosome and position to interval number
+		pi = generate_pi(currIntervals)
+
+		#calculate the NLL for the given model
 		if model == "gaussian":
 			currBAF, currMeans, currPos, currChrmVec, currNLL = get_gaussian_NLL(tumor, tumorBAF, normal, normalBAF, currC, currMu, pi)
 		else:
 			print model + " is not a supported model. Exiting program..."
 			exit(1)
 
+		#storing results
 		BAFVec.append(currBAF)
 		meansVec.append(currMeans)
 		posVec.append(currPos)
@@ -81,8 +87,9 @@ def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, prefix=None, d
 	plotDim = (width, height)
 
 	if prefix == None:
-		prefix = basename(tumorSNP.split(".")[0])
+		prefix = ".".join(basename(resultsFile).split(".")[0:2])
 
+	#generate results
 	plot_results(BAFVec, meansVec, posVec, chrmVec, NLLVec, chrmsToUse, plotOption, directory, prefix, plotDim)
 	results['BAF_NLL'] = NLLVec
 	write_out_NLL_result(directory, prefix, results)
@@ -117,6 +124,7 @@ def plot_single_result(BAF, means, pos, chrm, NLL, chrmsToUse, numberResults, fi
 
 	dataArray = zip(BAF, means, pos, chrm)
 	dataDict = dict(zip(chrmsToUse, map(lambda x: [], chrmsToUse)))
+	
 	#sorting by chromosome number
 	for row in dataArray:
 		dataDict[row[3]].append(row[:3])
@@ -129,6 +137,8 @@ def plot_single_result(BAF, means, pos, chrm, NLL, chrmsToUse, numberResults, fi
 
 	#ensuring chromosomes are in sorted order
 	chrmsToUse = sorted(chrmsToUse)
+
+	#plotting
 	for chrm in chrmsToUse:
 		relevantData = dataDict[chrm]
 		
@@ -342,10 +352,8 @@ def generate_delta(C, mu):
 			return 1.0
 
 	delta = []
+	j = 0
 	for row in C:
-		if -1 in row:
-			delta.append(None)
-			continue
 		numerator = sum(map(lambda (a, b): phi(a) * b, zip(row, mu)))
 		denominator = sum(map(lambda (a, b): a * b, zip(row, mu)))
 		deltaj = (numerator / denominator) - 0.5
@@ -447,7 +455,7 @@ def normal_BAF_pdf(x, delta, sigma):
 	#casting values as floats for safety
 	x = float(x)
 	delta = float(delta)
-	sigma = sqrt(float(sigma)) # scipy.stats.norm takes in variance rather than s.d. as parameter
+	sigma = sqrt(float(sigma))
 
 	#sgn is used to calculate mu. See the THetA2 supplement for a full explanation.
 	sgn = lambda y: 1.0 if y >= 0 else -1.0
@@ -490,36 +498,19 @@ def get_gaussian_NLL(tumor, tumorBAF, normal, normalBAF, C, mu, pi):
 		pos = tumor[i][1]
 		j = calculate_interval(pi, chrm, pos)
 		#ignore snps whose intervals cannot be calculated, or have a 0 standard deviation
-		if j is None or sigma[j] is None or sigma[j] == 0 or delta[j] is None: continue
+		if j is None or sigma[j] is None or sigma[j] == 0: continue
 		else:
-			mean, val = normal_BAF_pdf(tumorBAF[i], delta[j], sigma[j])
-			NLL += -1 * log(val)
+			mean, likelihood = normal_BAF_pdf(tumorBAF[i], delta[j], sigma[j])
+			NLL -= log(likelihood)
 			means.append(mean)
 			posVec.append(pos)
 			chrmVec.append(chrm)
 
 	return tumorBAF, means, posVec, chrmVec, NLL
 
-if __name__ == "__main__":
-	tumorNames = ['6847e993-1414-4e6f-a2af-39ebe218dd7c',
-				  '6aa00162-6294-4ce7-b6b7-0c3452e24cd6',
-				  'c1b44966-0f72-4c4f-8783-ab3ffe7f17b2',
-				  'c66c92d5-df65-46e6-861d-d8a98808e6a3']
-	normalNames = ['80b03480-5d28-481e-a447-59140d82f1f8',
-				   '8475f0ef-158e-493e-82b5-44e895dfc0a7',
-				   'af722e36-4912-45c4-b431-a2ceff596bac',
-				   'd6e91f4c-38c0-4393-9cb7-be076663dff3']
+def main():
+	kwargs = parse_BAF_arguments()
+	run_BAF_model(**kwargs)
 
-	#for tumorName, normalName in zip(tumorNames, normalNames):
-	tumorName = tumorNames[3]
-	normalName = normalNames[3]
-	print "Running on " + tumorName
-	dataDir = '/data/compbio/datasets/ICGC/pilot64/' + tumorName + '/'
-	tumorSNP = dataDir + tumorName + ".withCounts"
-	normalSNP = dataDir + normalName + ".withCounts"
-	researchDir = '/research/compbio/projects/THetA/ICGC-PanCan/results/pilot64/' + tumorName + '/' + tumorName
-	run_BAF_model(tumorSNP, normalSNP,
-					researchDir + '.input',
-					researchDir + '.n2.results',
-					prefix=tumorName + ".3",
-					directory="./results/")
+if __name__ == "__main__":
+	main()
