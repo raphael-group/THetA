@@ -99,7 +99,7 @@ def parse_arguments(silent=False):
 	parser.add_argument("--NO_INTERVAL_SELECTION", action = "store_true", default=False, required=False)
 	parser.add_argument("--READ_DEPTH_FILE", metavar="FILENAME",  default=None, required=False)
 	parser.add_argument("--GRAPH_FORMAT", help = "Options are .pdf, .jpg, .png, .eps" , default = ".pdf", required=False)
-	parser.add_argument("--BAF", help="Option to run the BAF model.", action='store_true', default=False, required=False, metavar="BAF")
+	parser.add_argument("--BAF", help="Option to run the BAF model.", action='store_true', default=False, required=False)
 	parser.add_argument("--TUMOR_SNP", help="File location for tumor SNP file used in the BAF model.", default=None, metavar="TUMOR_SNP", required=False)
 	parser.add_argument("--NORMAL_SNP", help="File location for the normal SNP file used in the BAF model.", default=None, metavar="NORMAL_SNP", required=False)
 	args = parser.parse_args()
@@ -251,7 +251,7 @@ def parse_BAF_arguments():
 
 	return kwargs
 
-def read_binned_file(filename):
+def read_binned_file(filename, byChrm=False, double=False):
 	"""
 	Parses the data in a .binned.txt file.
 
@@ -266,7 +266,7 @@ def read_binned_file(filename):
 	"""
 
 	data = []
-
+	print "Reading binned file at " + filename
 	with open(filename) as f:
 		for line in f:
 			if line.startswith("#"): continue
@@ -286,7 +286,39 @@ def read_binned_file(filename):
 
 			data.append([chrm, start, end, tumorCounts, normalCounts, corrRatio, meanBAF, numSNPs])
 
-	return data
+	if double:
+		print "Generating 100kb bins..."
+		newData = []
+		previousRow = None
+		for row in data:
+			if previousRow is None:
+				previousRow = row
+			else:
+				if previousRow[0] == row[0]:
+					chrm = previousRow[0]
+					start = previousRow[1]
+					end = row[2]
+					tumorCounts = previousRow[3] + row[3]
+					normalCounts = previousRow[4] + row[4]
+					corrRatio = (previousRow[5] + row[5]) / 2.0
+					meanBAF = (previousRow[6] + row[6]) / 2.0
+					numSNPs = previousRow[7] + row[7]
+					newData.append([chrm, start, end, tumorCounts, normalCounts, corrRatio, meanBAF, numSNPs])
+					previousRow = None
+				else:
+					newData.append(previousRow)
+					previousRow = row
+		data = newData
+		
+	if byChrm:
+		print "Sorting by chromosome..."
+		dataByChrm = map(lambda x: [], range(24))
+		for row in data:
+			chrm = row[0]
+			dataByChrm[chrm - 1].append(row)
+		return dataByChrm
+	else:
+		return data
 
 def read_interval_file(filename):
 	"""
@@ -572,7 +604,7 @@ def write_out_result(directory, prefix, results, n):
 		f.write("\n")
 	f.close()
 
-def write_out_NLL_result(directory, prefix, results):
+def write_out_NLL_result(directory, prefix, results, best=True):
 	"""
 	Writes out the file containing the results from the BAF model
 
@@ -596,9 +628,10 @@ def write_out_NLL_result(directory, prefix, results):
 	f = open(path, 'w')
 
 	f.write("#NLL\tmu\tC\tp*\tBAF_NLL\n")
-	for i in range(results['k']):
-		to_csv = lambda x: ",".join(map(lambda y: str(y) if y != -1 else "X", x))
 
+	to_csv = lambda x: ",".join(map(lambda y: str(y) if y != -1 else "X", x))
+
+	def write_single_result(i):
 		currNLL = NLL[i]
 		NLLstr = str(currNLL)
 		f.write(NLLstr + "\t")
@@ -619,6 +652,13 @@ def write_out_NLL_result(directory, prefix, results):
 		currBAF_NLL = BAF_NLL[i]
 		BAF_NLLStr = str(currBAF_NLL)
 		f.write(BAF_NLLStr + "\n")
+
+	if best:
+		val, idx = min((val, idx) for (idx, val) in enumerate(BAF_NLL))
+		write_single_result(idx)
+	else:
+		for i in range(results['k']):
+			write_single_result(i)
 
 	f.close()
 
