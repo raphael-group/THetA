@@ -320,13 +320,27 @@ def main():
 			best = calc_all_c_3_multi_event(best, r, rN, allTumor, allNormal, order)
 
 		#lko 7-6-15 Fix multiple solutions to only return the solution with the overal min NLL
-		best = find_mins(best)
+		best = find_mins(best)	
 
-	###
-	#  Write results out to file
-	###
-	write_out_result(directory, prefix, best, n)	
-	if n == 2: write_out_N3_script(directory, prefix, filename)
+	#run BAF model on results to determine most likely solution
+	if runBAF and tumorSNP is not None and normalSNP is not None:
+		if len(best) != 1:
+			BAFprefix = prefix + ".preliminary"
+			write_out_result(directory, BAFprefix, best, n)
+
+			resultsFile = BAFprefix + ".n"+str(n)+".results"
+			resultsPath = os.path.join(directory, resultsFile)
+			try:
+				run_BAF_model(tumorSNP, normalSNP, filename, resultsPath, prefix=prefix + ".n" + str(n), directory=directory)
+			except IOError:
+				print "ERROR: Invalid locations for tumor and normal SNP files. The BAF model will not be run. You can try running the BAF model again directly from the runBAFModel.py script."
+		else:
+			write_out_result(directory, prefix, best, n)
+	elif runBAF and (tumorSNP is None or normalSNP is None):
+		print "ERROR: Need file location for tumor and normal SNP files to run the BAF model. The BAF model will not be run. You can try running the BAF model again directly from the runBAFModel.py script."
+		write_out_result(directory, prefix, best, n)
+	else:
+		write_out_result(directory, prefix, best, n)
 
 	###
 	# Make Results Plots
@@ -335,16 +349,7 @@ def main():
 	#plot_results(directory, filename, prefix, n)
 	plot_results(directory, filename, prefix, read_depth_file, n, graph_format)
 
-	#run BAF model on results to determine most likely solution
-	if runBAF and tumorSNP is not None and normalSNP is not None:
-		resultsFile = prefix + ".n"+str(n)+".results"
-		resultsPath = os.path.join(directory, resultsFile)
-		try:
-			run_BAF_model(tumorSNP, normalSNP, filename, resultsPath, prefix=prefix + ".n" + str(n), directory=directory)
-		except IOError:
-			print "ERROR: Invalid locations for tumor and normal SNP files. The BAF model will not be run. You can try running the BAF model again directly from the runBAFModel.py script."
-	elif runBAF and (tumorSNP is None or normalSNP is None):
-		print "ERROR: Need file location for tumor and normal SNP files to run the BAF model. The BAF model will not be run. You can try running the BAF model again directly from the runBAFModel.py script."
+	if n == 2: write_out_N3_script(directory, prefix, filename)
 
 import time
 if __name__ == '__main__':

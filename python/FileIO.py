@@ -644,14 +644,18 @@ def write_out_NLL_result(directory, prefix, results, best=True):
 	p = results['p']
 	BAF_NLL = results['BAF_NLL']
 
-	filename = prefix + ".BAF.NLL.results"
+	filename = prefix + ".results"
+	BAFfilename = prefix + ".BAF.NLL.results"
 	path = os.path.join(directory, filename)
+	BAFpath = os.path.join(directory, filename)
 
 	print "Writing results file to", path
 
 	f = open(path, 'w')
+	BAFf = open(BAFpath, 'w')
 
-	f.write("#NLL\tmu\tC\tp*\tBAF_NLL\n")
+	f.write("#NLL\tmu\tC\tp*\n")
+	BAFf.write("#NLL\tmu\tC\tp*\tBAF_NLL\n")
 
 	to_csv = lambda x: ",".join(map(lambda y: str(y) if y != -1 else "X", x))
 
@@ -659,23 +663,27 @@ def write_out_NLL_result(directory, prefix, results, best=True):
 		currNLL = NLL[i]
 		NLLstr = str(currNLL)
 		f.write(NLLstr + "\t")
+		BAFf.write(NLLstr + "\t")
 
 		currMu = mu[i]
 		muStr = to_csv(currMu)
 		f.write(muStr + "\t")
+		BAFf.write(muStr + "\t")
 
 		currC = C[i]
 		commaSV = map(lambda x: to_csv(x[1:]), currC)
 		colonSV = ":".join(commaSV)
 		f.write(colonSV + "\t")
+		BAFf.write(colonSV + "\t")
 
 		currP = p[i]
 		pStr = to_csv(currP)
-		f.write(pStr + "\t")
+		f.write(pStr + "\n")
+		BAFf.write(pStr + "\t")
 
 		currBAF_NLL = BAF_NLL[i]
 		BAF_NLLStr = str(currBAF_NLL)
-		f.write(BAF_NLLStr + "\n")
+		BAFf.write(BAF_NLLStr + "\n")
 
 	if best:
 		val, idx = min((val, idx) for (idx, val) in enumerate(BAF_NLL))
@@ -685,6 +693,7 @@ def write_out_NLL_result(directory, prefix, results, best=True):
 			write_single_result(i)
 
 	f.close()
+	BAFf.close()
 
 def write_out_bounds(directory, prefix, inputFile, upper_bounds, lower_bounds, n, order=None):
 	"""
