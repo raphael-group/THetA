@@ -243,8 +243,10 @@ def main():
 
 		if n == 2:
 			order, lengths, tumorCounts, normCounts = select_intervals_n2(lengths, tumorCounts, normCounts, m, k, force, num_intervals)
-			upper_bounds = None
-			lower_bounds = None
+			
+			# 07-09-15 - Comment out b/c we want to be able to set specific bounds
+			#upper_bounds = None  
+			#lower_bounds = None
 		elif n == 3:
 			if results is None: 
 				print "ERROR: No results file supplied. Unable to automatically select intervals for n=3 without results of n=2 analysis. See --RESULTS flag, or --NO_INTERVAL_SELECTION to disable interval selection. Exiting..."
@@ -266,6 +268,7 @@ def main():
 
 	r,rN,sorted_index = sort_r(normCounts,tumorCounts)
 
+
 	if normal_bound_heuristic is not False:
 		upper_bounds,lower_bounds = calculate_bounds_normal_heuristic( \
 			normal_bound_heuristic, heuristic_lb, heuristic_ub, r, rN, m, k)
@@ -278,6 +281,8 @@ def main():
 			sorted_index)
 		if lower_bounds is not None: lower_bounds = sort_by_sorted_index(lower_bounds,\
 			sorted_index)
+		
+
 
 	###Bounds files in their original orders
 	ub_out = reverse_sort_list(upper_bounds, sorted_index)
@@ -288,6 +293,7 @@ def main():
 		write_out_bounds(directory, prefix, filename, ub_out, lb_out, n)
 
 	if bounds_only: sys.exit(0)
+
 
 
 	enum = time_estimate(n,m,k,tau,lower_bounds,upper_bounds,r,rN,max_normal,sorted_index, num_processes, multi_event, force)
