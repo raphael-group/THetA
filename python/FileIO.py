@@ -59,9 +59,16 @@ def parse_arguments(silent=False):
 		force: ignores certain warnings and forces THetA to run
 		get_values: collects and prints out values for C, mu and likelihood for
 			all Cs considered, for development purposes
+<<<<<<< HEAD
 		runBAF: flag indicating if the BAF post-processing model should be run.
 		tumorSNP: file location for tumor SNP file used in the BAF post-processing model.
 		normalSNP: file location for the normal SNP file used in the BAF post-processing model.
+=======
+		ratio_dev: the deviation away from 1.0 for a ratio to indicate a potential
+			copy number event  
+		min_frac: the minimum fraction of the genome that must contain a potential
+			copy number event for a sample to be considered with THetA.
+>>>>>>> 783d236b0a728f3b9d3baf0bfb582a2f97d45c9b
 	"""
 
 	parser = argparse.ArgumentParser()
@@ -102,6 +109,10 @@ def parse_arguments(silent=False):
 	parser.add_argument("--BAF", help="Option to run the BAF model.", action='store_true', default=False, required=False)
 	parser.add_argument("--TUMOR_SNP", help="File location for tumor SNP file used in the BAF model.", default=None, metavar="TUMOR_SNP", required=False)
 	parser.add_argument("--NORMAL_SNP", help="File location for the normal SNP file used in the BAF model.", default=None, metavar="NORMAL_SNP", required=False)
+	parser.add_argument("--RATIO_DEV", help = "The deviation away from 1.0 that a ratio must be to be considered\
+			a potential copy number aberration.", type=float, default=0.1, metavar="RATIO_DEV", required=False)
+	parser.add_argument("--MIN_FRAC", help = "The minimum fraction of the genome that must have a potential copy number\
+			aberration to be a valid sample for THetA analysis.", type=float, default=0.05, metavar="MIN_FRAC", required=False) 
 	args = parser.parse_args()
 
 	filename = args.QUERY_FILE
@@ -149,6 +160,16 @@ def parse_arguments(silent=False):
 	tumorSNP = args.TUMOR_SNP
 	normalSNP = args.NORMAL_SNP
 	if n == 3 and num_intervals == 100: num_intervals = 20
+
+	ratio_dev = args.RATIO_DEV
+	if ratio_dev < 0:
+		err_msg = "Invalid value for ratio_dev: "+str(ratio_dev)+". Ratio_dev must be non-negative."
+		raise ValueError(err_msg)
+
+	min_frac = args.MIN_FRAC
+	if min_frac < 0 or min_frac > 1:
+		err_msg = "Invalid value for min_frac: "+str(min_frac)+". Min_frac must be between 0 and 1."
+		raise ValueError(err_msg)
 	
 	if not silent:
 		print "================================================="
@@ -177,6 +198,9 @@ def parse_arguments(silent=False):
 		if runBAF:
 			print "\t Tumor SNP File Location: ", tumorSNP
 			print "\t Normal SNP File Location: ", normalSNP
+		print "\nValid sample for THetA analysis:"
+		print "\tRatio Deviation:", ratio_dev
+		print "\tMin Fraction of Genome Aberrated:", min_frac
 		print "================================================="
 
 
@@ -185,7 +209,7 @@ def parse_arguments(silent=False):
 	return filename,results,n,k,tau,directory,prefix,max_normal,bound_heuristic, \
 			normal_bound_heuristic, heuristic_lb, heuristic_ub, num_processes, \
 			bounds_only, multi_event, force, get_values, interval_selection, \
-			num_intervals, read_depth_file, graph_format, runBAF, tumorSNP, normalSNP
+			num_intervals, read_depth_file, graph_format, runBAF, tumorSNP, normalSNP, ratio_dev, min_frac
 
 def parse_BAF_arguments():
 	"""

@@ -145,3 +145,43 @@ def reverse_sort_list(vec, sorted_index):
 	for i in range(len(sorted_index)):
 		new_vec[sorted_index[i]] = vec[i]
 	return new_vec
+
+
+def determine_frac_copy_num(rN, r, lengths, dev):
+	"""
+	Determines the fraction of the genome that potentially
+	contains copy number aberrations.  Used to determine if a sample
+	is a reasonable sample to run THetA on.
+
+	Args:
+		rN (list of ints): normal read depth vector
+		r (list of ints): tumor read depth vector
+		lengths (list of ints): length of the intervals
+		dev (float): the deviation away from 1.0 for a ratio to
+					 potentially be a copy number aberrations.
+
+	Returns:
+		frac (float): the fraction of the genome that has a ratio
+					  outside of dev away from 1.0.
+	"""
+	sum_r = sum(r)
+	sum_rN = sum(rN)
+	m=len(r)
+	indexes = range(m)
+
+	low = 1.0 - dev
+	up = 1.0 + dev
+
+	tot_len = sum(lengths)
+	dev_lens = []
+
+	for i in indexes:
+		t = r[i]
+		n = rN[i]
+		if rN[i] == 0: continue
+		ratio = (t*1.0/n)*(1.0*sum_rN/sum_r)
+		if ratio > up or ratio < low: dev_lens.append(lengths[i])
+
+
+	frac = float(sum(dev_lens))/float(tot_len)
+	return frac
