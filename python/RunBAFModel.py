@@ -4,10 +4,11 @@ from FileIO import *
 from math import *
 from os.path import basename
 import matplotlib.pyplot as plt
+import sys
 from numpy import linspace
 from scipy.stats import norm, beta
 
-def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, prefix=None, directory="./", plotOption="all", model="gaussian", width=12.0, height=12.0, gamma=0.05):
+def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, prefix=None, directory="./", plotOption="best", model="gaussian", width=12.0, height=12.0, gamma=0.05):
 	"""
 	Runs the BAF model on SNP and interval data.
 
@@ -216,15 +217,11 @@ def plot_results(BAFVec, meansVec, posVec, chrmVec, NLLVec, chrmsToUse, plotOpti
 		#determine the optimal result
 		currBestInd = 0
 		currBest = NLLVec[0]
-		for i, NLL in enumerate(NLLVec):
-			if NLL < currBest:
-				currBestInd = i
-				currBest = NLL
+		val, idx = min((val, idx) for (idx, val) in enumerate(NLLVec))
 
-		i = currBestInd
 		#plot best result
-		fig = plot_single_result(BAFVec[i], meansVec[i], posVec[i], 
-									 chrmVec[i], NLLVec[i], chrmsToUse,
+		fig = plot_single_result(BAFVec[idx], meansVec[idx], posVec[idx], 
+									 chrmVec[idx], NLLVec[idx], chrmsToUse,
 									 1, fig, colors, 1)
 	else:
 		print "Plot option not recognized. Exiting..."
@@ -294,6 +291,7 @@ def calculate_BAF(tumorData, normalData, chrmsToUse, minSNP, gamma):
 	normalBAF = []
 	newTumorData = []
 	newNormalData = []
+	print "Calculating BAFs."
 	j = 0
 	for i in range(len(tumorData)):
 		if floor((float(i) / float(len(tumorData))) * 100.0) > j:
