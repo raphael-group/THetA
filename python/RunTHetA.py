@@ -34,6 +34,7 @@ from TimeEstimate import *
 from CalcAllC import *
 from plotResults import *
 from RunBAFModel import run_BAF_model
+from SetNewBounds import set_new_bounds
 
 
 from multiprocessing import JoinableQueue, Queue, Process, Array, current_process
@@ -243,7 +244,8 @@ def main():
 		print "Setting bounds using clustering needs to be implemented."
 	elif density_bounds is not None:
 		# Add code here
-		print "Setting bounds using density needs to be implemented."
+		#print "Setting bounds using density needs to be implemented."
+		upper_bounds, lower_bounds = set_new_bounds(density_bounds)
 
 
 

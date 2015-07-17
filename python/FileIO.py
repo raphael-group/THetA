@@ -208,7 +208,7 @@ def parse_arguments(silent=False):
 		if cluster_bounds is not None:
 			print "\tCluster bounds file:", cluster_bounds
 		elif density_bounds is not None:
-			print "\tCluster density file:", cluster_density
+			print "\tCluster density file:", density_bounds
 		print "================================================="
 
 
