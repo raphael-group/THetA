@@ -625,8 +625,7 @@ process described below.
 --------------------------------------------------------------------------------
 REQUIREMENTS
 	(1) Java
-	(2) Matlab
-	(3) *nix OS
+	(2) *nix OS
 --------------------------------------------------------------------------------
 
 Step 1: Obtain BAF information:  First we provide a script that can be used to
@@ -679,38 +678,34 @@ Step 2: Calculate the likelihood of the data under the BAF model described
 
 RUN_CODE
 
-	* (in Matlab) bin/runBAFGaussianModel(tumorSNP, normalSNP, intervalFile, resultsFile, chrmsToUse, prefix, size)
+	There are two ways to calculate the likelihood of the BAF data:
 
-	* INPUT:
-		tumorSNP - is full path of file output from Step 1 for tumor BAM.
-		normalSNP - is full path of file output from Step 1 for normal BAM.
-		intervalFile - the interval file used as input to THetA
-		resultsFile -  a THetA results file
-		chrmsToUse - an array of chromosomes to use, i.e. [1:22]
-		prefix - the prefix to use for all files output
-		size - an array [w,h] where w is the width and h is the height of
-			 the pdf to create
+	1. In conjunction with THetA - You can set parameters when running THetA to distinguish between equally likely
+	   solutions immediatly after the solutions have been calculated. To do so, add the following arguments to THetA:
 
-	* OUTPUT:
-		prefix.BAF.BEST.pdf - a pdf showing the observed and expected BAF
-					 for the model with the best likelihood under the
-					 generative model for BAFs.
-		
-		prefix.BAF.NLL.results - a copy of the original results file with
-					 an extra column (BAF_NLL) showing the NLL of the BAF model for that result.
+		* --BAF (Boolean Flag): Include this flag as an option to indicate that you want THetA to automatically distinguish
+	   						   between equally likely solutions.
+	   	* --TUMOR_SNP (String): The location of the tumor SNP file.
+	   	* --NORMAL_SNP (String): The location of the normal SNP file.
 
-	* OPTIONS:
+		If you run the BAF model in this way, the results of running the BAF model will be saved to the same directory as
+		the rest of the THetA output.
 
-		PLOT ALL SOLUTIONS - an extra parameter, 'all', may be added to
-				 create a plot of the observed  and expected BAF for
-				 ALL solutions returned by THetA.
+	2. As a separate process - You can calculate the likelihood of the data under the BAF model by running the model as
+	   a standalone program from the rest of THetA. To do so, execute the following command:
 
-		* (in Matlab) bin/runBAFGaussianModel(tumorSNP, normalSNP, intervalFile, resultsFile, chrmsToUse, prefix, size, 'all')
+	   	python python/RunBAFModel.py TUMOR_SNP NORMAL_SNP INTERVALS RESULTS [-P] [-O] [--PLOT_OPTION] [--M] [--WIDTH] [--HEIGHT] [--G]
 
-		* OUTPUT:
-			prefix.BAF.ALL.pdf - a pdf showing the observed and expected BAF 
-					for all the different solutions in the THetA results file. 
-	
-			prefix.BAF.NLL.results - same as above
+	  The parameters for RunBAFModel.py are described below:
 
-
+	  	* TUMOR_SNP (String): The location of the tumor SNP file.
+	  	* NORMAL_SNP (String): The location of the normal SNP file.
+	  	* INTERVALS (String): The location of the intervals file that is provided as input for THetA.
+	  	* RESULTS (String): The location of the results file that is produced as output by THetA.
+	  	* -P (String): The prefix of the output file. This defaults to the prefix of the results file.
+	  	* -O (String): The output directory. This defaults to the users current directory.
+	  	* --PLOT_OPTION (String): Choose whether to plot the likelihood calculated for all solutions ("ALL") or for only the optimal solution ("BEST")
+	  	* --M (String): The probabilistic model used to calculate the likelihood. Currently, only "gaussian" is supported.
+	  	* --WIDTH (Float): The width of the output plot. This defaults to 12 inches.
+	  	* --HEIGHT (Float): The height of the output plot. This defaults to 12 inches.
+	  	* --G (Float): The gamma parameter used for setting the confidence interval that determines if a SNP is heterozygous.
