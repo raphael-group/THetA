@@ -59,16 +59,13 @@ def parse_arguments(silent=False):
 		force: ignores certain warnings and forces THetA to run
 		get_values: collects and prints out values for C, mu and likelihood for
 			all Cs considered, for development purposes
-<<<<<<< HEAD
 		runBAF: flag indicating if the BAF post-processing model should be run.
 		tumorSNP: file location for tumor SNP file used in the BAF post-processing model.
 		normalSNP: file location for the normal SNP file used in the BAF post-processing model.
-=======
 		ratio_dev: the deviation away from 1.0 for a ratio to indicate a potential
 			copy number event  
 		min_frac: the minimum fraction of the genome that must contain a potential
 			copy number event for a sample to be considered with THetA.
->>>>>>> 783d236b0a728f3b9d3baf0bfb582a2f97d45c9b
 	"""
 
 	parser = argparse.ArgumentParser()
