@@ -299,7 +299,9 @@ def read_binned_file(filename, byChrm=False, double=False):
 	"""
 
 	data = []
+	missingData = []
 	print "Reading binned file at " + filename
+	i = 0
 	with open(filename) as f:
 		for line in f:
 			if line.startswith("#"): continue
@@ -315,9 +317,13 @@ def read_binned_file(filename, byChrm=False, double=False):
 			meanBAF = float(meanBAF)
 			numSNPs = int(numSNPs)
 
-			if (corrRatio == -1) or (meanBAF == -1): continue
+			if (corrRatio == -1) or (meanBAF == -1):
+				missingData.append([chrm, start, end, tumorCounts, normalCounts, corrRatio, meanBAF, numSNPs, i])
+				i += 1
+				continue
 
 			data.append([chrm, start, end, tumorCounts, normalCounts, corrRatio, meanBAF, numSNPs])
+			i += 1
 
 	if double:
 		print "Generating 100kb bins..."
@@ -349,9 +355,9 @@ def read_binned_file(filename, byChrm=False, double=False):
 		for row in data:
 			chrm = row[0]
 			dataByChrm[chrm - 1].append(row)
-		return dataByChrm
+		return missingData, dataByChrm
 	else:
-		return data
+		return missingData, data
 
 def read_interval_file(filename):
 	"""
