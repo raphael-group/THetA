@@ -34,7 +34,7 @@ from TimeEstimate import *
 from CalcAllC import *
 from plotResults import *
 from RunBAFModel import run_BAF_model
-#from SetNewBounds import set_new_bounds
+from SetNewBounds import set_new_bounds
 from clusteringBAF import clustering_BAF
 
 
@@ -243,10 +243,10 @@ def main():
 	if cluster_bounds is not None:
 		lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds = clustering_BAF(cluster_bounds)
 		print "Setting bounds using clustering needs to be implemented."
-	#elif density_bounds is not None:
+	elif density_bounds is not None:
 		# Add code here
 		#print "Setting bounds using density needs to be implemented."
-		#upper_bounds, lower_bounds = set_new_bounds(density_bounds)
+		upper_bounds, lower_bounds = set_new_bounds(density_bounds)
 
 
 
@@ -255,11 +255,14 @@ def main():
 		allM, allLengths, allTumor, allNormal, allUpperBounds, allLowerBounds = (m, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds)
 
 		if n == 2:
-			order, lengths, tumorCounts, normCounts = select_intervals_n2(lengths, tumorCounts, normCounts, m, k, force, num_intervals)
-			
-			# 07-09-15 - Comment out b/c we want to be able to set specific bounds
-			#upper_bounds = None  
-			#lower_bounds = None
+			# 07-09-15 - Make so we can set specific bounds
+			if lower_bounds is None or upper_bounds is None:
+				order, lengths, tumorCounts, normCounts = select_intervals_n2(lengths, tumorCounts, normCounts, m, k, force, num_intervals)
+				upper_bounds = None
+				lower_bounds = None
+			else:
+				order, lengths, tumorCounts, normCounts, lower_bounds, upper_bounds = select_intervals_n2(lengths, tumorCounts, normCounts, m, k, force, num_intervals, lower_bounds, upper_bounds)
+
 		elif n == 3:
 			if results is None: 
 				print "ERROR: No results file supplied. Unable to automatically select intervals for n=3 without results of n=2 analysis. See --RESULTS flag, or --NO_INTERVAL_SELECTION to disable interval selection. Exiting..."
@@ -294,7 +297,7 @@ def main():
 			sorted_index)
 		if lower_bounds is not None: lower_bounds = sort_by_sorted_index(lower_bounds,\
 			sorted_index)
-		
+	
 
 
 	###Bounds files in their original orders

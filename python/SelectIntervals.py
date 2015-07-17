@@ -113,15 +113,21 @@ def select_intervals_n3(lengths, tumor_counts, norm_counts, m, upper_bounds, low
 	print "\tSelected", len(intervals), "intervals for analysis."
 	return [column(topLines, i) for i in range(len(topLines[0]))]
 
-def select_intervals_n2(lengths, tumor_counts, norm_counts, m, k, force, num_intervals):
+def select_intervals_n2(lengths, tumor_counts, norm_counts, m, k, force, num_intervals, lower=None, upper=None):
 	"""
 	Selects num intervals for n=2 analysis
 	Returns lines in original input order
 	"""
-	indexes = filter_intervals_n2(lengths, tumor_counts, norm_counts, m, k)
+	indexes = filter_intervals_n2(lengths, tumor_counts, norm_counts, m, k, lower, upper)
 
 	total_length = float(sum(lengths))
-	lines = [[i, lengths[i], tumor_counts[i], norm_counts[i]] for i in indexes]
+
+	#layla 7-17-15 - Handle predefined bounds
+	if lower is None or upper is None:
+		lines = [[i, lengths[i], tumor_counts[i], norm_counts[i]] for i in indexes]
+	else:
+		lines = [[i, lengths[i], tumor_counts[i], norm_counts[i], lower[i], upper[i]] for i in indexes]
+
 	lines.sort(key=lambda x: x[1])
 
 	lim = min(num_intervals, len(indexes))
@@ -138,9 +144,11 @@ def select_intervals_n2(lengths, tumor_counts, norm_counts, m, k, force, num_int
 
 	
 	print "\tSelected", len(topLines), "intervals for analysis."
+
+
 	return [column(topLines, i) for i in range(len(topLines[0]))]
 
-def filter_intervals_n2(lengths, tumor_counts, norm_counts, m,  k):
+def filter_intervals_n2(lengths, tumor_counts, norm_counts, m,  k, lower, upper):
 	"""
 	Filters out intervals that aren't long enough or overly amplified
 	"""
@@ -150,6 +158,7 @@ def filter_intervals_n2(lengths, tumor_counts, norm_counts, m,  k):
 	indexes = range(m)
 	indexes = [i for i in indexes if tumor_counts[i] > 0 and norm_counts[i] > 0 and lengths[i] >= MIN_LENGTH_N2]
 	indexes = [i for i in indexes if ((tumor_counts[i]/total_tumor) / (norm_counts[i]/total_normal)) < float(k+1)/2]
+
 	return indexes
 
 def column(lines, column):
