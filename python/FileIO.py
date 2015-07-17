@@ -59,16 +59,15 @@ def parse_arguments(silent=False):
 		force: ignores certain warnings and forces THetA to run
 		get_values: collects and prints out values for C, mu and likelihood for
 			all Cs considered, for development purposes
-<<<<<<< HEAD
 		runBAF: flag indicating if the BAF post-processing model should be run.
 		tumorSNP: file location for tumor SNP file used in the BAF post-processing model.
 		normalSNP: file location for the normal SNP file used in the BAF post-processing model.
-=======
 		ratio_dev: the deviation away from 1.0 for a ratio to indicate a potential
 			copy number event  
 		min_frac: the minimum fraction of the genome that must contain a potential
 			copy number event for a sample to be considered with THetA.
->>>>>>> 783d236b0a728f3b9d3baf0bfb582a2f97d45c9b
+		cluster_bounds: The input file to use if using clustering to set bounds.
+		density_bounds: The input file to use if using density to set bounds.
 	"""
 
 	parser = argparse.ArgumentParser()
@@ -112,7 +111,9 @@ def parse_arguments(silent=False):
 	parser.add_argument("--RATIO_DEV", help = "The deviation away from 1.0 that a ratio must be to be considered\
 			a potential copy number aberration.", type=float, default=0.1, metavar="RATIO_DEV", required=False)
 	parser.add_argument("--MIN_FRAC", help = "The minimum fraction of the genome that must have a potential copy number\
-			aberration to be a valid sample for THetA analysis.", type=float, default=0.05, metavar="MIN_FRAC", required=False) 
+			aberration to be a valid sample for THetA analysis.", type=float, default=0.05, metavar="MIN_FRAC", required=False)
+	parser.add_argument("--CLUSTER_BOUNDS", help="Use clustering to set bounds.", default=None, required=False, metavar="CLUSTER_BOUNDS")
+	parser.add_argument("--DENSITY_BOUNDS", help="Use density to set bounds.", default=None, required=False, metavar="DENSITY_BOUNDS")
 	args = parser.parse_args()
 
 	filename = args.QUERY_FILE
@@ -170,6 +171,9 @@ def parse_arguments(silent=False):
 	if min_frac < 0 or min_frac > 1:
 		err_msg = "Invalid value for min_frac: "+str(min_frac)+". Min_frac must be between 0 and 1."
 		raise ValueError(err_msg)
+
+	cluster_bounds = args.CLUSTER_BOUNDS
+	density_bounds = args.DENSITY_BOUNDS
 	
 	if not silent:
 		print "================================================="
@@ -201,6 +205,10 @@ def parse_arguments(silent=False):
 		print "\nValid sample for THetA analysis:"
 		print "\tRatio Deviation:", ratio_dev
 		print "\tMin Fraction of Genome Aberrated:", min_frac
+		if cluster_bounds is not None:
+			print "\tCluster bounds file:", cluster_bounds
+		elif density_bounds is not None:
+			print "\tCluster density file:", cluster_density
 		print "================================================="
 
 
@@ -209,7 +217,8 @@ def parse_arguments(silent=False):
 	return filename,results,n,k,tau,directory,prefix,max_normal,bound_heuristic, \
 			normal_bound_heuristic, heuristic_lb, heuristic_ub, num_processes, \
 			bounds_only, multi_event, force, get_values, interval_selection, \
-			num_intervals, read_depth_file, graph_format, runBAF, tumorSNP, normalSNP, ratio_dev, min_frac
+			num_intervals, read_depth_file, graph_format, runBAF, tumorSNP, normalSNP, ratio_dev, min_frac,\
+			cluster_bounds, density_bounds
 
 def parse_BAF_arguments():
 	"""

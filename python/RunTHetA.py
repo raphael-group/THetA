@@ -216,7 +216,8 @@ def main():
 	filename, results, n, k, tau, directory, prefix, max_normal, bound_heuristic, \
 		normal_bound_heuristic,heuristic_lb, heuristic_ub, num_processes, \
 		bounds_only, multi_event, force, get_values, choose_intervals, num_intervals, \
-		read_depth_file, graph_format, runBAF, tumorSNP, normalSNP, ratio_dev, min_frac = parse_arguments()
+		read_depth_file, graph_format, runBAF, tumorSNP, normalSNP, ratio_dev, min_frac,\
+		cluster_bounds, density_bounds = parse_arguments()
 
 	global pre
 	pre = prefix
@@ -236,6 +237,14 @@ def main():
 	#	Automatically Select Intervals
 	#	note: This is the default behavior
 	###
+
+	if cluster_bounds is not None:
+		#Add code here
+		print "Setting bounds using clustering needs to be implemented."
+	elif density_bounds is not None:
+		# Add code here
+		print "Setting bounds using density needs to be implemented."
+
 
 
 	if choose_intervals:
