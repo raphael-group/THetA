@@ -66,8 +66,11 @@ def parse_arguments(silent=False):
 			copy number event  
 		min_frac: the minimum fraction of the genome that must contain a potential
 			copy number event for a sample to be considered with THetA.
+<<<<<<< HEAD
+=======
 		cluster_bounds: The input file to use if using clustering to set bounds.
 		density_bounds: The input file to use if using density to set bounds.
+>>>>>>> 14ab967ab061a25a86ecbce2ab00faf423c92c06
 	"""
 
 	parser = argparse.ArgumentParser()
