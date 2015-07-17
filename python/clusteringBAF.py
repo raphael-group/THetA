@@ -271,7 +271,7 @@ def generate_data2(mus, numPoints, sd=0.05):
 
 def clustering_BAF(filename, byChrm=True, generateData=True):
 	geneName = os.path.basename(filename).split(".")[0]
-	binned = read_binned_file(filename, byChrm=byChrm)
+	missingData, binned = read_binned_file(filename, byChrm=byChrm)
 	
 	if byChrm:
 		nrows = 6
@@ -365,33 +365,54 @@ def clustering_BAF(filename, byChrm=True, generateData=True):
 	else:
 		amp_upper = 2
 
-	m = len(binned)
-	lengths = []
-	tumorCounts = []
-	normalCounts = []
-	upper_bounds = []
-	lower_bounds = []
+	m = len(binned) + len(missingData)
+	lengths = range(m)
+	tumorCounts = range(m)
+	normalCounts = range(m)
+	upper_bounds = range(m)
+	lower_bounds = range(m)
+	for row in missingData:
+		lengths[row[-1]] = None
+		tumorCounts[row[-1]] = None
+		normalCounts[row[-1]] = None
+		upper_bounds[row[-1]] = None
+		lower_bounds[row[-1]] = None
+
+	j = 0 #counter for data
+	k = 0 #counter for missingData
+
 	for i in range(m):
-		row = binned[i]
-		
-		length = row[2] - row[1] + 1
-		lengths.append(length)
+		if lengths[i] is None:
+			row = missingData[k]
 
-		tumorCounts.append(row[3])
-		normalCounts.append(row[4])
-
-		if clusterAssignments[i] in ampParamInds:
-			lower_bounds.append(2)
-			upper_bounds.append(amp_upper)
+			lengths[i] = row[2] - row[1] + 1
+			tumorCounts[i] = row[3]
+			normalCounts[i] = row[4]
+			upper_bounds[i] = "X"
+			lower_bounds[i] = "X"
+			k += 1
 		else:
-			upper_bounds.append(2)
-			if clusterAssignments[i] in normalParamInds:
-				lower_bounds.append(2)
-			elif clusterAssignments[i] in hetDelParamInds:
-				lower_bounds.append(1)
-			else:
-				lower_bounds.append(0)
+			row = binned[j]
+			
+			length = row[2] - row[1] + 1
+			lengths[i] = length
 
+			tumorCounts[i] = row[3]
+			normalCounts[i] = row[4]
+
+			if clusterAssignments[j] in ampParamInds:
+				lower_bounds[i] = 2
+				upper_bounds[i] = amp_upper
+			else:
+				upper_bounds[i] = 2
+				if clusterAssignments[j] in normalParamInds:
+					lower_bounds[i] = 2
+				elif clusterAssignments[j] in hetDelParamInds:
+					lower_bounds[i] = 1
+				else:
+					lower_bounds[i] = 0
+			j += 1
+	
 	return lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds
 
 #experiment in clustering across interval files
