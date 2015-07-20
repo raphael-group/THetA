@@ -81,7 +81,12 @@ def set_new_bounds(new_bounds_file):
 	#upper_bounds = None
 	#lower_bounds = None
 
-	return upper_bounds, lower_bounds
+	cluster_properties = get_cluster_rd_baf(cluster_assignment, X)
+	numClusters=len(bins)-1
+	
+	#for key in cluster_properties.keys(): print cluster_properties[key]
+
+	return upper_bounds, lower_bounds, cluster_assignment, numClusters
 
 
 def get_cluster_bounds(cluster_assignment,bins,norm_cluster):
@@ -105,6 +110,36 @@ def get_cluster_bounds(cluster_assignment,bins,norm_cluster):
 	cluster_bounds[-1]=('X','X')
 
 	return cluster_bounds
+
+
+def get_cluster_rd_baf(cluster_assignments, X):
+	"""
+	Returns the average read depth and baf for all intervals
+	assigned to the different clusters.
+	"""
+
+	cluster_ids = set(cluster_assignments)
+	cluster_properties = dict()
+	for id in cluster_ids:
+		cluster_properties[id]=(0,0,0)
+
+	for i,row in enumerate(cluster_assignments):
+		rd,baf,count=cluster_properties[row]
+		rd+=X[i,2]
+		baf+=X[i,3]
+		count+=1
+		cluster_properties[row]=(rd, baf, count)
+
+	for key in cluster_properties.keys():
+		rd,baf, count = cluster_properties[key]
+		if count != 0:
+			mean_rd = rd/float(count)
+			mean_baf = baf/float(count)
+			cluster_properties[key] = (mean_rd,mean_baf)
+		else:
+			cluster_properties[key] = (-1,-1)
+
+	return cluster_properties
 
 	
 

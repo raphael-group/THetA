@@ -25,6 +25,7 @@
  ###
 
 import numpy
+from CalcAllC import weighted_C, L2
 
 
 def set_total_read_counts(r, rN):
@@ -185,3 +186,86 @@ def determine_frac_copy_num(rN, r, lengths, dev):
 
 	frac = float(sum(dev_lens))/float(tot_len)
 	return frac
+
+def un_meta_cluster_bounds(bounds, order, intervalMap):
+	"""
+	This function will expand the given bounds based on the rows in order
+	to the full set of rows in the intervalMap.
+	"""
+	new_bounds = []
+	new_order = []
+	for i,v in enumerate(order):
+		cur_bound = bounds[i]
+		rows = intervalMap[v]
+
+		for r in rows:
+			new_order.append(r)
+			new_bounds.append(cur_bound)
+
+	return new_bounds, new_order
+
+
+def un_meta_cluster_results_N2(best, meta_order, intervalMap, allTumor, allNormal):
+
+	newBest = []
+	rev_meta_cluster = []
+	new_order = []
+	r = []
+	rN = []
+	for i, v in enumerate(meta_order):
+		rows = intervalMap[v]
+		num_orig_clustered = len(rows)
+
+		rev_meta_cluster = rev_meta_cluster + num_orig_clustered*[i]
+		new_order = new_order + rows
+
+	for c, mu, NLL, p in best:
+		m,n = c.shape
+		new_m = len(rev_meta_cluster)
+
+		c_new = numpy.zeros((new_m,n))
+		for x in range(new_m):
+			for y in range(n):
+				c_new[x][y] = c[rev_meta_cluster[x]][y]
+			r.append(allTumor[new_order[x]])
+			rN.append(allNormal[new_order[x]])
+
+		c_weight = weighted_C(c_new, rN)
+		likelihood, vals = L2(mu[0], c_weight, len(r), r)
+
+		newBest.append((c_new,mu,likelihood,vals))
+		
+	return newBest, r, rN
+
+
+def un_meta_cluster_results_N3(best, meta_order, intervalMap, allTumor, allNormal, n):
+
+	newBest = []
+	rev_meta_cluster = []
+	new_order = []
+	r = []
+	rN = []
+	for i, v in enumerate(meta_order):
+		rows = intervalMap[v]
+		num_orig_clustered = len(rows)
+
+		rev_meta_cluster = rev_meta_cluster + num_orig_clustered*[i]
+		new_order = new_order + rows
+
+	for c, mu, NLL, p in best:
+		m,n = c.shape
+		new_m = len(rev_meta_cluster)
+
+		c_new = numpy.zeros((new_m,n))
+		for x in range(new_m):
+			for y in range(n):
+				c_new[x][y] = c[rev_meta_cluster[x]][y]
+			r.append(allTumor[new_order[x]])
+			rN.append(allNormal[new_order[x]])
+
+		c_weight = weighted_C(c_new, rN)
+		likelihood, vals = L3(mu, c_weight, len(r), r, n)
+
+		newBest.append((c_new,mu,likelihood,vals))
+		
+	return newBest, r, rN

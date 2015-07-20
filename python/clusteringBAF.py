@@ -275,16 +275,24 @@ def group_to_meta_interval(lengths, tumorCounts, normalCounts, m, upper_bounds, 
 	metaNormalCounts = [0 for i in range(numClusters)]
 	meta_lower_bounds = [2 for i in range(numClusters)]
 	meta_upper_bounds = [2 for i in range(numClusters)]
-	intervalMap = [[] for i in range(numClusters)]
+	intervalMap = {}
+	
+	#layla - change to dictionary to handle cluster of -1
+	for val in range(numClusters):
+		intervalMap[val] = []
+	intervalMap[-1] = []
+	#intervalMap = [[] for i in range(numClusters)]
 	for i in range(m):
-		if upper_bounds == "X" or lower_bounds == "X": continue
-
-		intervalMap[clusterAssignments[i]].append(i)
-		metaLengths[clusterAssignments[i]] += lengths[i]
-		metaTumorCounts[clusterAssignments[i]] += tumorCounts[i]
-		metaNormalCounts[clusterAssignments[i]] += normalCounts[i]
-		meta_lower_bounds[clusterAssignments[i]] = lower_bounds[i]
-		meta_upper_bounds[clusterAssignments[i]] = upper_bounds[i]
+		if upper_bounds[i] == "X" or lower_bounds[i] == "X" or clusterAssignments[i] == -1: 
+			intervalMap[clusterAssignments[i]].append(i)
+			continue
+		else:
+			intervalMap[clusterAssignments[i]].append(i)
+			metaLengths[clusterAssignments[i]] += lengths[i]
+			metaTumorCounts[clusterAssignments[i]] += tumorCounts[i]
+			metaNormalCounts[clusterAssignments[i]] += normalCounts[i]
+			meta_lower_bounds[clusterAssignments[i]] = lower_bounds[i]
+			meta_upper_bounds[clusterAssignments[i]] = upper_bounds[i]
 
 	return intervalMap, metaLengths, metaTumorCounts, metaNormalCounts, meta_lower_bounds, meta_upper_bounds
 

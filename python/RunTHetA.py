@@ -35,7 +35,7 @@ from CalcAllC import *
 from plotResults import *
 from RunBAFModel import run_BAF_model
 from SetNewBounds import set_new_bounds
-from clusteringBAF import clustering_BAF
+from clusteringBAF import clustering_BAF, group_to_meta_interval
 
 
 from multiprocessing import JoinableQueue, Queue, Process, Array, current_process
@@ -241,18 +241,28 @@ def main():
 	###
 
 	if cluster_bounds is not None:
-		lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters = clustering_BAF(cluster_bounds)
+		lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters,_ = clustering_BAF(cluster_bounds)
 		print "Setting bounds using clustering needs to be implemented."
 	elif density_bounds is not None:
 		# Add code here
 		#print "Setting bounds using density needs to be implemented."
-		upper_bounds, lower_bounds = set_new_bounds(density_bounds)
+		upper_bounds, lower_bounds, clusterAssignments, numClusters = set_new_bounds(density_bounds)
 
+		origM, origLengths, origTumor, origNormal, origUpper, origLower = (m, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds)
+
+		intervalMap, lengths, tumorCounts, normCounts, lower_bounds, upper_bounds = \
+		group_to_meta_interval(lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters)
+
+		m = len(lengths)
 
 
 	if choose_intervals:
 		print "Selecting intervals..."
-		allM, allLengths, allTumor, allNormal, allUpperBounds, allLowerBounds = (m, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds)
+
+		if cluster_bounds or density_bounds is not None:
+			allM, allLengths, allTumor, allNormal, allUpperBounds, allLowerBounds = (origM, origLengths, origTumor, origNormal, origUpper, origLower)
+		else:
+			allM, allLengths, allTumor, allNormal, allUpperBounds, allLowerBounds = (m, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds)
 
 		if n == 2:
 			# 07-09-15 - Make so we can set specific bounds
@@ -303,6 +313,14 @@ def main():
 	###Bounds files in their original orders
 	ub_out = reverse_sort_list(upper_bounds, sorted_index)
 	lb_out = reverse_sort_list(lower_bounds, sorted_index)
+
+	#Need to un-meta cluster before writing bounds file
+	if cluster_bounds is not None or density_bounds is not None:
+		ub_out, _ = un_meta_cluster_bounds(ub_out, order, intervalMap)
+		meta_order = order
+		lb_out, order = un_meta_cluster_bounds(lb_out, order, intervalMap)
+
+
 	if choose_intervals:
 		write_out_bounds(directory, prefix, filename, ub_out, lb_out, n, order)
 	else: 
@@ -332,6 +350,17 @@ def main():
 		print "WARNING: At least one of the top solutions is near the upper bound on normal contamination. Further analysis may required as the sample likely falls into one of the following categories:\n\t1. This sample has high normal contamination. Consider re-running with an increased normal contamination upper bound. See --MAX_NORMAL option\n\t2. This sample may not satisfy the assumption that most of the tumor genome retains the normal expected copynumber (e.g. a genome duplication event has occurred). See THetA optional parameters in changing the expected copy number.\n\t3. This sample may not be a good candidate for THetA analysis (i.e. does not contain large copy number aberrations that distinguish populations)."
 	r = reverse_sort_list(r, sorted_index)
 	rN = reverse_sort_list(rN, sorted_index)
+
+
+	if cluster_bounds is not None or density_bounds is not None:
+		if n == 2:
+			best, r, rN = un_meta_cluster_results_N2(best, meta_order, intervalMap, allTumor, allNormal)
+		elif n == 3:
+			 best, r, rN = un_meta_cluster_results_N3(best, meta_order, intervalMap, allTumor, allNormal, n)
+
+		#r = XXX
+		#rN = XXX
+
 	if choose_intervals:
 		if n == 2:
 			best = calc_all_c_2(best, r, rN, allTumor, allNormal, order)
