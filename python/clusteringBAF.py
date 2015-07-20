@@ -269,6 +269,25 @@ def generate_data2(mus, numPoints, sd=0.05):
 	generatedData = [row for subData in generatedData for row in subData]
 	return generatedData
 
+def group_to_meta_interval(lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters):
+	metaLengths = [0 for i in range(numClusters)]
+	metaTumorCounts = [0 for i in range(numClusters)]
+	metaNormalCounts = [0 for i in range(numClusters)]
+	meta_lower_bounds = [2 for i in range(numClusters)]
+	meta_upper_bounds = [2 for i in range(numClusters)]
+	intervalMap = [[] for i in range(numClusters)]
+	for i in range(m):
+		if upper_bounds == "X" or lower_bounds == "X": continue
+
+		intervalMap[clusterAssignments[i]].append(i)
+		metaLengths[clusterAssignments[i]] += lengths[i]
+		metaTumorCounts[clusterAssignments[i]] += tumorCounts[i]
+		metaNormalCounts[clusterAssignments[i]] += normalCounts[i]
+		meta_lower_bounds[clusterAssignments[i]] = lower_bounds[i]
+		meta_upper_bounds[clusterAssignments[i]] = upper_bounds[i]
+
+	return intervalMap, metaLengths, metaTumorCounts, metaNormalCounts, meta_lower_bounds, meta_upper_bounds
+
 def clustering_BAF(filename, byChrm=True, generateData=True):
 	geneName = os.path.basename(filename).split(".")[0]
 	missingData, binned = read_binned_file(filename, byChrm=byChrm)
@@ -328,6 +347,7 @@ def clustering_BAF(filename, byChrm=True, generateData=True):
 
 	clusterAx.scatter(xs, ys, c=colorAssignment)
 	clusterFig.savefig(geneName + "_meta_assignment.png")
+	fig.savefig(geneName + "_clusters.png")
 
 	hetDelParamInds, homDelParamInds, ampParamInds, unknownParamInds, normalParamInds = classify_clusters(metaMu, metaSigma)
 
@@ -371,12 +391,14 @@ def clustering_BAF(filename, byChrm=True, generateData=True):
 	normalCounts = range(m)
 	upper_bounds = range(m)
 	lower_bounds = range(m)
+	fullClusterAssignments = range(m)
 	for row in missingData:
 		lengths[row[-1]] = None
 		tumorCounts[row[-1]] = None
 		normalCounts[row[-1]] = None
 		upper_bounds[row[-1]] = None
 		lower_bounds[row[-1]] = None
+		fullClusterAssignments[row[-1]] = None
 
 	j = 0 #counter for data
 	k = 0 #counter for missingData
@@ -390,6 +412,7 @@ def clustering_BAF(filename, byChrm=True, generateData=True):
 			normalCounts[i] = row[4]
 			upper_bounds[i] = "X"
 			lower_bounds[i] = "X"
+			fullClusterAssignments[i] = -1
 			k += 1
 		else:
 			row = binned[j]
@@ -399,6 +422,7 @@ def clustering_BAF(filename, byChrm=True, generateData=True):
 
 			tumorCounts[i] = row[3]
 			normalCounts[i] = row[4]
+			fullClusterAssignments[i] = clusterAssignments[j]
 
 			if clusterAssignments[j] in ampParamInds:
 				lower_bounds[i] = 2
@@ -413,7 +437,7 @@ def clustering_BAF(filename, byChrm=True, generateData=True):
 					lower_bounds[i] = 0
 			j += 1
 	
-	return lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds
+	return lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, fullClusterAssignments, numClusters, metaMu
 
 #experiment in clustering across interval files
 # def plot_intervals(genes):
@@ -443,7 +467,28 @@ def clustering_BAF(filename, byChrm=True, generateData=True):
 # 	plt.plot(X, Y, 'o', zorder=1)
 # 	plt.show()
 
+def write_clusters_for_all_samples(samplelist):
+	f = open("all_sample_clusters.txt", 'w')
+	f.write("#length\tmeanRD\tmeanBAF\n")
+	for sample in samplelist:
+		f.write(sample)
+		filename = "/research/compbio/projects/THetA/ICGC-PanCan/processed_data/pilot64/" + sample + "/" + sample + ".gamma.0.2.RD.BAF.intervals.txt"
+		try:
+			lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters, clusterMeans = clustering_BAF(filename)
+			intervalMap, metaLengths, metaTumorCounts, metaNormalCounts, meta_lower_bounds, meta_upper_bounds = group_to_meta_interval(lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters)
+			f.write(sample + "\n")
+			f.write(str(numClusters) + "\n")
+			for i in range(numClusters):
+				f.write(str(metaLengths[i]) + "\t" + str(clusterMeans[i][0]) + "\t" + str(clusterMeans[i][1]) + "\n")
+			f.write("\n")
+		except IOError:
+			continue
+	f.close()
+
+
 if __name__ == "__main__":
+	import os
+	samplelist = os.listdir("/research/compbio/projects/THetA/ICGC-PanCan/processed_data/pilot64")[:-1]
 	# genes = ['0c7af04b-e171-47c4-8be5-5db33f20148e',
 	# 			'6847e993-1414-4e6f-a2af-39ebe218dd7c',
 	# 			'46f19b5c-3eba-4b23-a1ab-9748090ca4e5',
@@ -451,6 +496,7 @@ if __name__ == "__main__":
 	# 			'786fc3e4-e2bf-4914-9251-41c800ebb2fa',
 	# 			'6aa00162-6294-4ce7-b6b7-0c3452e24cd6',
 	# 			'4853fd17-7214-4f0c-984b-1be0346ca4ab']
+	write_clusters_for_all_samples(samplelist)
 	# for gene in genes:
-	gene = '0c7af04b-e171-47c4-8be5-5db33f20148e'
-	print clustering_BAF("/research/compbio/projects/THetA/ICGC-PanCan/processed_data/pilot64/" + gene + "/" + gene + ".gamma.0.2.RD.BAF.intervals.txt")
+	#clustering_BAF("/gpfs/main/research/compbio/projects/THetA/ICGC-PanCan/data/" + gene + "/" + gene + ".gamma.0.2.RD.BAF.intervals.txt")
+	#print group_to_meta_interval(*clustering_BAF("/research/compbio/projects/THetA/ICGC-PanCan/processed_data/pilot64/" + gene + "/" + gene + ".gamma.0.2.RD.BAF.intervals.txt"))

@@ -241,7 +241,7 @@ def main():
 	###
 
 	if cluster_bounds is not None:
-		lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds = clustering_BAF(cluster_bounds)
+		lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters = clustering_BAF(cluster_bounds)
 		print "Setting bounds using clustering needs to be implemented."
 	elif density_bounds is not None:
 		# Add code here
