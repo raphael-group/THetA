@@ -235,14 +235,21 @@ def main():
 	if frac < min_frac:
 		print "ERROR: This sample does not have enough large copy number aberrations to be a good candidate for tumor composition estimation using THetA.  See --RATIO_DEVIATION and --MIN_FRAC flags to modify how the potential presence of large copy number aberrations is determined.  Exiting..."
 		exit(1)
+
 	###
-	#	Automatically Select Intervals
-	#	note: This is the default behavior
+	#  Do segmentation stuff
 	###
 
 	if cluster_bounds is not None:
 		lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters,_ = clustering_BAF(cluster_bounds)
-		print "Setting bounds using clustering needs to be implemented."
+	
+		origM, origLengths, origTumor, origNormal, origUpper, origLower = (m, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds)
+
+		intervalMap, lengths, tumorCounts, normCounts, lower_bounds, upper_bounds = \
+		group_to_meta_interval(lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters)
+
+		m = len(lengths)
+
 	elif density_bounds is not None:
 		# Add code here
 		#print "Setting bounds using density needs to be implemented."
@@ -255,13 +262,18 @@ def main():
 
 		m = len(lengths)
 
-
+	###
+	#	Automatically Select Intervals
+	#	note: This is the default behavior
+	###
 	if choose_intervals:
-		print "Selecting intervals..."
+		
 
 		if cluster_bounds or density_bounds is not None:
+			print "Selecting meta-intervals..."
 			allM, allLengths, allTumor, allNormal, allUpperBounds, allLowerBounds = (origM, origLengths, origTumor, origNormal, origUpper, origLower)
 		else:
+			print "Selecting intervals..."
 			allM, allLengths, allTumor, allNormal, allUpperBounds, allLowerBounds = (m, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds)
 
 		if n == 2:
