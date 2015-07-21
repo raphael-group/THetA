@@ -35,6 +35,7 @@ import math
 ###
 MIN_LENGTH_N2 = 1000000 # 1Mb
 MIN_LENGTH_N3 = 5000000 # 5Mb
+MAX_CLUSTER_SCORE=0.05
 
 def select_intervals_n3(lengths, tumor_counts, norm_counts, m, upper_bounds, lower_bounds, copy, tau, force, num_intervals):
 	"""
@@ -148,6 +149,52 @@ def select_intervals_n2(lengths, tumor_counts, norm_counts, m, k, force, num_int
 
 	return [column(topLines, i) for i in range(len(topLines[0]))]
 
+def select_meta_intervals_n2(lengths, tumor_counts, norm_counts, m, k, force, num_intervals, scores, lower=None, upper=None):
+	"""
+	Selects up to num intervals for n=2 analysis.  
+	Returns lines in original input order
+	"""
+
+	indexes = filter_meta_intervals_n2(m, scores)
+
+	lines = [[i, lengths[i], tumor_counts[i], norm_counts[i], lower[i], upper[i], scores[i]] for i in indexes]
+
+	lines.sort(key=lambda x: x[6])
+
+	
+	lim = min(num_intervals, len(indexes))
+	topLines = lines[:lim]
+
+	topLines.sort(key=lambda x: x[0])
+
+	print "\tSelected", len(topLines), "intervals for analysis."
+
+
+	return [column(topLines, i) for i in range(len(topLines[0])-1)]
+
+def select_meta_intervals_n3(lengths, tumor_counts, norm_counts, m, k, force, num_intervals, scores, lower=None, upper=None):
+	"""
+	Selects up to num intervals for n=3 analysis.
+	Returns lines in original input order.
+	"""
+	indexes = filter_meta_intervals_n3(m, scores)
+
+	lines = [[i, lengths[i], tumor_counts[i], norm_counts[i], lower[i], upper[i], scores[i]] for i in indexes]
+
+	lines.sort(key=lambda x: x[6])
+
+	
+	lim = min(num_intervals, len(indexes))
+	topLines = lines[:lim]
+
+	topLines.sort(key=lambda x: x[0])
+
+	print "\tSelected", len(topLines), "intervals for analysis."
+
+	return [column(topLines, i) for i in range(len(topLines[0])-1)]
+
+
+
 def filter_intervals_n2(lengths, tumor_counts, norm_counts, m,  k, lower, upper):
 	"""
 	Filters out intervals that aren't long enough or overly amplified
@@ -161,7 +208,30 @@ def filter_intervals_n2(lengths, tumor_counts, norm_counts, m,  k, lower, upper)
 
 	return indexes
 
+
 def column(lines, column):
 	return [line[column] for line in lines]
 
+
+def filter_meta_intervals_n2(m, scores):
+	"""
+	Filters out intervals that don't have a good enough score.
+	"""
+	indexes = range(m)
+	indexes = [i for i in indexes if scores[i] < MAX_CLUSTER_SCORE]
+
+	return indexes
+
+def filter_meta_intervals_n3(lower, upper, m, scores):
+	"""
+	Filters out intervals that don't have a good enough score.
+	Also only keeps intervals that are called: (1) normal,
+	(2) potential heterozygous deletion, (3) single amplification.
+	"""
+	indexes = range(m)
+	indexes = [i for i in indexes if scores[i] < MAX_CLUSTER_SCORE]
+	indexes = [i for i in indexes if lower[i] == 2 or lower[i] == 1]
+	indexes = [i for i in indexes if upper[i] == 2 or upper[i] == 3]
+
+	return indexes
 		

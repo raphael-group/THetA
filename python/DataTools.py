@@ -26,6 +26,8 @@
 
 import numpy
 from CalcAllC import weighted_C, L2
+import sys
+import math
 
 
 def set_total_read_counts(r, rN):
@@ -269,3 +271,51 @@ def un_meta_cluster_results_N3(best, meta_order, intervalMap, allTumor, allNorma
 		newBest.append((c_new,mu,likelihood,vals))
 		
 	return newBest, r, rN
+
+def score_clusters(intervalMap, rd_baf_file,m):
+	"""
+	This function will score the given cluster assignments in the intervalMap based on the average
+	distance to the cluster center.
+	"""
+	cols=(1,2,5,6)
+	X=numpy.loadtxt(rd_baf_file, usecols=cols)
+
+	lengths = X[:,1] - X[:,0] + 1
+	rd = X[:,2]
+	baf = X[:,3]
+
+	cluster_scores=[float('inf') for x in range(m)]
+	for key in intervalMap.keys():
+
+		if key == -1:
+			#cluster_scores[key] = float('inf')
+			continue
+
+		rows = intervalMap[key]
+
+		cluster_lens = lengths[rows]
+		cluster_rd = rd[rows]
+		cluster_baf = baf[rows]
+		tot_len = sum(cluster_lens)
+
+		#Give small clusters high distance scores
+		if tot_len < 1000000: 
+			cluster_scores[key] = float('inf')
+			continue
+
+		weighted_rd = [p*q for p,q in zip(cluster_lens, cluster_rd)]
+		weighted_baf = [p*q for p,q in zip(cluster_lens, cluster_baf)]
+
+		rd_mean = sum(weighted_rd)/float(tot_len)
+		baf_mean = sum(weighted_baf)/float(tot_len)
+
+		dists=[math.sqrt((rd_mean -x)**2 + (baf_mean-y)**2) for x,y in zip(cluster_rd, cluster_baf)]
+		score = sum(p*q for p,q in zip(cluster_lens,dists))/float(tot_len)
+
+		cluster_scores[key] = score
+
+	return cluster_scores
+
+
+
+

@@ -250,6 +250,8 @@ def main():
 
 		m = len(lengths)
 
+		cluster_scores = score_clusters(intervalMap,cluster_bounds,m)
+
 	elif density_bounds is not None:
 		# Add code here
 		#print "Setting bounds using density needs to be implemented."
@@ -277,15 +279,29 @@ def main():
 			allM, allLengths, allTumor, allNormal, allUpperBounds, allLowerBounds = (m, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds)
 
 		if n == 2:
-			# 07-09-15 - Make so we can set specific bounds
-			if lower_bounds is None or upper_bounds is None:
-				order, lengths, tumorCounts, normCounts = select_intervals_n2(lengths, tumorCounts, normCounts, m, k, force, num_intervals)
-				upper_bounds = None
-				lower_bounds = None
+
+			if cluster_bounds is not None or density_bounds is not None:
+
+				order, lengths, tumorCounts, normCounts, lower_bounds, upper_bounds = \
+				select_meta_intervals_n2(lengths, tumorCounts, normCounts, m, k, force, num_intervals, cluster_scores, lower_bounds, upper_bounds)
+
 			else:
-				order, lengths, tumorCounts, normCounts, lower_bounds, upper_bounds = select_intervals_n2(lengths, tumorCounts, normCounts, m, k, force, num_intervals, lower_bounds, upper_bounds)
+				# 07-09-15 - Make so we can set specific bounds
+				if lower_bounds is None or upper_bounds is None:
+					order, lengths, tumorCounts, normCounts = select_intervals_n2(lengths, tumorCounts, normCounts, m, k, force, num_intervals)
+					upper_bounds = None
+					lower_bounds = None
+				else:
+					order, lengths, tumorCounts, normCounts, lower_bounds, upper_bounds = \
+					select_intervals_n2(lengths, tumorCounts, normCounts, m, k, force, num_intervals, lower_bounds, upper_bounds)
 
 		elif n == 3:
+
+			if cluster_bounds is not None or density_bounds is not None:
+
+				order, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds = \
+				select_meta_intervals_n3(lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds, copy, tau, force, num_intervals)
+
 			if results is None: 
 				print "ERROR: No results file supplied. Unable to automatically select intervals for n=3 without results of n=2 analysis. See --RESULTS flag, or --NO_INTERVAL_SELECTION to disable interval selection. Exiting..."
 				exit(1)
