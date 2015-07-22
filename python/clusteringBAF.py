@@ -6,10 +6,9 @@ os.environ["BNPYOUTDIR"] = path
 import bnpy
 from FileIO import read_binned_file
 import matplotlib.pyplot as plt
-import matplotlib.mlab as mlab
 import numpy as np
-import pylab
 from math import sqrt, ceil
+from scipy.spatial.distance import euclidean
 
 def get_data(binned, gene, chrm):
 	npArray = np.array(map(lambda x: x[5:7], binned))
@@ -51,25 +50,7 @@ def plot_gaussian(ax, mu, Sigma, color):
         ax.plot(
             Z[0], Z[1], '.', markerfacecolor=color, markeredgecolor=color, zorder=2)
 
-#====NOTE: this was the old plot_gaussian I was using. current one is stolen from mike's code=====#
-# def plot_gaussian(ax, mu, sigma, color):
-# 	muX, muY = mu
-# 	sigmaX = sigma[0][0]
-# 	sigmaY = sigma[1][1]
-
-# 	xmin = muX - (5 * sigmaX)
-# 	xmax = muX + (5 * sigmaX)
-# 	ymin = muY - (5 * sigmaY)
-# 	ymax = muY + (5 * sigmaY)
-	
-# 	delta = 0.001
-# 	x = np.arange(xmin, xmax, delta)
-# 	y = np.arange(ymin, ymax, delta)
-# 	X, Y = np.meshgrid(x, y)
-# 	Z = mlab.bivariate_normal(X, Y, sigmaX, sigmaY, muX, muY)
-# 	ax.contour(X, Y, Z, colors=color, zorder=100)
-
-def classify_clusters(mus, sigmas):
+def classify_clusters_old(mus, sigmas):
 	normalParamInds = []
 	delParamInds = []
 	ampParamInds = []
@@ -108,6 +89,37 @@ def classify_clusters(mus, sigmas):
 
 	return hetDelParamInds, homDelParamInds, ampParamInds, unknownParamInds, normalParamInds #normalInd
 
+def classify_clusters(mus, sigmas, lengths):
+	meanBAFs = map(lambda x: x[1], mus)
+	filteredLengths = map(lambda (BAF, length): -float('inf') if BAF > 0.2 else length, zip(meanBAFs, lengths))
+	normalInd = np.argmax(filteredLengths)
+
+	normMuX = mus[normalInd][0]
+	normMuY = mus[normalInd][1]
+
+	delParamInds = []
+	ampParamInds = []
+	for i in range(len(mus)):
+		if i == normalInd: continue
+		
+		if mus[i][0] < normMuX:
+			delParamInds.append(i)
+		else:
+			ampParamInds.append(i)
+
+	hetDelParamInds = []
+	homDelParamInds = []
+	for i in delParamInds:
+		muX = mus[i][0]
+		muY = mus[i][1]
+
+		if muX < normMuX - 0.2 and muY < normMuY + 0.1:
+			homDelParamInds.append(i)
+		else:
+			hetDelParamInds.append(i)
+
+	return hetDelParamInds, homDelParamInds, ampParamInds, normalInd
+
 def cluster(data, geneName, fig, ax, sf=0.1, chrm=None):
 	Data = get_data(data, geneName, chrm)
 	
@@ -120,18 +132,10 @@ def cluster(data, geneName, fig, ax, sf=0.1, chrm=None):
 	observationModel = hmodel.obsModel
 	numClusters = observationModel.K
 
-	#xvals = Data.X[:,0]
-	#yvals = Data.X[:,1]
 	mus = [observationModel.get_mean_for_comp(k=i) for i in range(numClusters)]
 	sigmas = [observationModel.get_covar_mat_for_comp(k=i) for i in range(numClusters)]
 
-	#===NOTE: necessary for bnpy built-in plotting only===#
-	# if chrm is not None:
-	# 	resultsPath = path + geneName + "_chrm_" + str(chrm) + "/defaultjob/"
-	# else:
-	# 	resultsPath = path + geneName + "/defaultjob/"
-
-	hetDelParamInds, homDelParamInds, ampParamInds, unknownParamInds, normalParamInds = classify_clusters(mus, sigmas)
+	hetDelParamInds, homDelParamInds, ampParamInds, unknownParamInds, normalParamInds = classify_clusters_old(mus, sigmas)
 	LP = hmodel.calc_local_params(Data)
 	clusterAssignments = np.argmax(LP['resp'], axis=1)
 
@@ -162,9 +166,6 @@ def cluster(data, geneName, fig, ax, sf=0.1, chrm=None):
 		plot_gaussian(ax, currMu, currSigma, currColor)
 		ax.plot(xvals, yvals, 'o', color=currColor, zorder=1)
 
-	#bnpy built-in plotting
-	# bnpy.viz.PlotComps.plotCompsForJob(resultsPath, figH=fig)
-
 	if chrm is not None:
 		ax.set_title("Chromosome " + str(chrm))
 	else:
@@ -174,24 +175,7 @@ def cluster(data, geneName, fig, ax, sf=0.1, chrm=None):
 
 	return mus, sigmas, numPoints
 
-def plot_all_chrms(fullDataX, fullDataY, gene):
-	fig = plt.figure()
-	ax = fig.add_subplot(111)
-	for i in range(24):
-		if fullDataX[i] is None and fullDataY[i] is None: continue
-		ax.plot(fullDataX[i], fullDataY[i], 'o', zorder=1)
-		chrm = i + 1
-		resultsPath = path + gene + "_chrm_" + str(chrm) + "/defaultjob/"
-		bnpy.viz.PlotComps.plotCompsForJob(resultsPath, figH=fig)
-	plt.show()
-
-def plot_all_means(muX, muY):
-	fig = plt.figure()
-	ax = fig.add_subplot(111)
-	ax.plot(muX, muY, 'o')
-	plt.show()
-
-def meta_cluster(data, gene):
+def meta_cluster(data, gene, binned):
 	npArray = np.array(data)
 	Data = bnpy.data.XData(X=npArray)
 	Data.name = gene + "_meta"
@@ -205,47 +189,69 @@ def meta_cluster(data, gene):
 	mus = [observationModel.get_mean_for_comp(k=i) for i in range(numClusters)]
 	sigmas = [observationModel.get_covar_mat_for_comp(k=i) for i in range(numClusters)]
 
-	hetDelParamInds, homDelParamInds, ampParamInds, unknownParamInds, normalParamInds = classify_clusters(mus, sigmas)
+	npArray = np.array(map(lambda row: row[5:7], binned))
+	Data = bnpy.data.XData(X=npArray)
+
 	LP = hmodel.calc_local_params(Data)
 	clusterAssignments = np.argmax(LP['resp'], axis=1)
 
+	return mus, sigmas, clusterAssignments, numClusters
+
+def plot_classifications(mus, sigmas, binned, clusterAssignments, numClusters, gene, hetDelParamInds, homDelParamInds, ampParamInds, normalInd):
 	fig = plt.figure()
 	ax = fig.add_subplot(111)
 
-	return mus, sigmas, hmodel
-
 	def color_map(num):
-		if num in normalParamInds:
+		if num == normalInd:
 			return 'green'
 		elif num in hetDelParamInds:
 			return 'red'
 		elif num in homDelParamInds:
 			return 'orange'
-		elif num in ampParamInds:
-			return 'blue'
 		else:
-			return 'black'
+			return 'blue'
 
-	numPoints = []
 	for i in range(numClusters):
 		currMu = mus[i]
 		currSigma = sigmas[i]
 		currColor = color_map(i)
 
-		currX = np.array([Data.X[j] for j in range(len(Data.X)) if clusterAssignments[j] == i])
-		numPoints.append(currX.shape[0])
-
+		currX = np.array([binned[j][5:7] for j in range(len(binned)) if clusterAssignments[j] == i])
+		if list(currX) == []: continue
 		xvals = currX[:,0]
 		yvals = currX[:,1]
 
 		plot_gaussian(ax, currMu, currSigma, currColor)
 		ax.plot(xvals, yvals, 'o', color=currColor, zorder=1)
 
-	ax.plot(Data.X[:,0], Data.X[:,1], 'o', zorder=1)
 	ax.set_title(gene + " meta Clustering")
 	ax.set_xlim([0, 5])
 	ax.set_ylim([0, 0.5])
-	fig.savefig(gene + "_meta.png")
+	fig.savefig(gene + "_classifications.png")
+
+def plot_clusters(binned, clusterAssignments, numClusters, geneName, amp_upper, stepSize, normMuX, stepPointX):
+	cmap = plt.get_cmap('gist_rainbow')
+	colors = [cmap(i) for i in np.linspace(0, 1, numClusters)]
+
+	fig = plt.figure()
+	ax = fig.add_subplot(111)
+	xs = map(lambda row: row[5], binned)
+	ys = map(lambda row: row[6], binned)
+	colorAssignment = map(lambda assignment: colors[assignment], clusterAssignments)
+
+	ax.scatter(xs, ys, c=colorAssignment)
+	ax.plot([stepPointX, stepPointX], [0.0, 0.5], color='black')
+	ax.plot([normMuX, normMuX], [0.0, 0.5], color='black')
+	if amp_upper != []:
+		maxStep = int(max(amp_upper) - 1)
+	else:
+		maxStep = 1
+	for scale in range(1, maxStep):
+		barX = (scale * stepSize) + normMuX
+		ax.plot([barX, barX], [0.0, 0.5], color='black')
+	ax.set_ylim([0, 0.5])
+	ax.set_xlim([0, ((maxStep * stepSize) + normMuX)])
+	fig.savefig(geneName + "_assignment.png")
 
 def generate_data(data, sd=0.02):
 	generatedData = []
@@ -301,10 +307,6 @@ def clustering_BAF(filename, byChrm=True, generateData=True):
 	fig, ax = plt.subplots(nrows=nrows, ncols=ncols, figsize=(20,20))
 
 	if byChrm:
-		fullDataX = []
-		fullDataY = []
-		muX = []
-		muY = []
 		metaData = []
 		for chrm, binnedChrm in enumerate(binned):
 			if binnedChrm == []: continue
@@ -324,66 +326,42 @@ def clustering_BAF(filename, byChrm=True, generateData=True):
 		mu, sigmas, numPoints = cluster(binned, geneName, fig, ax)
 		metaData = generate_data2(mu, numPoints)
 
-	metaMu, metaSigma, metaHModel = meta_cluster(metaData, geneName)
-
 	if byChrm:
 		binned = [row for subData in binned for row in subData]
 
-	npArray = np.array(map(lambda row: row[5:7], binned))
-	Data = bnpy.data.XData(X=npArray)
+	metaMu, metaSigma, clusterAssignments, numClusters = meta_cluster(metaData, geneName, binned)
 
-	LP = metaHModel.calc_local_params(Data)
-	clusterAssignments = np.argmax(LP['resp'], axis=1)
+	intervalLengths = map(lambda row: row[2] - row[1] + 2, binned)
+	hetDelParamInds, homDelParamInds, ampParamInds, normalInd = classify_clusters(metaMu, metaSigma, intervalLengths)
+	
+	plot_classifications(metaMu, metaSigma, binned, clusterAssignments, numClusters, geneName, hetDelParamInds, homDelParamInds, ampParamInds, normalInd)
+	fig.savefig(geneName + "_by_chromosome.png")
 
-	cmap = plt.get_cmap('gist_rainbow')
-	numClusters = len(metaMu)
-	colors = [cmap(i) for i in np.linspace(0, 1, numClusters)]
+	normMu = metaMu[normalInd]
+	normMuX = normMu[0]
 
-	clusterFig = plt.figure()
-	clusterAx = clusterFig.add_subplot(111)
-	xs = npArray[:,0]
-	ys = npArray[:,1]
-	colorAssignment = map(lambda assignment: colors[assignment], clusterAssignments)
-
-	clusterAx.scatter(xs, ys, c=colorAssignment)
-	clusterFig.savefig(geneName + "_meta_assignment.png")
-	fig.savefig(geneName + "_clusters.png")
-
-	hetDelParamInds, homDelParamInds, ampParamInds, unknownParamInds, normalParamInds = classify_clusters(metaMu, metaSigma)
+	if hetDelParamInds != []:
+		hetMus = map(lambda x: metaMu[x], hetDelParamInds)
+		hetDistances = map(lambda point: euclidean(point, normMu), hetMus)
+		stepSizeInd = np.argmax(hetDistances)
+		stepPoint = metaMu[hetDelParamInds[stepSizeInd]]
+		stepPointX = stepPoint[0]
+		stepSize = normMuX - stepPoint[0]
+	else:
+		stepPointX = 0.0
+		stepSize = 1.0
 
 	if ampParamInds != []:
-		if normalParamInds == []:
-			avgNormMuX = 1.0
-			avgNormMuY = 0.0
-		else:
-			avgNormMuX = sum(map(lambda x: metaMu[x][0], normalParamInds)) / len(normalParamInds)
-			avgNormMuY = sum(map(lambda x: metaMu[x][1], normalParamInds)) / len(normalParamInds)
-
-		if hetDelParamInds != []:
-			avgHetMuX = sum(map(lambda x: metaMu[x][0], hetDelParamInds)) / len(hetDelParamInds)
-			avgHetMuY = sum(map(lambda x: metaMu[x][1], hetDelParamInds)) / len(hetDelParamInds)
-		else:
-			avgHetMuX = 0.0
-			avgHetMuY = 1.0
-
-		length = sqrt(((avgHetMuX - avgNormMuX)**2) + ((avgHetMuY - avgNormMuY)**2))
-
-		ampMuXs = map(lambda x: metaMu[x][0], ampParamInds)
-		ampMuYs = map(lambda x: metaMu[x][1], ampParamInds)
-
-		squareDiffMuX = map(lambda x: (x - avgNormMuX)**2, ampMuXs)
-		squareDiffMuY = map(lambda x: (x - avgNormMuY)**2, ampMuYs)
-
-		distances = map(lambda (dX, dY): sqrt(dX + dY), zip(squareDiffMuX, squareDiffMuY))
-		maxInd = np.argmax(distances)
-
-		maxAmpMuX = metaMu[ampParamInds[maxInd]][0]
-		maxAmpMuY = metaMu[ampParamInds[maxInd]][1]
-
-		ampDist = sqrt((maxAmpMuX - avgNormMuX)**2 + (maxAmpMuY - avgNormMuY)**2)
-		amp_upper = int(ceil(ampDist / length) + 2)
+		#amplification means
+		ampMus = map(lambda x: metaMu[x], ampParamInds)
+		ampDistances = map(lambda point: point[0] - normMuX, ampMus)
+		amp_upper = map(lambda distance: ceil(distance / stepSize) + 2, ampDistances)
+		amp_upper_map = dict(zip(ampParamInds, amp_upper))
 	else:
-		amp_upper = 2
+		amp_upper = []
+		ampDistances = []
+
+	plot_clusters(binned, clusterAssignments, numClusters, geneName, amp_upper, stepSize, normMuX, stepPointX)
 
 	m = len(binned) + len(missingData)
 	lengths = range(m)
@@ -426,10 +404,10 @@ def clustering_BAF(filename, byChrm=True, generateData=True):
 
 			if clusterAssignments[j] in ampParamInds:
 				lower_bounds[i] = 2
-				upper_bounds[i] = amp_upper
+				upper_bounds[i] = amp_upper_map[clusterAssignments[j]]
 			else:
 				upper_bounds[i] = 2
-				if clusterAssignments[j] in normalParamInds:
+				if clusterAssignments[j] == normalInd:
 					lower_bounds[i] = 2
 				elif clusterAssignments[j] in hetDelParamInds:
 					lower_bounds[i] = 1
@@ -438,34 +416,6 @@ def clustering_BAF(filename, byChrm=True, generateData=True):
 			j += 1
 	
 	return lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, fullClusterAssignments, numClusters, metaMu
-
-#experiment in clustering across interval files
-# def plot_intervals(genes):
-# 	X = []
-# 	Y = []
-# 	for gene in genes:
-# 		filename = "/research/compbio/projects/THetA/ICGC-PanCan/processed_data/pilot64/" + gene + "/" + gene + ".gamma.0.2.RD.BAF.intervals.txt"
-# 		binned = read_binned_file(filename, byChrm=False)
-# 		binned = generate_data(binned)
-# 		x = map(lambda row: row[5], binned)
-# 		y = map(lambda row: row[6], binned)
-# 		X.append(x)
-# 		Y.append(y)
-	
-# 	X = [element for sublist in X for element in sublist]
-# 	Y = [element for sublist in Y for element in sublist]
-# 	nparray = np.array([X, Y])
-# 	Data = bnpy.data.XData(X=np.transpose(nparray))
-# 	Data.name = "full"
-# 	Data.summary = "Clustering data for full set" + gene
-
-# 	hmodel, Info = bnpy.Run.run(Data, 'DPMixtureModel', 'DiagGauss', 'moVB', nLap=250, nTask=1, K=15, moves='birth,merge', targetMaxSize=500, ECovMat='eye', mergeStartLap=10, sF=0.1)
-# 	resultsPath = path + "full" + "/defaultjob/"
-# 	bnpy.viz.PlotComps.plotCompsForJob(resultsPath)
-# 	plt.xlim([0, 5])
-# 	plt.ylim([0, 0.5])
-# 	plt.plot(X, Y, 'o', zorder=1)
-# 	plt.show()
 
 def write_clusters_for_all_samples(samplelist):
 	f = open("all_sample_clusters.txt", 'w')
@@ -485,18 +435,131 @@ def write_clusters_for_all_samples(samplelist):
 			continue
 	f.close()
 
+def show_histogram(filename):
+	sampleList = []
+	numClustersList = []
+	clusterLengths = []
+	clusterMeanBAFs = []
+	clusterRDRs = []
+	with open(filename) as f:
+		f.readline()
+		while True:
+			sample = f.readline().strip()
+			if sample == "": break
+
+			sampleList.append(sample)
+			numClusters = int(f.readline().strip())
+			numClustersList.append(numClusters)
+			
+			lengths = []
+			meanBAFs = []
+			RDRs = []
+			for i in range(numClusters):
+				length, RDR, BAF = f.readline().strip().split("\t")
+				lengths.append(int(length))
+				RDRs.append(float(RDR))
+				meanBAFs.append(float(BAF))
+			clusterLengths.append(lengths)
+			clusterMeanBAFs.append(meanBAFs)
+			clusterRDRs.append(RDRs)
+
+			f.readline()
+
+	clusterLengths = [length for sublist in clusterLengths for length in sublist]
+	clusterMeanBAFs = [BAF for sublist in clusterMeanBAFs for BAF in sublist]
+	clusterRDRs = [RDR for sublist in clusterRDRs for RDR in sublist]
+
+	scaledMeanBAFs = []
+	for BAF, length in zip(clusterMeanBAFs, clusterLengths):
+		BAFlist = map(lambda x: BAF, range(length / 100000))
+		scaledMeanBAFs.append(BAFlist)
+	scaledMeanBAFs = [BAF for sublist in scaledMeanBAFs for BAF in sublist]
+
+	fig = plt.figure()
+	ax = fig.add_subplot(111)
+	ax.hist(scaledMeanBAFs, bins=35)
+	fig.savefig('all_sample_clusters_scaled.png')
+
+def plot_max_BAF(filename):
+	clusterMeanBAFs = []
+	clusterRDRs = []
+	clusterLengths = []
+	with open(filename) as f:
+		f.readline()
+		while True:
+			sample = f.readline().strip()
+			if sample == "": break
+
+			numClusters = int(f.readline().strip())
+
+			lengths = []
+			meanBAFs = []
+			RDRs = []
+			for i in range(numClusters):
+				length, RDR, BAF = f.readline().strip().split("\t")
+				lengths.append(int(length))
+				RDRs.append(float(RDR))
+				meanBAFs.append(float(BAF))
+
+			sortedlist = sorted(zip(lengths, RDRs, meanBAFs), key=lambda (a, b, c): a)
+			lengths, RDRs, meanBAFs = zip(*sortedlist)
+			lengths = list(lengths)[-2:]
+			RDRs = list(RDRs)[-2:]
+			meanBAFs = list(meanBAFs)[-2:]
+
+			clusterLengths.append(lengths)
+			clusterMeanBAFs.append(meanBAFs)
+			clusterRDRs.append(RDRs)
+
+			f.readline()
+
+	scatterFig = plt.figure()
+	scatterAx = scatterFig.add_subplot(111)
+	for BAF, RDR in zip(clusterMeanBAFs, clusterRDRs):
+		if BAF[-1] < 0.1: continue
+		scatterAx.plot(RDR, BAF, 'black', zorder=1)
+		scatterAx.scatter(RDR, BAF, c=['red', 'blue'], zorder=2)
+	scatterFig.savefig('two_largest_mass_clusters.png')
+
+	# secondRDR = map(lambda x: x[0], clusterRDRs)
+	# secondBAF = map(lambda x: x[0], clusterMeanBAFs)
+	# secondScatterFig = plt.figure()
+	# secondScatterAx = secondScatterFig.add_subplot(111)
+	# secondScatterAx.plot(secondRDR, secondBAF, 'o')
+	# secondScatterFig.savefig('second_largest_mass_clusters.png')
+
+	# scatterAx.plot(clusterRDRs, clusterMeanBAFs, 'o')
+	# scatterFig.savefig('largest_mass_clusters.png')
+
+	# histFig = plt.figure()
+	# histAx = histFig.add_subplot(111)
+	# histAx.hist(clusterMeanBAFs, bins=30)
+	# histFig.savefig('largest_mass_histogram.png')
+
+	# scaledMeanBAFs = []
+	# for BAF, length in zip(clusterMeanBAFs, clusterLengths):
+	# 	BAFlist = map(lambda x: BAF, range(length / 100000))
+	# 	scaledMeanBAFs.append(BAFlist)
+	# scaledMeanBAFs = [BAF for sublist in scaledMeanBAFs for BAF in sublist]
+
+	# scaledHistFig = plt.figure()
+	# scaledHistAx = scaledHistFig.add_subplot(111)
+	# scaledHistAx.hist(scaledMeanBAFs, bins=30)
+	# scaledHistFig.savefig('largest_mass_histogram_scaled.png')
+
 
 if __name__ == "__main__":
-	import os
-	samplelist = os.listdir("/research/compbio/projects/THetA/ICGC-PanCan/processed_data/pilot64")[:-1]
-	# genes = ['0c7af04b-e171-47c4-8be5-5db33f20148e',
-	# 			'6847e993-1414-4e6f-a2af-39ebe218dd7c',
-	# 			'46f19b5c-3eba-4b23-a1ab-9748090ca4e5',
-	# 			'29a00d78-b9bb-4c6b-b142-d5b8bfa63455',
-	# 			'786fc3e4-e2bf-4914-9251-41c800ebb2fa',
-	# 			'6aa00162-6294-4ce7-b6b7-0c3452e24cd6',
-	# 			'4853fd17-7214-4f0c-984b-1be0346ca4ab']
-	write_clusters_for_all_samples(samplelist)
-	# for gene in genes:
-	#clustering_BAF("/gpfs/main/research/compbio/projects/THetA/ICGC-PanCan/data/" + gene + "/" + gene + ".gamma.0.2.RD.BAF.intervals.txt")
+	plot_max_BAF('all_sample_clusters.txt')
+	#import os
+	#samplelist = os.listdir("/research/compbio/projects/THetA/ICGC-PanCan/processed_data/pilot64")[:-1]
+	genes = ['0c7af04b-e171-47c4-8be5-5db33f20148e',
+			'6847e993-1414-4e6f-a2af-39ebe218dd7c',
+			'46f19b5c-3eba-4b23-a1ab-9748090ca4e5',
+			'29a00d78-b9bb-4c6b-b142-d5b8bfa63455',
+			'786fc3e4-e2bf-4914-9251-41c800ebb2fa',
+			'6aa00162-6294-4ce7-b6b7-0c3452e24cd6',
+			'4853fd17-7214-4f0c-984b-1be0346ca4ab']
+	#write_clusters_for_all_samples(samplelist)
+	for gene in genes:
+		clustering_BAF("/gpfs/main/research/compbio/projects/THetA/ICGC-PanCan/processed_data//pilot64/" + gene + "/" + gene + ".gamma.0.2.RD.BAF.intervals.txt")
 	#print group_to_meta_interval(*clustering_BAF("/research/compbio/projects/THetA/ICGC-PanCan/processed_data/pilot64/" + gene + "/" + gene + ".gamma.0.2.RD.BAF.intervals.txt"))
