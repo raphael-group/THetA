@@ -25,6 +25,9 @@
  ###
 
 import numpy
+from CalcAllC import weighted_C, L2, L3
+import sys
+import math
 
 
 def set_total_read_counts(r, rN):
@@ -185,3 +188,134 @@ def determine_frac_copy_num(rN, r, lengths, dev):
 
 	frac = float(sum(dev_lens))/float(tot_len)
 	return frac
+
+def un_meta_cluster_bounds(bounds, order, intervalMap):
+	"""
+	This function will expand the given bounds based on the rows in order
+	to the full set of rows in the intervalMap.
+	"""
+	new_bounds = []
+	new_order = []
+	for i,v in enumerate(order):
+		cur_bound = bounds[i]
+		rows = intervalMap[v]
+
+		for r in rows:
+			new_order.append(r)
+			new_bounds.append(cur_bound)
+
+	return new_bounds, new_order
+
+
+def un_meta_cluster_results_N2(best, meta_order, intervalMap, allTumor, allNormal):
+
+	newBest = []
+	rev_meta_cluster = []
+	new_order = []
+	r = []
+	rN = []
+	for i, v in enumerate(meta_order):
+		rows = intervalMap[v]
+		num_orig_clustered = len(rows)
+
+		rev_meta_cluster = rev_meta_cluster + num_orig_clustered*[i]
+		new_order = new_order + rows
+
+	for c, mu, NLL, p in best:
+		m,n = c.shape
+		new_m = len(rev_meta_cluster)
+
+		c_new = numpy.zeros((new_m,n))
+		for x in range(new_m):
+			for y in range(n):
+				c_new[x][y] = c[rev_meta_cluster[x]][y]
+			r.append(allTumor[new_order[x]])
+			rN.append(allNormal[new_order[x]])
+
+		c_weight = weighted_C(c_new, rN)
+		likelihood, vals = L2(mu[0], c_weight, len(r), r)
+
+		newBest.append((c_new,mu,likelihood,vals))
+		
+	return newBest, r, rN
+
+
+def un_meta_cluster_results_N3(best, meta_order, intervalMap, allTumor, allNormal, n):
+
+	newBest = []
+	rev_meta_cluster = []
+	new_order = []
+	r = []
+	rN = []
+	for i, v in enumerate(meta_order):
+		rows = intervalMap[v]
+		num_orig_clustered = len(rows)
+
+		rev_meta_cluster = rev_meta_cluster + num_orig_clustered*[i]
+		new_order = new_order + rows
+
+	for c, mu, NLL, p in best:
+		m,n = c.shape
+		new_m = len(rev_meta_cluster)
+
+		c_new = numpy.zeros((new_m,n))
+		for x in range(new_m):
+			for y in range(n):
+				c_new[x][y] = c[rev_meta_cluster[x]][y]
+			r.append(allTumor[new_order[x]])
+			rN.append(allNormal[new_order[x]])
+
+		c_weight = weighted_C(c_new, rN)
+		likelihood, vals = L3(mu, c_weight, len(r), r, n)
+
+		newBest.append((c_new,mu,likelihood,vals))
+		
+	return newBest, r, rN
+
+def score_clusters(intervalMap, rd_baf_file,m):
+	"""
+	This function will score the given cluster assignments in the intervalMap based on the average
+	distance to the cluster center.
+	"""
+	cols=(1,2,5,6)
+	X=numpy.loadtxt(rd_baf_file, usecols=cols)
+
+	lengths = X[:,1] - X[:,0] + 1
+	rd = X[:,2]
+	baf = X[:,3]
+
+	cluster_scores=[float('inf') for x in range(m)]
+	for key in intervalMap.keys():
+
+		if key == -1:
+			#cluster_scores[key] = float('inf')
+			continue
+
+		rows = intervalMap[key]
+
+		cluster_lens = lengths[rows]
+		cluster_rd = rd[rows]
+		cluster_baf = baf[rows]
+		tot_len = sum(cluster_lens)
+
+		#Give small clusters high distance scores
+		if tot_len < 1000000: 
+			cluster_scores[key] = float('inf')
+			continue
+
+		weighted_rd = [p*q for p,q in zip(cluster_lens, cluster_rd)]
+		weighted_baf = [p*q for p,q in zip(cluster_lens, cluster_baf)]
+
+		rd_mean = sum(weighted_rd)/float(tot_len)
+		baf_mean = sum(weighted_baf)/float(tot_len)
+
+		dists=[math.sqrt((rd_mean -x)**2 + (baf_mean-y)**2) for x,y in zip(cluster_rd, cluster_baf)]
+		score = sum(p*q for p,q in zip(cluster_lens,dists))/float(tot_len)
+
+		cluster_scores[key] = score
+
+	return cluster_scores
+
+
+
+
