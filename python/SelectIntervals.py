@@ -177,7 +177,7 @@ def select_meta_intervals_n3(lengths, tumor_counts, norm_counts, m, k, force, nu
 	Selects up to num intervals for n=3 analysis.
 	Returns lines in original input order.
 	"""
-	indexes = filter_meta_intervals_n3(m, scores)
+	indexes = filter_meta_intervals_n3(lower, upper, m, scores)
 
 	lines = [[i, lengths[i], tumor_counts[i], norm_counts[i], lower[i], upper[i], scores[i]] for i in indexes]
 

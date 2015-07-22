@@ -25,7 +25,7 @@
  ###
 
 import numpy
-from CalcAllC import weighted_C, L2
+from CalcAllC import weighted_C, L2, L3
 import sys
 import math
 

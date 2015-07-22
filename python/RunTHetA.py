@@ -299,10 +299,10 @@ def main():
 
 			if cluster_bounds is not None or density_bounds is not None:
 
-				order, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds = \
-				select_meta_intervals_n3(lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds, copy, tau, force, num_intervals)
+				order, lengths, tumorCounts, normCounts, lower_bounds, upper_bounds = \
+				select_meta_intervals_n3(lengths, tumorCounts, normCounts, m, k, force, num_intervals, cluster_scores, lower_bounds, upper_bounds)
 
-			if results is None: 
+			elif results is None: 
 				print "ERROR: No results file supplied. Unable to automatically select intervals for n=3 without results of n=2 analysis. See --RESULTS flag, or --NO_INTERVAL_SELECTION to disable interval selection. Exiting..."
 				exit(1)
 			else: 
@@ -320,7 +320,9 @@ def main():
 	###
 	print "Preprocessing data..."
 
+
 	r,rN,sorted_index = sort_r(normCounts,tumorCounts)
+
 
 
 	if normal_bound_heuristic is not False:
