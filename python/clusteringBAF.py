@@ -89,9 +89,13 @@ def classify_clusters_old(mus, sigmas):
 
 	return hetDelParamInds, homDelParamInds, ampParamInds, unknownParamInds, normalParamInds #normalInd
 
-def classify_clusters(mus, sigmas, lengths):
+def classify_clusters(mus, lengths, clusterAssignments):
+	metaLengths = [0 for i in range(len(mus))]
+	for i, length in enumerate(lengths):
+		metaLengths[clusterAssignments[i]] += length
+
 	meanBAFs = map(lambda x: x[1], mus)
-	filteredLengths = map(lambda (BAF, length): -float('inf') if BAF > 0.2 else length, zip(meanBAFs, lengths))
+	filteredLengths = map(lambda (BAF, length): -float('inf') if BAF > 0.2 else length, zip(meanBAFs, metaLengths))
 	normalInd = np.argmax(filteredLengths)
 
 	normMuX = mus[normalInd][0]
@@ -240,15 +244,15 @@ def plot_clusters(binned, clusterAssignments, numClusters, geneName, amp_upper, 
 	colorAssignment = map(lambda assignment: colors[assignment], clusterAssignments)
 
 	ax.scatter(xs, ys, c=colorAssignment)
-	ax.plot([stepPointX, stepPointX], [0.0, 0.5], color='black')
-	ax.plot([normMuX, normMuX], [0.0, 0.5], color='black')
+	ax.plot([stepPointX, stepPointX], [0.0, 0.5], color='red')
+	ax.plot([normMuX, normMuX], [0.0, 0.5], color='green')
 	if amp_upper != []:
 		maxStep = int(max(amp_upper) - 1)
 	else:
 		maxStep = 1
 	for scale in range(1, maxStep):
 		barX = (scale * stepSize) + normMuX
-		ax.plot([barX, barX], [0.0, 0.5], color='black')
+		ax.plot([barX, barX], [0.0, 0.5], color='blue')
 	ax.set_ylim([0, 0.5])
 	ax.set_xlim([0, ((maxStep * stepSize) + normMuX)])
 	fig.savefig(geneName + "_assignment.png")
@@ -294,6 +298,16 @@ def group_to_meta_interval(lengths, tumorCounts, normalCounts, m, upper_bounds, 
 
 	return intervalMap, metaLengths, metaTumorCounts, metaNormalCounts, meta_lower_bounds, meta_upper_bounds
 
+def cluster_wrapper((binnedChrm, geneName, fig, currAx, chrm, generateData)):
+	if generateData:
+		binnedChrm = generate_data(binnedChrm)
+
+	mu, sigmas, numPoints = cluster(binnedChrm, geneName, fig, currAx, chrm=chrm)
+	metaDataRow = generate_data2(mu, numPoints)
+
+	return mu, sigmas, numPoints, metaDataRow
+
+
 def clustering_BAF(filename, byChrm=True, generateData=True):
 	geneName = os.path.basename(filename).split(".")[0]
 	missingData, binned = read_binned_file(filename, byChrm=byChrm)
@@ -332,7 +346,7 @@ def clustering_BAF(filename, byChrm=True, generateData=True):
 	metaMu, metaSigma, clusterAssignments, numClusters = meta_cluster(metaData, geneName, binned)
 
 	intervalLengths = map(lambda row: row[2] - row[1] + 2, binned)
-	hetDelParamInds, homDelParamInds, ampParamInds, normalInd = classify_clusters(metaMu, metaSigma, intervalLengths)
+	hetDelParamInds, homDelParamInds, ampParamInds, normalInd = classify_clusters(metaMu, intervalLengths, clusterAssignments)
 	
 	plot_classifications(metaMu, metaSigma, binned, clusterAssignments, numClusters, geneName, hetDelParamInds, homDelParamInds, ampParamInds, normalInd)
 	fig.savefig(geneName + "_by_chromosome.png")
@@ -341,15 +355,17 @@ def clustering_BAF(filename, byChrm=True, generateData=True):
 	normMuX = normMu[0]
 
 	if hetDelParamInds != []:
-		hetMus = map(lambda x: metaMu[x], hetDelParamInds)
-		hetDistances = map(lambda point: euclidean(point, normMu), hetMus)
-		stepSizeInd = np.argmax(hetDistances)
+		hetBAFs = map(lambda x: metaMu[x][1] if metaMu[x][0] < (normMuX - 0.1) else -float("inf"), hetDelParamInds)
+		stepSizeInd = np.argmax(hetBAFs)
+		if hetBAFs[stepSizeInd] == -float("inf"):
+			hetRDRs = map(lambda x: metaMu[x][0], hetDelParamInds)
+			stepSizeInd = np.argmin(hetRDRs)
 		stepPoint = metaMu[hetDelParamInds[stepSizeInd]]
 		stepPointX = stepPoint[0]
 		stepSize = normMuX - stepPoint[0]
 	else:
 		stepPointX = 0.0
-		stepSize = 1.0
+		stepSize = 0.5
 
 	if ampParamInds != []:
 		#amplification means
@@ -549,17 +565,17 @@ def plot_max_BAF(filename):
 
 
 if __name__ == "__main__":
-	plot_max_BAF('all_sample_clusters.txt')
-	#import os
-	#samplelist = os.listdir("/research/compbio/projects/THetA/ICGC-PanCan/processed_data/pilot64")[:-1]
-	genes = ['0c7af04b-e171-47c4-8be5-5db33f20148e',
-			'6847e993-1414-4e6f-a2af-39ebe218dd7c',
-			'46f19b5c-3eba-4b23-a1ab-9748090ca4e5',
-			'29a00d78-b9bb-4c6b-b142-d5b8bfa63455',
-			'786fc3e4-e2bf-4914-9251-41c800ebb2fa',
-			'6aa00162-6294-4ce7-b6b7-0c3452e24cd6',
-			'4853fd17-7214-4f0c-984b-1be0346ca4ab']
+	# plot_max_BAF('all_sample_clusters.txt')
+	import os
+	samplelist = os.listdir("/research/compbio/projects/THetA/ICGC-PanCan/processed_data/pilot64")[:-1]
+	# genes = ['0c7af04b-e171-47c4-8be5-5db33f20148e',
+	# 		'6847e993-1414-4e6f-a2af-39ebe218dd7c',
+	#		'46f19b5c-3eba-4b23-a1ab-9748090ca4e5',
+			# '29a00d78-b9bb-4c6b-b142-d5b8bfa63455',
+			# '786fc3e4-e2bf-4914-9251-41c800ebb2fa',
+	#genes =	['6aa00162-6294-4ce7-b6b7-0c3452e24cd6'] #,
+			# '4853fd17-7214-4f0c-984b-1be0346ca4ab']
 	#write_clusters_for_all_samples(samplelist)
-	for gene in genes:
+	for gene in samplelist:
 		clustering_BAF("/gpfs/main/research/compbio/projects/THetA/ICGC-PanCan/processed_data//pilot64/" + gene + "/" + gene + ".gamma.0.2.RD.BAF.intervals.txt")
 	#print group_to_meta_interval(*clustering_BAF("/research/compbio/projects/THetA/ICGC-PanCan/processed_data/pilot64/" + gene + "/" + gene + ".gamma.0.2.RD.BAF.intervals.txt"))
