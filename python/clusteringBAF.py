@@ -92,6 +92,7 @@ def classify_clusters_old(mus, sigmas):
 def classify_clusters(mus, lengths, clusterAssignments):
 	metaLengths = [0 for i in range(len(mus))]
 	for i, length in enumerate(lengths):
+		if length is None: continue
 		metaLengths[clusterAssignments[i]] += length
 
 	meanBAFs = map(lambda x: x[1], mus)
@@ -260,6 +261,7 @@ def plot_clusters(binned, clusterAssignments, numClusters, geneName, amp_upper, 
 def generate_data(data, sd=0.02):
 	generatedData = []
 	for chrm, start, end, tumorCounts, normalCounts, corrRatio, meanBAF, numSNPs in data:
+		np.random.seed(seed=0)
 		x = np.random.normal(corrRatio, sd, numSNPs / 10)
 		y = np.random.normal(meanBAF, sd, numSNPs / 10)
 		newRows = map(lambda (ratio, baf): [chrm, start, end, tumorCounts, normalCounts, ratio, baf, numSNPs], zip(x, y))
@@ -271,6 +273,7 @@ def generate_data(data, sd=0.02):
 def generate_data2(mus, numPoints, sd=0.05):
 	generatedData = []
 	for mu, num in zip(mus, numPoints):
+		np.random.seed(seed=0)
 		x = np.random.normal(mu[0], sd, num)
 		y = np.random.normal(mu[1], sd, num)
 		newRows = np.transpose([x, y])
@@ -443,28 +446,39 @@ def clustering_BAF(filename, byChrm=True, generateData=True):
 
 def write_clusters_for_all_samples(samplelist):
 	f = open("all_sample_clusters.txt", 'w')
-	f.write("#length\tmeanRD\tmeanBAF\n")
+	f.write("#length\tmeanRD\tmeanBAF\tclassification\n")
 	for sample in samplelist:
-		f.write(sample)
 		filename = "/research/compbio/projects/THetA/ICGC-PanCan/processed_data/pilot64/" + sample + "/" + sample + ".gamma.0.2.RD.BAF.intervals.txt"
 		try:
 			lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters, clusterMeans = clustering_BAF(filename)
+			hetDelParamInds, homDelParamInds, ampParamInds, normalInd = classify_clusters(clusterMeans, lengths, clusterAssignments)
 			intervalMap, metaLengths, metaTumorCounts, metaNormalCounts, meta_lower_bounds, meta_upper_bounds = group_to_meta_interval(lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters)
 			f.write(sample + "\n")
 			f.write(str(numClusters) + "\n")
 			for i in range(numClusters):
-				f.write(str(metaLengths[i]) + "\t" + str(clusterMeans[i][0]) + "\t" + str(clusterMeans[i][1]) + "\n")
+				f.write(str(metaLengths[i]) + "\t" + str(clusterMeans[i][0]) + "\t" + str(clusterMeans[i][1]) + "\t")
+				if i == normalInd:
+					f.write("NORMAL")
+				elif i in hetDelParamInds:
+					f.write("HETDEL")
+				elif i in homDelParamInds:
+					f.write("HOMDEL")
+				else:
+					f.write("AMP")
+				f.write("\n")
 			f.write("\n")
+			f.flush()
 		except IOError:
 			continue
 	f.close()
 
-def show_histogram(filename):
+def parse_preprocessed_data(filename):
 	sampleList = []
 	numClustersList = []
 	clusterLengths = []
-	clusterMeanBAFs = []
 	clusterRDRs = []
+	clusterMeanBAFs = []
+	clusterClassifications = []
 	with open(filename) as f:
 		f.readline()
 		while True:
@@ -474,20 +488,28 @@ def show_histogram(filename):
 			sampleList.append(sample)
 			numClusters = int(f.readline().strip())
 			numClustersList.append(numClusters)
-			
+
 			lengths = []
-			meanBAFs = []
 			RDRs = []
+			meanBAFs = []
+			classifications = []
 			for i in range(numClusters):
-				length, RDR, BAF = f.readline().strip().split("\t")
+				length, RDR, BAF, classification = f.readline().strip().split("\t")
 				lengths.append(int(length))
 				RDRs.append(float(RDR))
 				meanBAFs.append(float(BAF))
+				classifications.append(classification)
 			clusterLengths.append(lengths)
-			clusterMeanBAFs.append(meanBAFs)
 			clusterRDRs.append(RDRs)
+			clusterMeanBAFs.append(meanBAFs)
+			clusterClassifications.append(classifications)
 
 			f.readline()
+
+	return sampleList, numClustersList, clusterLengths, clusterRDRs, clusterMeanBAFs, clusterClassifications
+
+def show_histogram(filename):
+	sampleList, numClustersList, clusterLengths, clusterRDRs, clusterMeanBAFs, clusterClassifications = parse_preprocessed_data(filename)
 
 	clusterLengths = [length for sublist in clusterLengths for length in sublist]
 	clusterMeanBAFs = [BAF for sublist in clusterMeanBAFs for BAF in sublist]
@@ -504,42 +526,28 @@ def show_histogram(filename):
 	ax.hist(scaledMeanBAFs, bins=35)
 	fig.savefig('all_sample_clusters_scaled.png')
 
-def plot_max_BAF(filename):
-	clusterMeanBAFs = []
-	clusterRDRs = []
-	clusterLengths = []
-	with open(filename) as f:
-		f.readline()
-		while True:
-			sample = f.readline().strip()
-			if sample == "": break
+def plot_two_largest_from_preprocessed(filename):
+	sampleList, numClustersList, clusterLengths, clusterRDRs, clusterMeanBAFs, clusterClassifications = parse_preprocessed_data(filename)
 
-			numClusters = int(f.readline().strip())
+	twoLargestRDRs = []
+	twoLargestBAFs = []
+	for i in range(len(sampleList)):
+		lengths = clusterLengths[i]
+		RDRs = clusterRDRs[i]
+		meanBAFs = clusterMeanBAFs[i]
+		
+		sortedlist = sorted(zip(lengths, RDRs, meanBAFs), key=lambda (a, b, c): a)
+		lengths, RDRs, meanBAFs = zip(*sortedlist)
+		lengths = list(lengths)[-2:]
+		RDRs = list(RDRs)[-2:]
+		meanBAFs = list(meanBAFs)[-2:]
 
-			lengths = []
-			meanBAFs = []
-			RDRs = []
-			for i in range(numClusters):
-				length, RDR, BAF = f.readline().strip().split("\t")
-				lengths.append(int(length))
-				RDRs.append(float(RDR))
-				meanBAFs.append(float(BAF))
-
-			sortedlist = sorted(zip(lengths, RDRs, meanBAFs), key=lambda (a, b, c): a)
-			lengths, RDRs, meanBAFs = zip(*sortedlist)
-			lengths = list(lengths)[-2:]
-			RDRs = list(RDRs)[-2:]
-			meanBAFs = list(meanBAFs)[-2:]
-
-			clusterLengths.append(lengths)
-			clusterMeanBAFs.append(meanBAFs)
-			clusterRDRs.append(RDRs)
-
-			f.readline()
+		twoLargestRDRs.append(RDRs)
+		twoLargestBAFs.append(meanBAFs)
 
 	scatterFig = plt.figure()
 	scatterAx = scatterFig.add_subplot(111)
-	for BAF, RDR in zip(clusterMeanBAFs, clusterRDRs):
+	for RDR, BAF in zip(twoLargestRDRs, twoLargestBAFs):
 		if BAF[-1] < 0.1: continue
 		scatterAx.plot(RDR, BAF, 'black', zorder=1)
 		scatterAx.scatter(RDR, BAF, c=['red', 'blue'], zorder=2)
@@ -569,13 +577,36 @@ def plot_max_BAF(filename):
 	# scaledHistFig = plt.figure()
 	# scaledHistAx = scaledHistFig.add_subplot(111)
 	# scaledHistAx.hist(scaledMeanBAFs, bins=30)
-	# scaledHistFig.savefig('largest_mass_histogram_scaled.png')
+	# scaledHistFig.savefig('largest_mass_histogram_scaled.png') 
 
+def plot_vs(filename):
+	data = parse_preprocessed_data(filename)
+	for sample, numClusters, lengths, RDRs, meanBAFs, classifications in zip(*data):
+		normInd = classifications.index('NORMAL')
+		normRDR = RDRs[normInd]
+		normBAF = meanBAFs[normInd]
+
+		fig = plt.figure()
+		ax = fig.add_subplot(111)
+		ax.plot(RDRs, meanBAFs, 'rx', mew=5, markersize=10, zorder=2)
+		ax.plot([normRDR * 0.5, normRDR], [0.5, normBAF], zorder=1)
+		ax.set_xlim([0.0, 5.0])
+		ax.set_ylim([0.0, 0.5])
+
+		intervalfilename = "/gpfs/main/research/compbio/projects/THetA/ICGC-PanCan/processed_data//pilot64/" + sample + "/" + sample + ".gamma.0.2.RD.BAF.intervals.txt"
+		missingData, binned = read_binned_file(intervalfilename, byChrm=False)
+		xs = map(lambda row: row[5], binned)
+		ys = map(lambda row: row[6], binned)
+		ax.plot(xs, ys, 'o', zorder=3)
+
+		fig.savefig(sample + "_v.png")
+		plt.close('all')
 
 if __name__ == "__main__":
+	plot_vs('all_sample_clusters.txt')
 	# plot_max_BAF('all_sample_clusters.txt')
-	import os
-	samplelist = os.listdir("/research/compbio/projects/THetA/ICGC-PanCan/processed_data/pilot64")[:-1]
+	#import os
+	#samplelist = os.listdir("/research/compbio/projects/THetA/ICGC-PanCan/processed_data/pilot64")[:-1]
 	# genes = ['0c7af04b-e171-47c4-8be5-5db33f20148e',
 	# 		'6847e993-1414-4e6f-a2af-39ebe218dd7c',
 	#		'46f19b5c-3eba-4b23-a1ab-9748090ca4e5',
@@ -584,6 +615,6 @@ if __name__ == "__main__":
 	#genes =	['6aa00162-6294-4ce7-b6b7-0c3452e24cd6'] #,
 			# '4853fd17-7214-4f0c-984b-1be0346ca4ab']
 	#write_clusters_for_all_samples(samplelist)
-	for gene in samplelist:
-		clustering_BAF("/gpfs/main/research/compbio/projects/THetA/ICGC-PanCan/processed_data//pilot64/" + gene + "/" + gene + ".gamma.0.2.RD.BAF.intervals.txt")
+	# for gene in samplelist:
+	# 	clustering_BAF("/gpfs/main/research/compbio/projects/THetA/ICGC-PanCan/processed_data//pilot64/" + gene + "/" + gene + ".gamma.0.2.RD.BAF.intervals.txt")
 	#print group_to_meta_interval(*clustering_BAF("/research/compbio/projects/THetA/ICGC-PanCan/processed_data/pilot64/" + gene + "/" + gene + ".gamma.0.2.RD.BAF.intervals.txt"))
