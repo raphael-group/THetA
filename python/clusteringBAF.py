@@ -7,7 +7,7 @@ import bnpy
 from FileIO import read_binned_file
 import matplotlib.pyplot as plt
 import numpy as np
-from math import sqrt, ceil
+from math import sqrt, ceil, log
 from scipy.spatial.distance import euclidean
 
 def get_data(binned, gene, chrm):
@@ -99,6 +99,65 @@ def classify_clusters(mus, lengths, clusterAssignments):
 	filteredLengths = map(lambda (BAF, length): -float('inf') if BAF > 0.2 else length, zip(meanBAFs, metaLengths))
 	normalInd = np.argmax(filteredLengths)
 
+	hetDelParamInds, homDelParamInds, ampParamInds, normalInd = classify_clusters_given_normal(mus, normalInd)
+
+	normalRDR = mus[normalInd][0]
+	normalBAF = mus[normalInd][1]
+
+	leftx = normalRDR * 0.5
+	lefty = 0.5
+
+	m0 = (normalBAF - lefty) / (normalRDR - leftx)
+	b0 = normalBAF - (m0 * normalRDR)
+	m1 = -(m0**-1)
+	scores = []
+	for i in range(len(mus)):
+		if i != normalInd and i not in ampParamInds:
+			scores.append(float('inf'))
+			continue
+
+		RDR = mus[i][0]
+		BAF = mus[i][1]
+		b1 = BAF - (m1 * RDR)
+		contactx = (b1 - b0) / (m0 - m1)
+		contacty = (m0 * contactx) + b0
+		distToContact = euclidean([RDR, BAF], [contactx, contacty])
+		score = distToContact + log(BAF)
+		scores.append(score)
+
+	normalInd = np.argmin(scores)
+
+	hetDelParamInds, homDelParamInds, ampParamInds, normalInd = classify_clusters_given_normal(mus, normalInd)
+
+	normalRDR = mus[normalInd][0]
+	normalBAF = mus[normalInd][1]
+	leftx = normalRDR * 0.5
+	lefty = 0.5
+
+	m0 = (normalBAF - lefty) / (normalRDR - leftx)
+	b0 = normalBAF - (m0 * normalRDR)
+	m1 = -(m0**-1)
+	scores = []
+	for i in range(len(mus)):
+		RDR = mus[i][0]
+		BAF = mus[i][1]
+
+		if i not in hetDelParamInds and i not in homDelParamInds:
+			scores.append(float('inf'))
+			continue
+		b1 = BAF - (m1 * RDR)
+		contactx = (b1 - b0) / (m0 - m1)
+		contacty = (m0 * contactx) + b0
+		distToContact = euclidean([RDR, BAF], [contactx, contacty])
+		distToIntercept = euclidean([RDR, BAF], [0.0, b0])
+		score = distToContact + distToIntercept
+		scores.append(score)
+
+	clonalHetDelParamInd = np.argmin(scores)
+	
+	return hetDelParamInds, clonalHetDelParamInd, homDelParamInds, ampParamInds, normalInd
+
+def classify_clusters_given_normal(mus, normalInd):
 	normMuX = mus[normalInd][0]
 	normMuY = mus[normalInd][1]
 
@@ -124,6 +183,7 @@ def classify_clusters(mus, lengths, clusterAssignments):
 			hetDelParamInds.append(i)
 
 	return hetDelParamInds, homDelParamInds, ampParamInds, normalInd
+
 
 def cluster(data, geneName, fig, ax, sf=0.1, chrm=None):
 	Data = get_data(data, geneName, chrm)
@@ -357,7 +417,7 @@ def clustering_BAF(filename, byChrm=True, generateData=True):
 	metaMu, metaSigma, clusterAssignments, numClusters = meta_cluster(metaData, geneName, binned)
 
 	intervalLengths = map(lambda row: row[2] - row[1] + 2, binned)
-	hetDelParamInds, homDelParamInds, ampParamInds, normalInd = classify_clusters(metaMu, intervalLengths, clusterAssignments)
+	hetDelParamInds, clonalHetDelParamInd, homDelParamInds, ampParamInds, normalInd = classify_clusters(metaMu, intervalLengths, clusterAssignments)
 	
 	plot_classifications(metaMu, metaSigma, binned, clusterAssignments, numClusters, geneName, hetDelParamInds, homDelParamInds, ampParamInds, normalInd)
 	fig.savefig(geneName + "_by_chromosome.png")
@@ -366,14 +426,8 @@ def clustering_BAF(filename, byChrm=True, generateData=True):
 	normMuX = normMu[0]
 
 	if hetDelParamInds != []:
-		hetBAFs = map(lambda x: metaMu[x][1] if metaMu[x][0] < (normMuX - 0.1) else -float("inf"), hetDelParamInds)
-		stepSizeInd = np.argmax(hetBAFs)
-		if hetBAFs[stepSizeInd] == -float("inf"):
-			hetRDRs = map(lambda x: metaMu[x][0], hetDelParamInds)
-			stepSizeInd = np.argmin(hetRDRs)
-		stepPoint = metaMu[hetDelParamInds[stepSizeInd]]
-		stepPointX = stepPoint[0]
-		stepSize = normMuX - stepPoint[0]
+		stepPointX = metaMu[clonalHetDelParamInd][0]
+		stepSize = normMuX - stepPointX
 	else:
 		stepPointX = 0.0
 		stepSize = 0.5
@@ -586,35 +640,109 @@ def plot_vs(filename):
 		normRDR = RDRs[normInd]
 		normBAF = meanBAFs[normInd]
 
+		leftx = normRDR * 0.5
+		lefty = 0.5
+
+		m0 = (normBAF - lefty) / (normRDR - leftx)
+		b0 = normBAF - (m0 * normRDR)
+		m1 = -(m0**-1)
+		scores = []
+		for RDR, BAF, classification in zip(RDRs, meanBAFs, classifications):
+			if classification != "NORMAL" and classification != "AMP":
+				scores.append(float('inf'))
+				continue
+			b1 = BAF - (m1 * RDR)
+			contactx = (b1 - b0) / (m0 - m1)
+			contacty = (m0 * contactx) + b0
+			distToContact = euclidean([RDR, BAF], [contactx, contacty])
+			score = distToContact + log(BAF)
+			scores.append(score)
+
+		normInd = np.argmin(scores)
+		normRDR = RDRs[normInd]
+		normBAF = meanBAFs[normInd]
+
+		hetDelParamInds, homDelParamInds, ampParamInds, normalInd = classify_clusters_given_normal(zip(RDRs, meanBAFs), normInd)
+		for i in range(len(classifications)):
+			if i == normInd:
+				classifications[i] = "NORMAL"
+			elif i in hetDelParamInds:
+				classifications[i] = "HETDEL"
+			elif i in homDelParamInds:
+				classifications[i] = "HOMDEL"
+			else:
+				classifications[i] = "AMP"
+
+		leftx = normRDR * 0.5
+		lefty = 0.5
+
 		fig = plt.figure()
 		ax = fig.add_subplot(111)
-		ax.plot(RDRs, meanBAFs, 'rx', mew=5, markersize=10, zorder=2)
-		ax.plot([normRDR * 0.5, normRDR], [0.5, normBAF], zorder=1)
+		ax.plot(RDRs, meanBAFs, 'x', color='orange', mew=5, markersize=10, zorder=3)
+		ax.plot([leftx, normRDR], [lefty, normBAF], 'black', zorder=1)
 		ax.set_xlim([0.0, 5.0])
 		ax.set_ylim([0.0, 0.5])
 
+		m0 = (normBAF - lefty) / (normRDR - leftx)
+		b0 = normBAF - (m0 * normRDR)
+		m1 = -(m0**-1)
+		scores = []
+		for RDR, BAF, classification in zip(RDRs, meanBAFs, classifications):
+			if classification != "HETDEL" and classification != "HOMDEL":
+				scores.append(float('inf'))
+				continue
+			b1 = BAF - (m1 * RDR)
+			contactx = (b1 - b0) / (m0 - m1)
+			contacty = (m0 * contactx) + b0
+			ax.plot([RDR, contactx], [BAF, contacty], 'r')
+			distToContact = euclidean([RDR, BAF], [contactx, contacty])
+			distToIntercept = euclidean([RDR, BAF], [0.0, b0])
+			score = distToContact + distToIntercept
+			scores.append(score)
+
+		clonalHetDelInd = np.argmin(scores)
+		clonalHetDelRDR = RDRs[clonalHetDelInd]
+		clonalHetDelBAF = meanBAFs[clonalHetDelInd]
+		ax.plot([clonalHetDelRDR], [clonalHetDelBAF], 'rx', mew=5, markersize=10, zorder=4)
+
+		x = clonalHetDelRDR
+		stepSize = abs(normRDR - clonalHetDelRDR)
+		i = 0
+		while x < 5 and i < 100:
+			ax.plot([x, x], [0, 0.5], 'black', zorder=2)
+			x += stepSize
+			i += 1
+
 		intervalfilename = "/gpfs/main/research/compbio/projects/THetA/ICGC-PanCan/processed_data//pilot64/" + sample + "/" + sample + ".gamma.0.2.RD.BAF.intervals.txt"
 		missingData, binned = read_binned_file(intervalfilename, byChrm=False)
-		xs = map(lambda row: row[5], binned)
-		ys = map(lambda row: row[6], binned)
-		ax.plot(xs, ys, 'o', zorder=3)
+		mus = map(lambda row: row[5:7], binned)
+		numPoints = map(lambda row: row[7] / 10, binned)
+		data = generate_data2(mus, numPoints)
+		xs = [row[0] for row in data]
+		ys = [row[1] for row in data]
+		ax.plot(xs, ys, 'o', zorder=1)
 
 		fig.savefig(sample + "_v.png")
 		plt.close('all')
 
 if __name__ == "__main__":
-	plot_vs('all_sample_clusters.txt')
+	#plot_vs('all_sample_clusters.txt')
 	# plot_max_BAF('all_sample_clusters.txt')
 	#import os
 	#samplelist = os.listdir("/research/compbio/projects/THetA/ICGC-PanCan/processed_data/pilot64")[:-1]
-	# genes = ['0c7af04b-e171-47c4-8be5-5db33f20148e',
+	# samplelist = ['0c7af04b-e171-47c4-8be5-5db33f20148e',
 	# 		'6847e993-1414-4e6f-a2af-39ebe218dd7c',
-	#		'46f19b5c-3eba-4b23-a1ab-9748090ca4e5',
-			# '29a00d78-b9bb-4c6b-b142-d5b8bfa63455',
-			# '786fc3e4-e2bf-4914-9251-41c800ebb2fa',
-	#genes =	['6aa00162-6294-4ce7-b6b7-0c3452e24cd6'] #,
-			# '4853fd17-7214-4f0c-984b-1be0346ca4ab']
+	# 		'46f19b5c-3eba-4b23-a1ab-9748090ca4e5',
+	# 		'29a00d78-b9bb-4c6b-b142-d5b8bfa63455',
+	# 		'786fc3e4-e2bf-4914-9251-41c800ebb2fa',
+	# 		'6aa00162-6294-4ce7-b6b7-0c3452e24cd6',
+	# 		'4853fd17-7214-4f0c-984b-1be0346ca4ab']
+	samplelist = ['03c3c692-8a86-4843-85ae-e045f0fa6f88',
+					'0d0793c1-df1b-4db1-ba36-adcb960cc0f5',
+					'a47c2012-c13d-48ac-88b6-e09bfd50122b',
+					'ac1bd179-8285-468c-ab9f-7f91151ca0f2',
+					'2ce48f01-2f61-49d9-a56a-7438bf4a37d7']
 	#write_clusters_for_all_samples(samplelist)
-	# for gene in samplelist:
-	# 	clustering_BAF("/gpfs/main/research/compbio/projects/THetA/ICGC-PanCan/processed_data//pilot64/" + gene + "/" + gene + ".gamma.0.2.RD.BAF.intervals.txt")
+	for sample in samplelist:
+	 	clustering_BAF("/research/compbio/projects/THetA/ICGC-PanCan/data/" + sample + "/" + sample + ".gamma.0.2.RD.BAF.intervals.txt")
 	#print group_to_meta_interval(*clustering_BAF("/research/compbio/projects/THetA/ICGC-PanCan/processed_data/pilot64/" + gene + "/" + gene + ".gamma.0.2.RD.BAF.intervals.txt"))
