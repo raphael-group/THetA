@@ -221,18 +221,26 @@ def un_meta_cluster_results_N2(best, meta_order, intervalMap, allTumor, allNorma
 		rev_meta_cluster = rev_meta_cluster + num_orig_clustered*[i]
 		new_order = new_order + rows
 
+	#Reset r and rN
+	new_m = len(rev_meta_cluster)
+	for x in range(new_m):
+		r.append(allTumor[new_order[x]])
+		rN.append(allNormal[new_order[x]])
+
 	for c, mu, NLL, p in best:
 		m,n = c.shape
-		new_m = len(rev_meta_cluster)
+		#new_m = len(rev_meta_cluster)
 
 		c_new = numpy.zeros((new_m,n))
 		for x in range(new_m):
 			for y in range(n):
 				c_new[x][y] = c[rev_meta_cluster[x]][y]
-			r.append(allTumor[new_order[x]])
-			rN.append(allNormal[new_order[x]])
+			#r.append(allTumor[new_order[x]])
+			#rN.append(allNormal[new_order[x]])
 
 		c_weight = weighted_C(c_new, rN)
+
+
 		likelihood, vals = L2(mu[0], c_weight, len(r), r)
 
 		newBest.append((c_new,mu,likelihood,vals))
@@ -241,6 +249,7 @@ def un_meta_cluster_results_N2(best, meta_order, intervalMap, allTumor, allNorma
 
 
 def un_meta_cluster_results_N3(best, meta_order, intervalMap, allTumor, allNormal, n):
+
 
 	newBest = []
 	rev_meta_cluster = []
@@ -254,18 +263,26 @@ def un_meta_cluster_results_N3(best, meta_order, intervalMap, allTumor, allNorma
 		rev_meta_cluster = rev_meta_cluster + num_orig_clustered*[i]
 		new_order = new_order + rows
 
+	#Reset r and rN
+	new_m = len(rev_meta_cluster)
+	for x in range(new_m):
+		r.append(allTumor[new_order[x]])
+		rN.append(allNormal[new_order[x]])
+
 	for c, mu, NLL, p in best:
 		m,n = c.shape
-		new_m = len(rev_meta_cluster)
+		#new_m = len(rev_meta_cluster)
 
 		c_new = numpy.zeros((new_m,n))
 		for x in range(new_m):
 			for y in range(n):
 				c_new[x][y] = c[rev_meta_cluster[x]][y]
-			r.append(allTumor[new_order[x]])
-			rN.append(allNormal[new_order[x]])
+			#r.append(allTumor[new_order[x]])
+			#rN.append(allNormal[new_order[x]])
 
 		c_weight = weighted_C(c_new, rN)
+
+
 		likelihood, vals = L3(mu, c_weight, len(r), r, n)
 
 		newBest.append((c_new,mu,likelihood,vals))
