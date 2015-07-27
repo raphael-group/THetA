@@ -95,7 +95,7 @@ def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, prefix=None, d
 	results['BAF_NLL'] = NLLVec
 	write_out_NLL_result(directory, prefix, results)
 
-def plot_single_result(BAF, means, pos, chrm, NLL, chrmsToUse, numberResults, fig, colors, i):
+def plot_single_result(BAF, means, pos, chrm, NLL, chrmsToUse, numberResults, fig, colors, plotNum=0):
 	"""
 	Creates a subplot from the BAF model calculations for one THetA output.
 
@@ -115,10 +115,10 @@ def plot_single_result(BAF, means, pos, chrm, NLL, chrmsToUse, numberResults, fi
 		fig with a new subplot added for result i
 	"""
 
-	print "Plotting model " + str(i)
+	print "Plotting model " + str(plotNum)
 
 	#create new subplot
-	ax = fig.add_subplot(numberResults, 1, i)
+	ax = fig.add_subplot(numberResults, 1, plotNum)
 	
 	#parameter for plotting chromosome separations
 	mag = 6
@@ -212,7 +212,7 @@ def plot_results(BAFVec, meansVec, posVec, chrmVec, NLLVec, chrmsToUse, plotOpti
 		for i in range(numberResults):
 			fig = plot_single_result(BAFVec[i], meansVec[i], posVec[i], 
 									 chrmVec[i], NLLVec[i], chrmsToUse,
-									 numberResults, fig, colors, i)
+									 numberResults, fig, colors, plotNum=i)
 	elif plotOption == "best":
 		#determine the optimal result
 		currBestInd = 0
@@ -222,7 +222,7 @@ def plot_results(BAFVec, meansVec, posVec, chrmVec, NLLVec, chrmsToUse, plotOpti
 		#plot best result
 		fig = plot_single_result(BAFVec[idx], meansVec[idx], posVec[idx], 
 									 chrmVec[idx], NLLVec[idx], chrmsToUse,
-									 1, fig, colors, 1)
+									 1, fig, colors)
 	else:
 		print "Plot option not recognized. Exiting..."
 		exit(1)

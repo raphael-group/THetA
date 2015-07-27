@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from math import sqrt, ceil, log
 from scipy.spatial.distance import euclidean
+from multiprocessing import Pool
 
 def get_data(binned, gene, chrm):
 	npArray = np.array(map(lambda x: x[5:7], binned))
@@ -240,6 +241,50 @@ def cluster(data, geneName, fig, ax, sf=0.1, chrm=None):
 
 	return mus, sigmas, numPoints
 
+def cluster2(data, geneName, sf=0.1, chrm=None):
+	Data = get_data(data, geneName, chrm)
+	
+	K = 15
+	if Data.X.shape[0] < 15:
+		K = Data.X.shape[0]
+
+	hmodel, Info = bnpy.Run.run(Data, 'DPMixtureModel', 'DiagGauss', 'moVB', nLap=100, nTask=1, K=K, moves='birth,merge', targetMaxSize=500, ECovMat='eye', mergeStartLap=10, sF=sf, doWriteStdOut=False)
+
+	observationModel = hmodel.obsModel
+	numClusters = observationModel.K
+
+	mus = [observationModel.get_mean_for_comp(k=i) for i in range(numClusters)]
+	sigmas = [observationModel.get_covar_mat_for_comp(k=i) for i in range(numClusters)]
+
+	hetDelParamInds, homDelParamInds, ampParamInds, unknownParamInds, normalParamInds = classify_clusters_old(mus, sigmas)
+	LP = hmodel.calc_local_params(Data)
+	clusterAssignments = np.argmax(LP['resp'], axis=1)
+
+	numPoints = []
+	for i in range(numClusters):
+		currX = np.array([Data.X[j] for j in range(len(Data.X)) if clusterAssignments[j] == i])
+		numPoints.append(currX.shape[0])
+
+	return Data.X, mus, sigmas, numPoints, clusterAssignments
+
+def plot_chromosome_clustering(data, mus, sigmas, clusterAssignments, ax):
+	xs = data[:,0]
+	ys = data[:,1]
+
+	for i in range(len(mus)):
+		currMu = mus[i]
+		currSigma = sigmas[i]
+
+		xvals = [xs[j] for j in range(len(xs)) if clusterAssignments[j] == i]
+		yvals = [ys[j] for j in range(len(xs)) if clusterAssignments[j] == i]
+
+		plot_gaussian(ax, currMu, currSigma, 'black')
+		ax.plot(xvals, yvals, 'o', color='blue', zorder=1)
+
+	ax.set_xlim([0, 5])
+	ax.set_ylim([0, 0.5])
+
+
 def meta_cluster(data, gene, binned):
 	npArray = np.array(data)
 	Data = bnpy.data.XData(X=npArray)
@@ -262,7 +307,7 @@ def meta_cluster(data, gene, binned):
 
 	return mus, sigmas, clusterAssignments, numClusters
 
-def plot_classifications(mus, sigmas, binned, clusterAssignments, numClusters, gene, hetDelParamInds, homDelParamInds, ampParamInds, normalInd):
+def plot_classifications(mus, sigmas, binned, clusterAssignments, numClusters, gene, hetDelParamInds, homDelParamInds, ampParamInds, normalInd, outdir):
 	fig = plt.figure()
 	ax = fig.add_subplot(111)
 
@@ -292,9 +337,9 @@ def plot_classifications(mus, sigmas, binned, clusterAssignments, numClusters, g
 	ax.set_title(gene + " meta Clustering")
 	ax.set_xlim([0, 5])
 	ax.set_ylim([0, 0.5])
-	fig.savefig(gene + "_classifications.png")
+	fig.savefig(outdir + gene + "_classifications.png")
 
-def plot_clusters(binned, clusterAssignments, numClusters, geneName, amp_upper, stepSize, normMuX, stepPointX):
+def plot_clusters(binned, clusterAssignments, numClusters, geneName, amp_upper, stepSize, normMuX, stepPointX, outdir):
 	cmap = plt.get_cmap('gist_rainbow')
 	colors = [cmap(i) for i in np.linspace(0, 1, numClusters)]
 
@@ -316,7 +361,7 @@ def plot_clusters(binned, clusterAssignments, numClusters, geneName, amp_upper, 
 		ax.plot([barX, barX], [0.0, 0.5], color='blue')
 	ax.set_ylim([0, 0.5])
 	ax.set_xlim([0, ((maxStep * stepSize) + normMuX)])
-	fig.savefig(geneName + "_assignment.png")
+	fig.savefig(outdir + geneName + "_assignment.png")
 
 def generate_data(data, sd=0.02):
 	generatedData = []
@@ -369,17 +414,23 @@ def group_to_meta_interval(lengths, tumorCounts, normalCounts, m, upper_bounds, 
 
 	return intervalMap, metaLengths, metaTumorCounts, metaNormalCounts, meta_lower_bounds, meta_upper_bounds
 
-def cluster_wrapper((binnedChrm, geneName, fig, currAx, chrm, generateData)):
+def cluster_wrapper((binnedChrm, geneName, chrm, generateData)):
+	if binnedChrm == []:
+		return None
+
 	if generateData:
 		binnedChrm = generate_data(binnedChrm)
 
-	mu, sigmas, numPoints = cluster(binnedChrm, geneName, fig, currAx, chrm=chrm)
-	metaDataRow = generate_data2(mu, numPoints)
+	generatedData, mus, sigmas, numPoints, clusterAssignments = cluster2(binnedChrm, geneName, chrm=chrm)
+	metaDataRow = generate_data2(mus, numPoints)
 
-	return mu, sigmas, numPoints, metaDataRow
+	return generatedData, mus, sigmas, clusterAssignments, metaDataRow
 
 
-def clustering_BAF(filename, byChrm=True, generateData=True):
+def clustering_BAF(filename, byChrm=True, generateData=True, outdir="./", numProcesses=11):
+	if not outdir.endswith("/"):
+		outdir += "/"
+
 	geneName = os.path.basename(filename).split(".")[0]
 	missingData, binned = read_binned_file(filename, byChrm=byChrm)
 	
@@ -391,20 +442,37 @@ def clustering_BAF(filename, byChrm=True, generateData=True):
 		ncols = 1
 	fig, ax = plt.subplots(nrows=nrows, ncols=ncols, figsize=(20,20))
 
+	print "First round of clustering..."
 	if byChrm:
 		metaData = []
-		for chrm, binnedChrm in enumerate(binned):
-			if binnedChrm == []: continue
-			chrm += 1
-			print "Clustering " + str(chrm) + "/24"
-			currAx = ax[chrm / 4][chrm % 4]
+		p = Pool(numProcesses)
+		
+		linearizedChrm = range(24)
+		linearizedGeneName = [geneName for i in linearizedChrm]
+		linearizedGenerateData = [generateData for i in linearizedChrm]
 
-			if generateData:
-				binnedChrm = generate_data(binnedChrm)
+		results = p.map(cluster_wrapper, zip(binned, linearizedGeneName, linearizedChrm, linearizedGenerateData))
+		metaData = []
+		for i in range(24):
+			row = results[i]
+			if row is None: continue
 
-			mu, sigmas, numPoints = cluster(binnedChrm, geneName, fig, currAx, chrm=chrm)
-			metaData.append(generate_data2(mu, numPoints))
-		metaData = [row for subData in metaData for row in subData]
+			generatedData, mus, sigmas, clusterAssignments, metaDataRow = row
+			currAx = ax[i / 4][i % 4]
+			plot_chromosome_clustering(generatedData, mus, sigmas, clusterAssignments, currAx)
+			metaData += metaDataRow
+
+		# for chrm, binnedChrm in enumerate(binned):
+		# 	if binnedChrm == []: continue
+		# 	chrm += 1
+		# 	print "Clustering " + str(chrm) + "/24"
+		# 	currAx = ax[chrm / 4][chrm % 4]
+
+		# 	if generateData:
+		# 		binnedChrm = generate_data(binnedChrm)
+
+		# 	mu, sigmas, numPoints = cluster(binnedChrm, geneName, fig, currAx, chrm=chrm)
+		# 	metaData.append(generate_data2(mu, numPoints))
 	else:
 		if generateData:
 			binned = generate_data(binned)
@@ -414,14 +482,19 @@ def clustering_BAF(filename, byChrm=True, generateData=True):
 	if byChrm:
 		binned = [row for subData in binned for row in subData]
 
+	print "Begin meta clustering..."
 	metaMu, metaSigma, clusterAssignments, numClusters = meta_cluster(metaData, geneName, binned)
 
+	print "Classifying clusters..."
 	intervalLengths = map(lambda row: row[2] - row[1] + 2, binned)
 	hetDelParamInds, clonalHetDelParamInd, homDelParamInds, ampParamInds, normalInd = classify_clusters(metaMu, intervalLengths, clusterAssignments)
 	
-	plot_classifications(metaMu, metaSigma, binned, clusterAssignments, numClusters, geneName, hetDelParamInds, homDelParamInds, ampParamInds, normalInd)
-	fig.savefig(geneName + "_by_chromosome.png")
+	print "Plotting classifications..."
+	plot_classifications(metaMu, metaSigma, binned, clusterAssignments, numClusters, geneName, hetDelParamInds, homDelParamInds, ampParamInds, normalInd, outdir)
+	fig.savefig(outdir + geneName + "_by_chromosome.png")
 
+
+	print "Determining copy number bounds..."
 	normMu = metaMu[normalInd]
 	normMuX = normMu[0]
 
@@ -441,8 +514,6 @@ def clustering_BAF(filename, byChrm=True, generateData=True):
 	else:
 		amp_upper = []
 		ampDistances = []
-
-	plot_clusters(binned, clusterAssignments, numClusters, geneName, amp_upper, stepSize, normMuX, stepPointX)
 
 	m = len(binned) + len(missingData)
 	lengths = range(m)
@@ -496,6 +567,12 @@ def clustering_BAF(filename, byChrm=True, generateData=True):
 					lower_bounds[i] = 0
 			j += 1
 	
+	print "Plotting clusters..."
+	plot_clusters(binned, clusterAssignments, numClusters, geneName, amp_upper, stepSize, normMuX, stepPointX, outdir)
+
+	print "Plotting BAFs..."
+	plot_BAF_by_chrm(binned, clusterAssignments, geneName, outdir)
+
 	return lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, fullClusterAssignments, numClusters, metaMu
 
 def write_clusters_for_all_samples(samplelist):
@@ -725,6 +802,52 @@ def plot_vs(filename):
 		fig.savefig(sample + "_v.png")
 		plt.close('all')
 
+def plot_BAF_by_chrm(binned, clusterAssignments, sampleName, outdir):
+	BAFbyChrm = [[] for i in range(24)]
+	for row in binned:
+		chrm = row[0]
+		BAFbyChrm[chrm].append(row)
+
+	fig = plt.figure()
+	ax = fig.add_subplot(111)
+
+	cmap = plt.get_cmap('gist_rainbow')
+	colors = [cmap(i) for i in np.linspace(0, 1, max(clusterAssignments) + 1)]
+
+	offset = 0
+	xlabelPoints = []
+	xlabels = []
+	j = 0
+	for i in range(24):
+		chrmData = BAFbyChrm[i]
+
+		if chrmData == []: continue
+
+		minPos = min(row[1] for row in chrmData)
+
+		for chrm, start, end, tumorCounts, normalCounts, corrRatio, BAF, numSNPs in chrmData:
+			color = colors[clusterAssignments[j]]
+			ax.plot([start + offset - minPos, end + offset - minPos], [BAF, BAF], color=color, linewidth=2, solid_capstyle="butt")
+			j += 1
+		chrmEnd = max([row[2] for row in chrmData])
+		labelPoint = (offset + offset + chrmEnd) / 2
+		xlabelPoints.append(labelPoint)
+		xlabels.append(i + 1)
+		ax.plot([offset, offset], [0, 0.5], color='black')
+		offset += chrmEnd - minPos
+
+
+	ax.set_title('BAF for ' + sampleName)
+	ax.set_xticks(xlabelPoints)
+	ax.set_xticklabels(xlabels)
+	ax.set_xlabel('Chromosome')
+	ax.set_ylabel('BAF')
+	ax.set_xlim([0, offset])
+	ax.tick_params(axis='x', labelsize=8)
+
+	fig.tight_layout()
+	fig.savefig(outdir + sampleName + "_BAF_by_chrm.png")
+
 if __name__ == "__main__":
 	#plot_vs('all_sample_clusters.txt')
 	# plot_max_BAF('all_sample_clusters.txt')
@@ -737,11 +860,11 @@ if __name__ == "__main__":
 	# 		'786fc3e4-e2bf-4914-9251-41c800ebb2fa',
 	# 		'6aa00162-6294-4ce7-b6b7-0c3452e24cd6',
 	# 		'4853fd17-7214-4f0c-984b-1be0346ca4ab']
-	samplelist = ['03c3c692-8a86-4843-85ae-e045f0fa6f88',
-					'0d0793c1-df1b-4db1-ba36-adcb960cc0f5',
-					'a47c2012-c13d-48ac-88b6-e09bfd50122b',
-					'ac1bd179-8285-468c-ab9f-7f91151ca0f2',
-					'2ce48f01-2f61-49d9-a56a-7438bf4a37d7']
+	samplelist = ['03c3c692-8a86-4843-85ae-e045f0fa6f88'] #,
+					# '0d0793c1-df1b-4db1-ba36-adcb960cc0f5',
+					# 'a47c2012-c13d-48ac-88b6-e09bfd50122b',
+					# 'ac1bd179-8285-468c-ab9f-7f91151ca0f2',
+					# '2ce48f01-2f61-49d9-a56a-7438bf4a37d7']
 	#write_clusters_for_all_samples(samplelist)
 	for sample in samplelist:
 	 	clustering_BAF("/research/compbio/projects/THetA/ICGC-PanCan/data/" + sample + "/" + sample + ".gamma.0.2.RD.BAF.intervals.txt")

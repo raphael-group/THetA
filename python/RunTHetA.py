@@ -241,7 +241,7 @@ def main():
 	###
 
 	if cluster_bounds is not None:
-		lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters,_ = clustering_BAF(cluster_bounds)
+		lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters,_ = clustering_BAF(cluster_bounds, outdir=directory, numProcesses=num_processes)
 	
 		origM, origLengths, origTumor, origNormal, origUpper, origLower = (m, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds)
 
