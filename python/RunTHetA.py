@@ -134,7 +134,9 @@ def do_optimization(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 	processes = start_processes(max_processes, queue, opt, returnQueue, \
 			    sorted_index, get_values)
 	
-	C = enum.generate_next_C()
+	# fix problem with missing first matrix
+	#C = enum.generate_next_C()
+	C=enum._C_to_array()
 	count = 0
 	while C is not False:
 		count += 1
@@ -172,7 +174,10 @@ def do_optimization_single(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 	min_likelihood = float("inf")	
 	best = []
 	count = 0
-	C = enum.generate_next_C()
+
+	#fix missing first matrix problem
+	C=enum._C_to_array()
+	#C = enum.generate_next_C()
 	if get_values: solns = []
 	while C is not False:
 		count += 1
