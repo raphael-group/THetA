@@ -7,8 +7,9 @@ import matplotlib.pyplot as plt
 import sys
 from numpy import linspace
 from scipy.stats import norm, beta
+from multiprocessing import Pool
 
-def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, prefix=None, directory="./", plotOption="best", model="gaussian", width=12.0, height=12.0, gamma=0.05):
+def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, prefix=None, directory="./", plotOption="best", model="gaussian", width=12.0, height=12.0, gamma=0.05, numProcesses=1):
 	"""
 	Runs the BAF model on SNP and interval data.
 
@@ -45,7 +46,7 @@ def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, prefix=None, d
 	mu = results['mu']
 
 	#calculate the BAFs and remove irrelevant data
-	tumorBAF, normalBAF, tumor, normal = calculate_BAF(tumor, normal, chrmsToUse, minSNP, gamma)
+	tumorBAF, normalBAF, tumor, normal = calculate_BAF(tumor, normal, chrmsToUse, minSNP, gamma, numProcesses)
 
 	#arrays for storing results
 	BAFVec = []
@@ -73,7 +74,7 @@ def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, prefix=None, d
 
 		#calculate the NLL for the given model
 		if model == "gaussian":
-			currBAF, currMeans, currPos, currChrmVec, currNLL = get_gaussian_NLL(tumor, tumorBAF, normal, normalBAF, currC, currMu, pi)
+			currBAF, currMeans, currPos, currChrmVec, currNLL = get_gaussian_NLL(tumor, tumorBAF, normal, normalBAF, currC, currMu, pi, numProcesses)
 		else:
 			print model + " is not a supported model. Exiting program..."
 			exit(1)
@@ -166,8 +167,8 @@ def plot_single_result(BAF, means, pos, chrm, NLL, chrmsToUse, numberResults, fi
 		#plotting chromosome points
 		xlabelPoints.append((offset + maxPos) / 2.0)
 		offset = maxPos + (2 * (10**mag))
-		ax.plot(xs, ys, 'o', color=color, ms=2, markeredgecolor='none', zorder=1)
-		ax.plot(xs, mus, 's', color='black', ms=2, zorder=2)
+		ax.plot(xs, ys, 'o', color=color, ms=2, markeredgecolor='none', zorder=1, solid_capstyle="butt")
+		ax.plot(xs, mus, 's', color='black', ms=2, zorder=2, solid_capstyle="butt")
 		ax.plot([maxPos + (10**mag), maxPos + (10**mag)], [0, 1], color='black', zorder=3, linewidth=2)
 			
 	#formatting plot
@@ -235,7 +236,7 @@ def plot_results(BAFVec, meansVec, posVec, chrmVec, NLLVec, chrmsToUse, plotOpti
 	plt.savefig(fig_file)
 	#plt.savefig(directory + prefix + ".BAF.plot." + plotOption +".png")
 
-def is_heterozygous(n_a, n_b, gamma):
+def is_heterozygous((n_a, n_b, gamma)):
 	"""
 	Determines if an allele should be considered heterozygous.
 
@@ -257,7 +258,7 @@ def is_heterozygous(n_a, n_b, gamma):
 	[c_lower, c_upper] = beta.ppf([p_lower, p_upper], n_a + 1, n_b + 1)
 	return c_lower <= 0.5 and c_upper >= 0.5
 
-def calculate_BAF(tumorData, normalData, chrmsToUse, minSNP, gamma):
+def calculate_BAF(tumorData, normalData, chrmsToUse, minSNP, gamma, numProcesses):
 	"""
 	Calculates the BAF for tumor SNP data and normal SNP data. Also filters for useful data using a variety of
 	heuristics.
@@ -295,12 +296,12 @@ def calculate_BAF(tumorData, normalData, chrmsToUse, minSNP, gamma):
 	normalBAF = []
 	newTumorData = []
 	newNormalData = []
+	print "Determining heterozygosity."
+	p = Pool(numProcesses)
+	repGamma = [gamma for i in range(len(tumorData))]
+	isHet = p.map(is_heterozygous, zip(normalRefCount, normalMutCount, repGamma))
 	print "Calculating BAFs."
-	j = 0
 	for i in range(len(tumorData)):
-		if floor((float(i) / float(len(tumorData))) * 100.0) > j:
-			j += 1
-			print str(j) + "%"
 		chrm = tumorData[i][0]
 		#filter out data that uses irrelevant chromosomes
 		if chrm not in chrmsToUse: continue
@@ -321,7 +322,7 @@ def calculate_BAF(tumorData, normalData, chrmsToUse, minSNP, gamma):
 			tumorBAFj = currTumorNum / currTumorDenom
 			normalBAFj = currNormalNum / currNormalDenom
 			#filter out data where normal BAFs do not fit in bounds correctly
-			if is_heterozygous(normalRefCount[i], normalMutCount[i], gamma):
+			if isHet[i]:
 				tumorBAF.append(tumorBAFj)
 				normalBAF.append(normalBAFj)
 				newTumorData.append(tumorData[i])
@@ -354,7 +355,6 @@ def generate_delta(C, mu):
 			return 1.0
 
 	delta = []
-	j = 0
 	for row in C:
 		numerator = sum(map(lambda (a, b): phi(a) * b, zip(row, mu)))
 		denominator = sum(map(lambda (a, b): a * b, zip(row, mu)))
@@ -465,7 +465,7 @@ def normal_BAF_pdf(x, delta, sigma):
 	p = norm(mu, sigma).pdf(x)
 	return mu, p
 
-def get_gaussian_NLL(tumor, tumorBAF, normal, normalBAF, C, mu, pi):
+def get_gaussian_NLL(tumor, tumorBAF, normal, normalBAF, C, mu, pi, numProcesses):
 	"""
 	Calculates the negative log likelihood of seeing a result from THetA using a gaussian distribution.
 

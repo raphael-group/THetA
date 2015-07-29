@@ -4,7 +4,7 @@ import os
 path = os.path.dirname(os.path.realpath(__file__)) + "/bnpy/results/"
 os.environ["BNPYOUTDIR"] = path
 import bnpy
-from FileIO import read_binned_file
+from FileIO import *
 import matplotlib.pyplot as plt
 import numpy as np
 from math import sqrt, ceil, log
@@ -570,9 +570,6 @@ def clustering_BAF(filename, byChrm=True, generateData=True, outdir="./", numPro
 	print "Plotting clusters..."
 	plot_clusters(binned, clusterAssignments, numClusters, geneName, amp_upper, stepSize, normMuX, stepPointX, outdir)
 
-	print "Plotting BAFs..."
-	plot_BAF_by_chrm(binned, clusterAssignments, geneName, outdir)
-
 	return lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, fullClusterAssignments, numClusters, metaMu
 
 def write_clusters_for_all_samples(samplelist):
@@ -802,51 +799,95 @@ def plot_vs(filename):
 		fig.savefig(sample + "_v.png")
 		plt.close('all')
 
-def plot_BAF_by_chrm(binned, clusterAssignments, sampleName, outdir):
+def generate_delta(C, mu):
+	def phi(a):
+		if a == 0:
+			return 0.0
+		elif a == 3:
+			return 2.0
+		else:
+			return 1.0
+
+	delta = []
+	for row in C:
+		if all(item <= 3 and item >= 0 for item in row):
+			numerator = sum(map(lambda (a, b): phi(a) * b, zip(row, mu)))
+			denominator = sum(map(lambda (a, b): a * b, zip(row, mu)))
+			deltaj = (numerator / denominator) - 0.5
+			delta.append(deltaj)
+		else:
+			continue
+
+	return delta
+
+def plot_BAF_by_chrm(intervalfile, resultsfile, clusterAssignments, outdir):
+	sampleName = os.path.basename(intervalfile).split(".")[0]
+
+	missingData, binned = read_binned_file(intervalfile)
+	results = read_results_file_full(resultsfile)
+	Carray = results['C']
+	muArray = results['mu']
+	numResults = len(Carray)
+
 	BAFbyChrm = [[] for i in range(24)]
-	for row in binned:
+	for i in range(len(binned)):
+		row = binned[i]
+		row.append(clusterAssignments[i])
 		chrm = row[0]
 		BAFbyChrm[chrm].append(row)
 
-	fig = plt.figure()
-	ax = fig.add_subplot(111)
+	fig, Ax = plt.subplots(nrows=numResults, ncols=1)
 
-	cmap = plt.get_cmap('gist_rainbow')
-	colors = [cmap(i) for i in np.linspace(0, 1, max(clusterAssignments) + 1)]
+	for i in range(numResults):
+		C = Carray[i]
+		mu = muArray[i]
+		if numResults > 1:
+			ax = Ax[i]
+		else:
+			ax = Ax
 
-	offset = 0
-	xlabelPoints = []
-	xlabels = []
-	j = 0
-	for i in range(24):
-		chrmData = BAFbyChrm[i]
+		delta = generate_delta(C, mu)
 
-		if chrmData == []: continue
+		for row, deltaj in zip(binned, delta):
+				row[6] = abs(row[6] - deltaj)
 
-		minPos = min(row[1] for row in chrmData)
+		
 
-		for chrm, start, end, tumorCounts, normalCounts, corrRatio, BAF, numSNPs in chrmData:
-			color = colors[clusterAssignments[j]]
-			ax.plot([start + offset - minPos, end + offset - minPos], [BAF, BAF], color=color, linewidth=2, solid_capstyle="butt")
-			j += 1
-		chrmEnd = max([row[2] for row in chrmData])
-		labelPoint = (offset + offset + chrmEnd) / 2
-		xlabelPoints.append(labelPoint)
-		xlabels.append(i + 1)
-		ax.plot([offset, offset], [0, 0.5], color='black')
-		offset += chrmEnd - minPos
+		cmap = plt.get_cmap('gist_rainbow')
+		colors = [cmap(i) for i in np.linspace(0, 1, max(clusterAssignments) + 1)]
+
+		offset = 0
+		xlabelPoints = []
+		xlabels = []
+		for i in range(24):
+			chrmData = BAFbyChrm[i]
+
+			if chrmData == []: continue
+
+			minPos = min(row[1] for row in chrmData)
+
+			for chrm, start, end, tumorCounts, normalCounts, corrRatio, BAF, numSNPs, assignment in chrmData:
+				color = colors[assignment]
+				ax.plot([start + offset - minPos, end + offset - minPos], [BAF, BAF], color=color, linewidth=2, solid_capstyle="butt")
+			chrmEnd = max([row[2] for row in chrmData])
+			labelPoint = (offset + offset + chrmEnd) / 2
+			xlabelPoints.append(labelPoint)
+			xlabels.append(i)
+			ax.plot([offset, offset], [0, 0.5], color='black')
+			offset += chrmEnd - minPos
 
 
-	ax.set_title('BAF for ' + sampleName)
-	ax.set_xticks(xlabelPoints)
-	ax.set_xticklabels(xlabels)
-	ax.set_xlabel('Chromosome')
-	ax.set_ylabel('BAF')
-	ax.set_xlim([0, offset])
-	ax.tick_params(axis='x', labelsize=8)
+		ax.set_title('BAF for ' + sampleName)
+		ax.set_xticks(xlabelPoints)
+		ax.set_xticklabels(xlabels)
+		ax.set_xlabel('Chromosome')
+		ax.set_ylabel('BAF')
+		ax.set_xlim([0, offset])
+		ax.tick_params(axis='x', labelsize=8)
 
 	fig.tight_layout()
-	fig.savefig(outdir + sampleName + "_BAF_by_chrm.png")
+	N = len(muArray[0])
+	fig.savefig(outdir + sampleName + "_BAF_by_chrm_N" + str(N) + ".png")
 
 if __name__ == "__main__":
 	#plot_vs('all_sample_clusters.txt')
