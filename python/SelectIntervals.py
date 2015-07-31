@@ -36,6 +36,7 @@ import math
 MIN_LENGTH_N2 = 1000000 # 1Mb
 MIN_LENGTH_N3 = 5000000 # 5Mb
 MAX_CLUSTER_SCORE=0.05
+#MAX_CLUSTER_SCORE=0.1
 
 def select_intervals_n3(lengths, tumor_counts, norm_counts, m, upper_bounds, lower_bounds, copy, tau, force, num_intervals):
 	"""
