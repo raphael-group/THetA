@@ -2,7 +2,7 @@
 
 from FileIO import *
 from math import *
-from os.path import basename
+from os.path import basename, join
 import matplotlib.pyplot as plt
 import sys
 from numpy import linspace
@@ -230,7 +230,11 @@ def plot_results(BAFVec, meansVec, posVec, chrmVec, NLLVec, chrmsToUse, plotOpti
 
 	#formatting and saving plot
 	fig.tight_layout()
-	plt.savefig(directory + prefix + ".BAF.plot." + plotOption +".png")
+
+	#layla - fix plotting location
+	fig_file=os.path.join(directory,prefix+".BAF.plot." + plotOption +".png")
+	plt.savefig(fig_file)
+	#plt.savefig(directory + prefix + ".BAF.plot." + plotOption +".png")
 
 def is_heterozygous((n_a, n_b, gamma)):
 	"""

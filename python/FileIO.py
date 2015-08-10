@@ -444,7 +444,10 @@ def read_interval_file_BAF(filename):
 		for line in f:
 			if line.startswith("#"): continue
 
-			iden, chrm, startPos, endPos, tCount, nCount = line.strip().split("\t")
+			#layla - fix bug when extra columns are provided
+			vals = line.strip().split("\t")
+			iden, chrm, startPos, endPos, tCount, nCount = vals[0:6]
+			#iden, chrm, startPos, endPos, tCount, nCount = line.strip().split("\t")
 
 			chrm = chrm.lower()
 			if chrm.startswith("chrm"):

@@ -274,6 +274,7 @@ def main():
 	#	note: This is the default behavior
 	###
 	if choose_intervals:
+
 		
 
 		if cluster_bounds or density_bounds is not None:
@@ -316,6 +317,7 @@ def main():
 				order, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds, copy = select_intervals_n3(lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds, copy, tau, force, num_intervals)
 
 		m = len(order)
+
 
 	sum_r = sum(tumorCounts)
 	sum_rN = sum(normCounts)
@@ -416,7 +418,7 @@ def main():
 			resultsFile = BAFprefix + ".n"+str(n)+".results"
 			resultsPath = os.path.join(directory, resultsFile)
 			try:
-				run_BAF_model(tumorSNP, normalSNP, filename, resultsPath, prefix=prefix + ".n" + str(n), directory=directory, numProcesse=num_processes)
+				run_BAF_model(tumorSNP, normalSNP, filename, resultsPath, prefix=prefix + ".n" + str(n), directory=directory, numProcesses=num_processes)
 			except IOError:
 				print "ERROR: Invalid locations for tumor and normal SNP files. The BAF model will not be run. You can try running the BAF model again directly from the runBAFModel.py script."
 		else:
