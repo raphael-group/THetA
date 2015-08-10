@@ -243,6 +243,8 @@ def parse_BAF_arguments():
 	parser.add_argument("--HEIGHT", help="Sets the output plot's height.", metavar="HEIGHT", type=float, required=False, default=None)
 	parser.add_argument("--G", help="Sets the gamma value used as a parameter for determining SNP heterozygosity.",
 						metavar="G", type=float, required=False, default=None)
+	parser.add_argument("--NUM_PROCESSES", help="The number of processes to be used",
+			default=1, type=int, metavar="NUM_PROCESSES", required=False)
 	args = parser.parse_args()
 
 	kwargs = {}
@@ -250,6 +252,7 @@ def parse_BAF_arguments():
 	kwargs['normalSNP'] = args.NORMAL_SNP
 	kwargs['intervalFile'] = args.INTERVALS
 	kwargs['resultsFile'] = args.RESULTS
+	kwargs['numProcesses'] = args.NUM_PROCESSES
 
 	if args.P is not None:
 		kwargs['prefix'] = args.P
@@ -284,12 +287,12 @@ def parse_BAF_arguments():
 
 	return kwargs
 
-def read_binned_file(filename, byChrm=False, double=False):
+def read_interval_RD_BAF_file(filename, byChrm=False, double=False):
 	"""
-	Parses the data in a .binned.txt file.
+	Parses the data in an interval file with RDR and BAF data.
 
 	Arguments:
-		filename (str): the location of the .binned.txt file
+		filename (str): the location of the interval file
 
 	Returns:
 		data (2D list): A 2D list, where each row is [chromosome number, start interval,

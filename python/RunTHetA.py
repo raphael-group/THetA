@@ -36,7 +36,7 @@ from plotResults import *
 from RunBAFModel import run_BAF_model
 from SetNewBounds import set_new_bounds
 from clusteringBAF import clustering_BAF, group_to_meta_interval
-
+from gridplot import generate_grid_plot
 
 from multiprocessing import JoinableQueue, Queue, Process, Array, current_process
 import os
@@ -246,7 +246,7 @@ def main():
 	###
 
 	if cluster_bounds is not None:
-		lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters,_ = clustering_BAF(cluster_bounds, outdir=directory, numProcesses=num_processes)
+		lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters, clusterMeans, normalInd = clustering_BAF(cluster_bounds, prefix=prefix, outdir=directory, numProcesses=num_processes)
 	
 		origM, origLengths, origTumor, origNormal, origUpper, origLower = (m, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds)
 
