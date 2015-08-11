@@ -43,7 +43,9 @@ def plot_gaussian(ax, mu, Sigma, color):
         ax.plot(
             Z[0], Z[1], '.', markerfacecolor=color, markeredgecolor=color, zorder=2)
 
-def plot_classifications(mus, sigmas, intervals, clusterAssignments, numClusters, gene, hetDelParamInds, homDelParamInds, ampParamInds, normalInd, outdir):
+def plot_classifications(mus, sigmas, intervals, clusterAssignments, numClusters, sampleName, hetDelParamInds, homDelParamInds, ampParamInds, normalInd, outdir):
+	print "Plotting classifications..."
+
 	fig = plt.figure()
 	ax = fig.add_subplot(111)
 
@@ -70,12 +72,13 @@ def plot_classifications(mus, sigmas, intervals, clusterAssignments, numClusters
 		plot_gaussian(ax, currMu, currSigma, currColor)
 		ax.plot(xvals, yvals, 'o', color=currColor, zorder=1)
 
-	ax.set_title(gene + " meta Clustering")
+	ax.set_title(sampleName + " meta Clustering")
 	ax.set_xlim([0, 5])
 	ax.set_ylim([0, 0.5])
-	fig.savefig(outdir + gene + "_classifications.png")
+	fig.savefig(outdir + sampleName + "_classifications.png")
 
-def plot_clusters(intervals, clusterAssignments, numClusters, geneName, amp_upper, stepSize, normMuX, stepPointX, outdir):
+def plot_clusters(intervals, clusterAssignments, numClusters, sampleName, amp_upper, stepSize, normRDR, clonalHetDelRDR, outdir):
+	print "Plotting clusters..."
 	cmap = plt.get_cmap('gist_rainbow')
 	colors = [cmap(i) for i in np.linspace(0, 1, numClusters)]
 
@@ -86,18 +89,18 @@ def plot_clusters(intervals, clusterAssignments, numClusters, geneName, amp_uppe
 	colorAssignment = map(lambda assignment: colors[assignment], clusterAssignments)
 
 	ax.scatter(xs, ys, c=colorAssignment)
-	ax.plot([stepPointX, stepPointX], [0.0, 0.5], color='red')
-	ax.plot([normMuX, normMuX], [0.0, 0.5], color='green')
+	ax.plot([clonalHetDelRDR, clonalHetDelRDR], [0.0, 0.5], color='red')
+	ax.plot([normRDR, normRDR], [0.0, 0.5], color='green')
 	if amp_upper != []:
 		maxStep = int(max(amp_upper) - 1)
 	else:
 		maxStep = 1
 	for scale in range(1, maxStep):
-		barX = (scale * stepSize) + normMuX
+		barX = (scale * stepSize) + normRDR
 		ax.plot([barX, barX], [0.0, 0.5], color='blue')
 	ax.set_ylim([0, 0.5])
-	ax.set_xlim([0, ((maxStep * stepSize) + normMuX)])
-	fig.savefig(outdir + geneName + "_assignment.png")
+	ax.set_xlim([0, ((maxStep * stepSize) + normRDR)])
+	fig.savefig(outdir + sampleName + "_assignment.png")
 
 def parse_preprocessed_data(filename):
 	sampleList = []
