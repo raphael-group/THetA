@@ -30,7 +30,7 @@ import sys
 import argparse
 import gzip
 
-N_VALS = [2,3]
+N_VALS = [None,2,3]
 MAX_K = 7
 
 def parse_arguments(silent=False):
@@ -73,7 +73,7 @@ def parse_arguments(silent=False):
 	parser = argparse.ArgumentParser()
 	parser.add_argument("QUERY_FILE", help="Interval file", metavar="QUERY_FILE")
 	parser.add_argument("-n","--N", help="Number of subpopulations", metavar="N", \
-			type=int, default=2, required=False)
+			type=int, default=None, required=False)
 	parser.add_argument("-k","--MAX_K", help="The maximum value allowed for \
 			entries in C", metavar="K", default=3, type=int, required=False)
 	parser.add_argument("-t","--TAU", help="Expected number of copies in normal \

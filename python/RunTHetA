@@ -29,13 +29,13 @@ fi
 
 echo "Running THetA for N = 3..."
 
-chmod +x $runN3
-$runN3
+#chmod +x $runN3
+#$runN3
 
-if [ $? != 0 ]; then
-	echo "N = 3 ended with ERROR. Exiting..."
-	exit 1
-fi
+#if [ $? != 0 ]; then
+#	echo "N = 3 ended with ERROR. Exiting..."
+#	exit 1
+#fi
 
 echo "Selecting Best Solution..."
 
