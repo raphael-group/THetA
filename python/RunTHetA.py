@@ -213,11 +213,16 @@ def main():
 	###
 	#  Read in arguments and data file
 	##
-	filename, results, n, k, tau, directory, prefix, max_normal, bound_heuristic, \
+	args = parse_arguments()
+	n = args[2]
+	run_fixed_N(n, args)
+
+def run_fixed_N(n, args):
+	(filename, results, N, k, tau, directory, prefix, max_normal, bound_heuristic, \
 		normal_bound_heuristic,heuristic_lb, heuristic_ub, num_processes, \
 		bounds_only, multi_event, force, get_values, choose_intervals, num_intervals, \
 		read_depth_file, graph_format, runBAF, tumorSNP, normalSNP, ratio_dev, min_frac,\
-		cluster_bounds, density_bounds = parse_arguments()
+		cluster_bounds, density_bounds) = args
 
 	global pre
 	pre = prefix
