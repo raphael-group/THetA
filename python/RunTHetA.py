@@ -35,7 +35,7 @@ from CalcAllC import *
 from plotResults import *
 from RunBAFModel import run_BAF_model
 from SetNewBounds import set_new_bounds
-from clusteringBAF import clustering_BAF, group_to_meta_interval
+from ClusteringBAF import clustering_BAF, group_to_meta_interval
 from gridplot import generate_grid_plot
 
 from multiprocessing import JoinableQueue, Queue, Process, Array, current_process

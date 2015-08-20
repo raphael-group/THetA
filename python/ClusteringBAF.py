@@ -1,4 +1,28 @@
-#!/usr/bin/python
+ ###
+ # 2015 Brown University, Providence, RI.
+ #
+ #                       All Rights Reserved
+ #
+ # Permission to use, copy, modify, and distribute this software and its
+ # documentation for any purpose other than its incorporation into a
+ # commercial product is hereby granted without fee, provided that the
+ # above copyright notice appear in all copies and that both that
+ # copyright notice and this permission notice appear in supporting
+ # documentation, and that the name of Brown University not be used in
+ # advertising or publicity pertaining to distribution of the software
+ # without specific, written prior permission.
+ #
+ # BROWN UNIVERSITY DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
+ # INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR ANY
+ # PARTICULAR PURPOSE.  IN NO EVENT SHALL BROWN UNIVERSITY BE LIABLE FOR
+ # ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ # WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ # http://cs.brown.edu/people/braphael/software.html
+ # 
+ # @author Layla Oesper, Ahmad Mahmoody, Benjamin J. Raphael, Gryte Satas, and Alex Ashery
+ ###
 
 import os
 os.environ["BNPYOUTDIR"] = "./"
@@ -31,7 +55,7 @@ def clustering_BAF(filename, byChrm=True, generateData=True, prefix=None, outdir
 	Returns:
 		lengths (list of ints): Length of each interval
 		tumorCounts (list of ints): Tumor count for each interval
-		normalCounts (list of ints): Normal count for each interval
+		diploidCounts (list of ints): diploid count for each interval
 		m (int): The total number of intervals (including intervals that have been marked as invalid).
 		upper_bounds (list of ints): The upper copy number bound assigned to each interval.
 		lower_bounds (list of ints): The lower copy number bound assigned to each interval.
@@ -40,7 +64,7 @@ def clustering_BAF(filename, byChrm=True, generateData=True, prefix=None, outdir
 											jth meta-interval.
 		numClusters (int): The number of clusters.
 		metaMu (list of lists of floats): The means of each cluster.
-		normalInd (int): The index of the cluster that has been called normal.
+		diploidInd (int): The index of the cluster that has been called diploid.
 	"""
 
 	#ensure / at the end of output directory
@@ -67,13 +91,13 @@ def clustering_BAF(filename, byChrm=True, generateData=True, prefix=None, outdir
 	metaMu, metaSigma, clusterAssignments, numPoints, numClusters = cluster(metaData, sampleName, sf=0.01, intervals=intervals)
 
 	intervalLengths = [row[2] - row[1] + 2 for row in intervals]
-	hetDelParamInds, clonalHetDelParamInd, homDelParamInds, ampParamInds, normalInd = classify_clusters(metaMu, intervalLengths, clusterAssignments)
+	singleCopyParamInds, clonalsingleCopyParamInd, zeroCopyParamInds, ampParamInds, diploidInd = classify_clusters(metaMu, intervalLengths, clusterAssignments)
 	
-	plot_classifications(metaMu, metaSigma, intervals, clusterAssignments, numClusters, sampleName, hetDelParamInds, homDelParamInds, ampParamInds, normalInd, outdir)
+	plot_classifications(metaMu, metaSigma, intervals, clusterAssignments, numClusters, sampleName, singleCopyParamInds, zeroCopyParamInds, ampParamInds, diploidInd, outdir)
 
-	lengths, tumorCounts, normalCounts, upper_bounds, lower_bounds, clusterAssignments, m = process_classifications(intervals, missingData, metaMu, clusterAssignments, numClusters, normalInd, clonalHetDelParamInd, hetDelParamInds, ampParamInds, sampleName, outdir)
+	lengths, tumorCounts, diploidCounts, upper_bounds, lower_bounds, clusterAssignments, m = process_classifications(intervals, missingData, metaMu, clusterAssignments, numClusters, diploidInd, clonalsingleCopyParamInd, singleCopyParamInds, ampParamInds, sampleName, outdir)
 
-	return lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters, metaMu, normalInd
+	return lengths, tumorCounts, diploidCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters, metaMu, diploidInd
 
 def generate_meta_data(intervals, byChrm, numProcesses, sampleName, generateData, outdir):
 	"""
@@ -154,8 +178,8 @@ def cluster_wrapper((binnedChrm, sampleName, chrm, generateData)):
 
 	if generateData:
 		means = [row[5:7] for row in binnedChrm]
-		numPoints = [row[7] / 10 for row in binnedChrm]
-		binnedChrm = generate_data(means, numPoints)
+		numPoints = [(row[2] - row[1] + 1) / 100000 for row in binnedChrm]
+		binnedChrm = generate_data(means, numPoints, sdx=0.02, sdy=0.02)
 	else:
 		binnedChrm = [row[5:7] for row in binnedChrm]
 
@@ -164,9 +188,9 @@ def cluster_wrapper((binnedChrm, sampleName, chrm, generateData)):
 
 	return binnedChrm, mus, sigmas, clusterAssignments, metaDataRow
 
-def generate_data(mus, numPoints, sdx=0.1, sdy=0.02):
+def generate_data(mus, numPoints, sdx=0.05, sdy=0.05):
 	"""
-	Randomly generates normally distributed data points about several means.
+	Randomly generates diploidly distributed data points about several means.
 
 	Arguments:
 		mus (list of list of floats): Means about which data points are drawn.
@@ -280,15 +304,15 @@ def classify_clusters(mus, lengths, clusterAssignments):
 											jth meta-interval.
 
 	Returns:
-		hetDelParamInds (list of ints): List of indices of clusters that have been classified as 
-										heterozygous deletions.
-		clonalHetDelParamInd (int): Index of the cluster that has been classified as the clonal 
-									heterozygous deletion.
-		homDelParamInds (list of ints): List of indices of clusters that have been classified as 
-										homozygous deletions.
+		singleCopyParamInds (list of ints): List of indices of clusters that have been classified as 
+										single copy states.
+		clonalsingleCopyParamInd (int): Index of the cluster that has been classified as the clonal 
+									single copy state.
+		zeroCopyParamInds (list of ints): List of indices of clusters that have been classified as 
+										zero copy states.
 		ampParamInds (list of ints): List of indices of clusters that have been classified as
 									 amplifications.
-		normalInd (int): Index of the cluster that has been classified as the normal cluster.
+		diploidInd (int): Index of the cluster that has been classified as the diploid cluster.
 	"""
 
 	print "Classifying clusters..."
@@ -298,181 +322,181 @@ def classify_clusters(mus, lengths, clusterAssignments):
 	for length, assignment in zip(lengths, clusterAssignments):
 		if length is not None: metaLengths[assignment] += length
 
-	#guess the normal cluster to be the largest cluster that has BAF less than 0.2
+	#guess the diploid cluster to be the largest cluster that has BAF less than 0.2
 	meanBAFs = [x[1] for x in mus]
 	filteredLengths = map(lambda (BAF, length): -float('inf') if BAF > 0.2 else length, zip(meanBAFs, metaLengths))
-	normalInd = np.argmax(filteredLengths)
+	diploidInd = np.argmax(filteredLengths)
 
 	#classify clusters given naive guess
-	hetDelParamInds, homDelParamInds, ampParamInds = classify_clusters_given_normal(mus, normalInd)
-	#revise decision of normal cluster
-	normalInd = revise_normal_ind(mus, normalInd, ampParamInds)
+	singleCopyParamInds, zeroCopyParamInds, ampParamInds = classify_clusters_given_diploid(mus, diploidInd)
+	#revise decision of diploid cluster
+	diploidInd = revise_diploid_ind(mus, diploidInd, ampParamInds)
 	#reclassify clusters
-	hetDelParamInds, homDelParamInds, ampParamInds = classify_clusters_given_normal(mus, normalInd)
+	singleCopyParamInds, zeroCopyParamInds, ampParamInds = classify_clusters_given_diploid(mus, diploidInd)
 
-	clonalHetDelParamInd = determine_clonal_heterozygous_deletion(mus, normalInd, hetDelParamInds, homDelParamInds)
+	clonalsingleCopyParamInd = determine_clonal_single_copy_state(mus, diploidInd, singleCopyParamInds, zeroCopyParamInds)
 	
-	return hetDelParamInds, clonalHetDelParamInd, homDelParamInds, ampParamInds, normalInd
+	return singleCopyParamInds, clonalsingleCopyParamInd, zeroCopyParamInds, ampParamInds, diploidInd
 
-def revise_normal_ind(mus, normalInd, ampParamInds):
+def revise_diploid_ind(mus, diploidInd, ampParamInds):
 	"""
-	Revises the decision of what has been called the normal cluster by checking to see if another cluster
-	lies on the line of heterozygous deletions that is more likely the normal.
+	Revises the decision of what has been called the diploid cluster by checking to see if another cluster
+	lies on the line of single copy states that is more likely the diploid.
 
 	Arguments:
 		mus (list of lists of floats): List of cluster means
-		normalInd (int): Index of the cluster that has been guessed to be the normal cluster.
+		diploidInd (int): Index of the cluster that has been guessed to be the diploid cluster.
 		ampParamInds (list of ints): List of indices of clusters that have been guessed to be
 									 amplifications.
 
 	Returns:
-		normalInd (int): Index of the cluster that has been classified as the normal cluster.
+		diploidInd (int): Index of the cluster that has been classified as the diploid cluster.
 	"""
 
-	normalRDR = mus[normalInd][0]
-	normalBAF = mus[normalInd][1]
+	diploidRDR = mus[diploidInd][0]
+	diploidBAF = mus[diploidInd][1]
 
-	leftx = normalRDR * 0.5
+	leftx = diploidRDR * 0.5
 	lefty = 0.5
 
-	#slope of guessed line of heterozygous deletions
-	m0 = (normalBAF - lefty) / (normalRDR - leftx)
-	#y-intercept of guessed line of heterozygous deletions
-	b0 = normalBAF - (m0 * normalRDR)
-	#slope of lines perpendicular to line of heterozygous deletions
+	#slope of guessed line of single copy states
+	m0 = (diploidBAF - lefty) / (diploidRDR - leftx)
+	#y-intercept of guessed line of single copy states
+	b0 = diploidBAF - (m0 * diploidRDR)
+	#slope of lines perpendicular to line of single copy states
 	m1 = -(m0**-1)
 
-	def score_for_normal(mu, i):
+	def score_for_diploid(mu, i):
 		"""
 		Scoring function. The score assigned to a point is the sum of log BAF and its 
-		distance to the guessed line of heterozygous deletions.
+		distance to the guessed line of single copy states.
 		"""
 
-		#clusters that are not guessed to be normal or amplifications are disqualified
-		if i != normalInd and i not in ampParamInds:
+		#clusters that are not guessed to be diploid or amplifications are disqualified
+		if i != diploidInd and i not in ampParamInds:
 			return float('inf')
 
 		RDR = mu[0]
 		BAF = mu[1]
 		#y-intercept of point to be scored
 		b1 = BAF - (m1 * RDR)
-		#x coordinate of point on the line of heterozygous deletions closest to the point being scored
+		#x coordinate of point on the line of single copy states closest to the point being scored
 		contactx = (b1 - b0) / (m0 - m1)
-		#y coordinate of point on the line of heterozygous deletions closest to the point being scored
+		#y coordinate of point on the line of single copy states closest to the point being scored
 		contacty = (m0 * contactx) + b0
-		#distance from point being scored to the line of heterozygous deletions
+		#distance from point being scored to the line of single copy states
 		distToContact = euclidean([RDR, BAF], [contactx, contacty])
 		score = distToContact + log(BAF)
 		return score
 
-	scores = [score_for_normal(mu, i) for (i, mu) in enumerate(mus)]
-	#new normal cluster is that with the lowest score
-	normalInd = np.argmin(scores)
+	scores = [score_for_diploid(mu, i) for (i, mu) in enumerate(mus)]
+	#new diploid cluster is that with the lowest score
+	diploidInd = np.argmin(scores)
 
-	return normalInd
+	return diploidInd
 
-def determine_clonal_heterozygous_deletion(mus, normalInd, hetDelParamInds, homDelParamInds):
+def determine_clonal_single_copy_state(mus, diploidInd, singleCopyParamInds, zeroCopyParamInds):
 	"""
-	Determines which cluster is the clonal heterozygous deletion.
+	Determines which cluster is the clonal single copy state.
 
 	Arguments:
 		mus (list of lists of floats): List of cluster means
-		normalInd (int): Index of the cluster that has been classified as the normal cluster.
-		hetDelParamInds (list of ints): List of indices of clusters that have been classified as 
-										heterozygous deletions.
-		homDelParamInds (list of ints): List of indices of clusters that have been classified as 
-										homozygous deletions.
+		diploidInd (int): Index of the cluster that has been classified as the diploid cluster.
+		singleCopyParamInds (list of ints): List of indices of clusters that have been classified as 
+										single copy states.
+		zeroCopyParamInds (list of ints): List of indices of clusters that have been classified as 
+										zero copy states.
 	"""
 
-	normalRDR = mus[normalInd][0]
-	normalBAF = mus[normalInd][1]
-	leftx = normalRDR * 0.5
+	diploidRDR = mus[diploidInd][0]
+	diploidBAF = mus[diploidInd][1]
+	leftx = diploidRDR * 0.5
 	lefty = 0.5
 
-	#slope of line of heterozygous deletions
-	m0 = (normalBAF - lefty) / (normalRDR - leftx)
-	#y-intercept of line of heterozygous deletions
-	b0 = normalBAF - (m0 * normalRDR)
-	#slope of lines perpendicular to the line of heterozygous deletions
+	#slope of line of single copy states
+	m0 = (diploidBAF - lefty) / (diploidRDR - leftx)
+	#y-intercept of line of single copy states
+	b0 = diploidBAF - (m0 * diploidRDR)
+	#slope of lines perpendicular to the line of single copy states
 	m1 = -(m0**-1)
 
-	def score_for_clonal_het_del(mu, i):
+	def score_for_clonal_single_copy(mu, i):
 		"""
 		Scoring function. The score assigned to a point is the sum of 
-		the distance from the point to the line of heterozygous deletions and
+		the distance from the point to the line of single copy states and
 		the distance from the point to the y-intercept of the line of
-		heterozygous deletions.
+		single copy states.
 		"""
 
-		if i not in hetDelParamInds and i not in homDelParamInds:
+		if i not in singleCopyParamInds and i not in zeroCopyParamInds:
 			return float('inf')
 
 		RDR = mu[0]
 		BAF = mu[1]
 		#y-intercept of the point to be scored
 		b1 = BAF - (m1 * RDR)
-		#x coordinate of point on the line of heterozygous deletions closest to the point being scored
+		#x coordinate of point on the line of single copy states closest to the point being scored
 		contactx = (b1 - b0) / (m0 - m1)
-		#y coordinate of point on the line of heterozygous deletions closest to the point being scored
+		#y coordinate of point on the line of single copy states closest to the point being scored
 		contacty = (m0 * contactx) + b0
-		#distance from point being scored to the line of heterozygous deletions
+		#distance from point being scored to the line of single copy states
 		distToContact = euclidean([RDR, BAF], [contactx, contacty])
-		#distance from point being scored to the y-intercept of the line of heterozygous deletions.
+		#distance from point being scored to the y-intercept of the line of single copy states.
 		distToIntercept = euclidean([RDR, BAF], [0.0, b0])
 		score = distToContact + distToIntercept
 		return score
 
-	scores = [score_for_clonal_het_del(mu, i) for (i, mu) in enumerate(mus)]
-	#clonal heterozygous deletion cluster is that with the lowest score
-	clonalHetDelParamInd = np.argmin(scores)
-	return clonalHetDelParamInd
+	scores = [score_for_clonal_single_copy(mu, i) for (i, mu) in enumerate(mus)]
+	#clonal single copy state cluster is that with the lowest score
+	clonalsingleCopyParamInd = np.argmin(scores)
+	return clonalsingleCopyParamInd
 
-def classify_clusters_given_normal(mus, normalInd):
+def classify_clusters_given_diploid(mus, diploidInd):
 	"""
-	Classifies clusters given that one cluster has been classified as normal.
+	Classifies clusters given that one cluster has been classified as diploid.
 
 	Arguments:
 		mus (list of lists of floats): List of cluster means
-		normalInd (int): Index of the cluster that has been classified as the normal cluster.
+		diploidInd (int): Index of the cluster that has been classified as the diploid cluster.
 
 	Returns:
-		hetDelParamInds (list of ints): List of indices of clusters that have been classified as 
-										heterozygous deletions.
-		homDelParamInds (list of ints): List of indices of clusters that have been classified as 
-										homozygous deletions.
+		singleCopyParamInds (list of ints): List of indices of clusters that have been classified as 
+										single copy states.
+		zeroCopyParamInds (list of ints): List of indices of clusters that have been classified as 
+										zero copy states.
 		ampParamInds (list of ints): List of indices of clusters that have been classified as
 									 amplifications.
 	"""
 
-	normMuX = mus[normalInd][0]
-	normMuY = mus[normalInd][1]
+	diploidMuX = mus[diploidInd][0]
+	diploidMuY = mus[diploidInd][1]
 
 	delParamInds = []
 	ampParamInds = []
 	for i in range(len(mus)):
-		if i == normalInd: continue
+		if i == diploidInd: continue
 		
-		#deletions have lower RDR than the normal; amplifications have greater RDR than the normal
-		if mus[i][0] < normMuX:
+		#deletions have lower RDR than the diploid; amplifications have greater RDR than the diploid
+		if mus[i][0] < diploidMuX:
 			delParamInds.append(i)
 		else:
 			ampParamInds.append(i)
 
-	hetDelParamInds = []
-	homDelParamInds = []
+	singleCopyParamInds = []
+	zeroCopyParamInds = []
 	for i in delParamInds:
 		muX = mus[i][0]
 		muY = mus[i][1]
 
-		#condition for deciding if a deletion is homozygous (note: needs to be revised)
-		if muX < normMuX - 0.2 and muY < normMuY + 0.1:
-			homDelParamInds.append(i)
+		#condition for deciding if a deletion is a zero copy state (note: needs to be revised)
+		if muX < diploidMuX - 0.2 and muY < diploidMuY + 0.1:
+			zeroCopyParamInds.append(i)
 		else:
-			hetDelParamInds.append(i)
+			singleCopyParamInds.append(i)
 
-	return hetDelParamInds, homDelParamInds, ampParamInds
+	return singleCopyParamInds, zeroCopyParamInds, ampParamInds
 
-def process_classifications(intervals, missingData, metaMu, clusterAssignments, numClusters, normalInd, clonalHetDelParamInd, hetDelParamInds, ampParamInds, sampleName, outdir):
+def process_classifications(intervals, missingData, metaMu, clusterAssignments, numClusters, diploidInd, clonalsingleCopyParamInd, singleCopyParamInds, ampParamInds, sampleName, outdir):
 	"""
 	Processes intervals using clustering information by assigning intervals to meta-intervals,
 	determining meta-interval length, and deciding copy number bounds for each meta-interval.
@@ -485,11 +509,11 @@ def process_classifications(intervals, missingData, metaMu, clusterAssignments, 
 											j at index i means the ith interval has been assigned to the
 											jth meta-interval.
 		numClusters (int): The number of clusters.
-		normalInd (int): The index of the cluster that has been called normal.
-		clonalHetDelParamInd (int): Index of the cluster that has been classified as the clonal 
-									heterozygous deletion.
-		hetDelParamInds (list of ints): List of indices of clusters that have been classified as 
-										heterozygous deletions.
+		diploidInd (int): The index of the cluster that has been called diploid.
+		clonalsingleCopyParamInd (int): Index of the cluster that has been classified as the clonal 
+									single copy state.
+		singleCopyParamInds (list of ints): List of indices of clusters that have been classified as 
+										single copy states.
 		ampParamInds (list of ints): List of indices of clusters that have been classified as
 									 amplifications.
 		sampleName (string): The name of the input sample.
@@ -498,7 +522,7 @@ def process_classifications(intervals, missingData, metaMu, clusterAssignments, 
 	Returns:
 		lengths (list of ints): Length of each interval
 		tumorCounts (list of ints): Tumor count for each interval
-		normalCounts (list of ints): Normal count for each interval
+		diploidCounts (list of ints): diploid count for each interval
 		upper_bounds (list of ints): The upper copy number bound assigned to each interval.
 		lower_bounds (list of ints): The lower copy number bound assigned to each interval.
 		fullClusterAssignments (list of ints): The assignment of each interval to a cluster, where an entry
@@ -508,19 +532,19 @@ def process_classifications(intervals, missingData, metaMu, clusterAssignments, 
 	"""
 
 	print "Determining copy number bounds..."
-	normMu = metaMu[normalInd]
-	normRDR = normMu[0]
+	diploidMu = metaMu[diploidInd]
+	diploidRDR = diploidMu[0]
 
-	if hetDelParamInds != []:
-		clonalHetDelRDR = metaMu[clonalHetDelParamInd][0]
-		stepSize = normRDR - clonalHetDelRDR
+	if singleCopyParamInds != []:
+		clonalsingleCopyRDR = metaMu[clonalsingleCopyParamInd][0]
+		stepSize = diploidRDR - clonalsingleCopyRDR
 	else:
-		clonalHetDelRDR = 0.0
+		clonalsingleCopyRDR = 0.0
 		stepSize = 0.5
 
 	if ampParamInds != []:
 		ampMus = [metaMu[ind] for ind in ampParamInds] #amplification means
-		ampDistances = [mu[0] - normRDR for mu in ampMus] #difference between amplification RDRs and the normal RDR
+		ampDistances = [mu[0] - diploidRDR for mu in ampMus] #difference between amplification RDRs and the diploid RDR
 		amp_upper = [ceil(distance / stepSize) + 2 for distance in ampDistances] #upper bound on copy numbers for amplifications
 		amp_upper_map = dict(zip(ampParamInds, amp_upper))
 	else:
@@ -530,14 +554,14 @@ def process_classifications(intervals, missingData, metaMu, clusterAssignments, 
 	m = len(intervals) + len(missingData)
 	lengths = range(m)
 	tumorCounts = range(m)
-	normalCounts = range(m)
+	diploidCounts = range(m)
 	upper_bounds = range(m)
 	lower_bounds = range(m)
 	fullClusterAssignments = range(m)
 	for row in missingData:
 		lengths[row[-1]] = None
 		tumorCounts[row[-1]] = None
-		normalCounts[row[-1]] = None
+		diploidCounts[row[-1]] = None
 		upper_bounds[row[-1]] = None
 		lower_bounds[row[-1]] = None
 		fullClusterAssignments[row[-1]] = None
@@ -551,7 +575,7 @@ def process_classifications(intervals, missingData, metaMu, clusterAssignments, 
 
 			lengths[i] = row[2] - row[1] + 1
 			tumorCounts[i] = row[3]
-			normalCounts[i] = row[4]
+			diploidCounts[i] = row[4]
 			upper_bounds[i] = "X"
 			lower_bounds[i] = "X"
 			fullClusterAssignments[i] = -1
@@ -563,7 +587,7 @@ def process_classifications(intervals, missingData, metaMu, clusterAssignments, 
 			lengths[i] = length
 
 			tumorCounts[i] = row[3]
-			normalCounts[i] = row[4]
+			diploidCounts[i] = row[4]
 			fullClusterAssignments[i] = clusterAssignments[j]
 
 			if clusterAssignments[j] in ampParamInds:
@@ -571,27 +595,27 @@ def process_classifications(intervals, missingData, metaMu, clusterAssignments, 
 				upper_bounds[i] = amp_upper_map[clusterAssignments[j]]
 			else:
 				upper_bounds[i] = 2
-				if clusterAssignments[j] == normalInd:
+				if clusterAssignments[j] == diploidInd:
 					lower_bounds[i] = 2
-				elif clusterAssignments[j] in hetDelParamInds:
+				elif clusterAssignments[j] in singleCopyParamInds:
 					lower_bounds[i] = 1
 				else:
 					lower_bounds[i] = 0
 			j += 1
 
-	plot_clusters(intervals, clusterAssignments, numClusters, sampleName, amp_upper, stepSize, normRDR, clonalHetDelRDR, outdir)
+	plot_clusters(intervals, clusterAssignments, numClusters, sampleName, amp_upper, stepSize, diploidRDR, clonalsingleCopyRDR, outdir)
 
-	return lengths, tumorCounts, normalCounts, upper_bounds, lower_bounds, fullClusterAssignments, m
+	return lengths, tumorCounts, diploidCounts, upper_bounds, lower_bounds, fullClusterAssignments, m
 
 
-def group_to_meta_interval(lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters):
+def group_to_meta_interval(lengths, tumorCounts, diploidCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters):
 	"""
 	Produces meta-intervals given intervals and their clustering.
 
 	Arguments:
 		lengths (list of ints): Length of each interval
 		tumorCounts (list of ints): Tumor count for each interval
-		normalCounts (list of ints): Normal count for each interval
+		diploidCounts (list of ints): diploid count for each interval
 		m (int): The total number of intervals (including intervals that have been marked as invalid).
 		upper_bounds (list of ints): The upper copy number bound assigned to each interval.
 		lower_bounds (list of ints): The lower copy number bound assigned to each interval.
@@ -607,7 +631,7 @@ def group_to_meta_interval(lengths, tumorCounts, normalCounts, m, upper_bounds, 
 								of the intervals assigned to that meta-interval.
 		metaTumorCounts (list of ints): "Tumor counts" of each meta-interval, where the count is the sum of
 									the tumor counts of the intervals assigned to that meta-interval.
-		metaNormalCounts (list of ints): "Normal counts" of each meta-interval, where the count is the sum of
+		metadiploidCounts (list of ints): "diploid counts" of each meta-interval, where the count is the sum of
 										the tumor counts of the intervals assigned to that meta-interval.
 		meta_lower_bounds (list of ints): The lower copy number bound assigned to each meta-interval.
 		meta_upper_bounds (list of ints): The upper copy number bound assigned to each meta-interval.
@@ -615,7 +639,7 @@ def group_to_meta_interval(lengths, tumorCounts, normalCounts, m, upper_bounds, 
 
 	metaLengths = [0 for i in range(numClusters)]
 	metaTumorCounts = [0 for i in range(numClusters)]
-	metaNormalCounts = [0 for i in range(numClusters)]
+	metadiploidCounts = [0 for i in range(numClusters)]
 	meta_lower_bounds = [2 for i in range(numClusters)]
 	meta_upper_bounds = [2 for i in range(numClusters)]
 	intervalMap = {}
@@ -632,11 +656,11 @@ def group_to_meta_interval(lengths, tumorCounts, normalCounts, m, upper_bounds, 
 			intervalMap[clusterAssignments[i]].append(i)
 			metaLengths[clusterAssignments[i]] += lengths[i]
 			metaTumorCounts[clusterAssignments[i]] += tumorCounts[i]
-			metaNormalCounts[clusterAssignments[i]] += normalCounts[i]
+			metadiploidCounts[clusterAssignments[i]] += diploidCounts[i]
 			meta_lower_bounds[clusterAssignments[i]] = lower_bounds[i]
 			meta_upper_bounds[clusterAssignments[i]] = upper_bounds[i]
 
-	return intervalMap, metaLengths, metaTumorCounts, metaNormalCounts, meta_lower_bounds, meta_upper_bounds
+	return intervalMap, metaLengths, metaTumorCounts, metadiploidCounts, meta_lower_bounds, meta_upper_bounds
 
 def write_clusters_for_all_samples(samplelist):
 	"""
@@ -651,19 +675,19 @@ def write_clusters_for_all_samples(samplelist):
 	for sample in samplelist:
 		filename = "/research/compbio/projects/THetA/ICGC-PanCan/processed_data/pilot64/" + sample + "/" + sample + ".gamma.0.2.RD.BAF.intervals.txt"
 		try:
-			lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters, clusterMeans, normalInd = clustering_BAF(filename)
-			hetDelParamInds, homDelParamInds, ampParamInds, normalInd = classify_clusters(clusterMeans, lengths, clusterAssignments)
-			intervalMap, metaLengths, metaTumorCounts, metaNormalCounts, meta_lower_bounds, meta_upper_bounds = group_to_meta_interval(lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters)
+			lengths, tumorCounts, diploidCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters, clusterMeans, diploidInd = clustering_BAF(filename)
+			singleCopyParamInds, zeroCopyParamInds, ampParamInds, diploidInd = classify_clusters(clusterMeans, lengths, clusterAssignments)
+			intervalMap, metaLengths, metaTumorCounts, metadiploidCounts, meta_lower_bounds, meta_upper_bounds = group_to_meta_interval(lengths, tumorCounts, diploidCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters)
 			f.write(sample + "\n")
 			f.write(str(numClusters) + "\n")
 			for i in range(numClusters):
 				f.write(str(metaLengths[i]) + "\t" + str(clusterMeans[i][0]) + "\t" + str(clusterMeans[i][1]) + "\t")
-				if i == normalInd:
-					f.write("NORMAL")
-				elif i in hetDelParamInds:
-					f.write("HETDEL")
-				elif i in homDelParamInds:
-					f.write("HOMDEL")
+				if i == diploidInd:
+					f.write("DIPLOID")
+				elif i in singleCopyParamInds:
+					f.write("SINGLE")
+				elif i in zeroCopyParamInds:
+					f.write("ZERO")
 				else:
 					f.write("AMP")
 				f.write("\n")

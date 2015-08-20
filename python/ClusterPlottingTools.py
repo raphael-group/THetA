@@ -1,4 +1,28 @@
-#!/usr/bin/python
+ ###
+ # 2015 Brown University, Providence, RI.
+ #
+ #                       All Rights Reserved
+ #
+ # Permission to use, copy, modify, and distribute this software and its
+ # documentation for any purpose other than its incorporation into a
+ # commercial product is hereby granted without fee, provided that the
+ # above copyright notice appear in all copies and that both that
+ # copyright notice and this permission notice appear in supporting
+ # documentation, and that the name of Brown University not be used in
+ # advertising or publicity pertaining to distribution of the software
+ # without specific, written prior permission.
+ #
+ # BROWN UNIVERSITY DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
+ # INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR ANY
+ # PARTICULAR PURPOSE.  IN NO EVENT SHALL BROWN UNIVERSITY BE LIABLE FOR
+ # ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ # WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ # http://cs.brown.edu/people/braphael/software.html
+ # 
+ # @author Layla Oesper, Ahmad Mahmoody, Benjamin J. Raphael, Gryte Satas, and Alex Ashery
+ ###
 
 from FileIO import *
 import matplotlib.pyplot as plt
@@ -23,38 +47,42 @@ def plot_chromosome_clustering(data, mus, sigmas, clusterAssignments, ax):
 	ax.set_ylim([0, 0.5])
 
 def plot_gaussian(ax, mu, Sigma, color):
+	"""
+	Plots a gaussian on an axis object. This code comes from Michael Hughes' bnpy
+	package (see plotGauss2DContour in /bnpy/viz/GaussViz.py)
+	"""
 
-    radiusLengths = [0.31863936396437514, 0.67448975019608171, 1.1503493803760079]
-    sqrtSigma = np.sqrt(Sigma)
+	radiusLengths = [0.31863936396437514, 0.67448975019608171, 1.1503493803760079]
+	sqrtSigma = np.sqrt(Sigma)
 
-    # Prep for plotting elliptical contours
-    # by creating grid of (x,y) points along perfect circle
-    ts = np.arange(-np.pi, np.pi, 0.03)
-    x = np.sin(ts)
-    y = np.cos(ts)
-    Zcirc = np.vstack([x, y])
+	# Prep for plotting elliptical contours
+	# by creating grid of (x,y) points along perfect circle
+	ts = np.arange(-np.pi, np.pi, 0.03)
+	x = np.sin(ts)
+	y = np.cos(ts)
+	Zcirc = np.vstack([x, y])
 
-    # Warp circle into ellipse defined by Sigma's eigenvectors
-    Zellipse = np.dot(sqrtSigma, Zcirc)
+	# Warp circle into ellipse defined by Sigma's eigenvectors
+	Zellipse = np.dot(sqrtSigma, Zcirc)
 
-    # plot contour lines across several radius lengths
-    for r in radiusLengths:
-        Z = r * Zellipse + mu[:, np.newaxis]
-        ax.plot(
-            Z[0], Z[1], '.', markerfacecolor=color, markeredgecolor=color, zorder=2)
+	# plot contour lines across several radius lengths
+	for r in radiusLengths:
+		Z = r * Zellipse + mu[:, np.newaxis]
+		ax.plot(
+			Z[0], Z[1], '.', markerfacecolor=color, markeredgecolor=color, zorder=2)
 
-def plot_classifications(mus, sigmas, intervals, clusterAssignments, numClusters, sampleName, hetDelParamInds, homDelParamInds, ampParamInds, normalInd, outdir):
+def plot_classifications(mus, sigmas, intervals, clusterAssignments, numClusters, sampleName, singleCopyParamInds, zeroCopyParamInds, ampParamInds, diploidInd, outdir):
 	print "Plotting classifications..."
 
 	fig = plt.figure()
 	ax = fig.add_subplot(111)
 
 	def color_map(num):
-		if num == normalInd:
+		if num == diploidInd:
 			return 'green'
-		elif num in hetDelParamInds:
+		elif num in singleCopyParamInds:
 			return 'red'
-		elif num in homDelParamInds:
+		elif num in zeroCopyParamInds:
 			return 'orange'
 		else:
 			return 'blue'
@@ -77,7 +105,7 @@ def plot_classifications(mus, sigmas, intervals, clusterAssignments, numClusters
 	ax.set_ylim([0, 0.5])
 	fig.savefig(outdir + sampleName + "_classifications.png")
 
-def plot_clusters(intervals, clusterAssignments, numClusters, sampleName, amp_upper, stepSize, normRDR, clonalHetDelRDR, outdir):
+def plot_clusters(intervals, clusterAssignments, numClusters, sampleName, amp_upper, stepSize, diploidRDR, clonalsingleCopyRDR, outdir):
 	print "Plotting clusters..."
 	cmap = plt.get_cmap('gist_rainbow')
 	colors = [cmap(i) for i in np.linspace(0, 1, numClusters)]
@@ -89,17 +117,17 @@ def plot_clusters(intervals, clusterAssignments, numClusters, sampleName, amp_up
 	colorAssignment = map(lambda assignment: colors[assignment], clusterAssignments)
 
 	ax.scatter(xs, ys, c=colorAssignment)
-	ax.plot([clonalHetDelRDR, clonalHetDelRDR], [0.0, 0.5], color='red')
-	ax.plot([normRDR, normRDR], [0.0, 0.5], color='green')
+	ax.plot([clonalsingleCopyRDR, clonalsingleCopyRDR], [0.0, 0.5], color='red')
+	ax.plot([diploidRDR, diploidRDR], [0.0, 0.5], color='green')
 	if amp_upper != []:
 		maxStep = int(max(amp_upper) - 1)
 	else:
 		maxStep = 1
 	for scale in range(1, maxStep):
-		barX = (scale * stepSize) + normRDR
+		barX = (scale * stepSize) + diploidRDR
 		ax.plot([barX, barX], [0.0, 0.5], color='blue')
 	ax.set_ylim([0, 0.5])
-	ax.set_xlim([0, ((maxStep * stepSize) + normRDR)])
+	ax.set_xlim([0, ((maxStep * stepSize) + diploidRDR)])
 	fig.savefig(outdir + sampleName + "_assignment.png")
 
 def parse_preprocessed_data(filename):
@@ -229,7 +257,7 @@ def plot_BAF_by_chrm(intervalfile, resultsfile, clusterAssignments, outdir):
 
 			minPos = min(row[1] for row in chrmData)
 
-			for chrm, start, end, tumorCounts, normalCounts, corrRatio, BAF, numSNPs, assignment in chrmData:
+			for chrm, start, end, tumorCounts, diploidCounts, corrRatio, BAF, numSNPs, assignment in chrmData:
 				color = colors[assignment]
 				ax.plot([start + offset - minPos, end + offset - minPos], [BAF, BAF], color=color, linewidth=2, solid_capstyle="butt")
 			chrmEnd = max([row[2] for row in chrmData])
@@ -276,19 +304,19 @@ def generate_delta(C, mu):
 # def plot_vs(filename):
 # 	data = parse_preprocessed_data(filename)
 # 	for sample, numClusters, lengths, RDRs, meanBAFs, classifications in zip(*data):
-# 		normInd = classifications.index('NORMAL')
-# 		normRDR = RDRs[normInd]
-# 		normBAF = meanBAFs[normInd]
+# 		diploidInd = classifications.index('DIPLOID')
+# 		diploidRDR = RDRs[diploidInd]
+# 		diploidBAF = meanBAFs[diploidInd]
 
-# 		leftx = normRDR * 0.5
+# 		leftx = diploidRDR * 0.5
 # 		lefty = 0.5
 
-# 		m0 = (normBAF - lefty) / (normRDR - leftx)
-# 		b0 = normBAF - (m0 * normRDR)
+# 		m0 = (diploidBAF - lefty) / (diploidRDR - leftx)
+# 		b0 = diploidBAF - (m0 * diploidRDR)
 # 		m1 = -(m0**-1)
 # 		scores = []
 # 		for RDR, BAF, classification in zip(RDRs, meanBAFs, classifications):
-# 			if classification != "NORMAL" and classification != "AMP":
+# 			if classification != "DIPLOID" and classification != "AMP":
 # 				scores.append(float('inf'))
 # 				continue
 # 			b1 = BAF - (m1 * RDR)
@@ -298,37 +326,37 @@ def generate_delta(C, mu):
 # 			score = distToContact + log(BAF)
 # 			scores.append(score)
 
-# 		normInd = np.argmin(scores)
-# 		normRDR = RDRs[normInd]
-# 		normBAF = meanBAFs[normInd]
+# 		diploidInd = np.argmin(scores)
+# 		diploidRDR = RDRs[diploidInd]
+# 		diploidBAF = meanBAFs[diploidInd]
 
-# 		hetDelParamInds, homDelParamInds, ampParamInds, normalInd = classify_clusters_given_normal(zip(RDRs, meanBAFs), normInd)
+# 		singleCopyParamInds, zeroCopyParamInds, ampParamInds, diploidInd = classify_clusters_given_diploid(zip(RDRs, meanBAFs), diploidInd)
 # 		for i in range(len(classifications)):
-# 			if i == normInd:
-# 				classifications[i] = "NORMAL"
-# 			elif i in hetDelParamInds:
-# 				classifications[i] = "HETDEL"
-# 			elif i in homDelParamInds:
-# 				classifications[i] = "HOMDEL"
+# 			if i == diploidInd:
+# 				classifications[i] = "DIPLOID"
+# 			elif i in singleCopyParamInds:
+# 				classifications[i] = "SINGLE"
+# 			elif i in zeroCopyParamInds:
+# 				classifications[i] = "ZERO"
 # 			else:
 # 				classifications[i] = "AMP"
 
-# 		leftx = normRDR * 0.5
+# 		leftx = diploidRDR * 0.5
 # 		lefty = 0.5
 
 # 		fig = plt.figure()
 # 		ax = fig.add_subplot(111)
 # 		ax.plot(RDRs, meanBAFs, 'x', color='orange', mew=5, markersize=10, zorder=3)
-# 		ax.plot([leftx, normRDR], [lefty, normBAF], 'black', zorder=1)
+# 		ax.plot([leftx, diploidRDR], [lefty, diploidBAF], 'black', zorder=1)
 # 		ax.set_xlim([0.0, 5.0])
 # 		ax.set_ylim([0.0, 0.5])
 
-# 		m0 = (normBAF - lefty) / (normRDR - leftx)
-# 		b0 = normBAF - (m0 * normRDR)
+# 		m0 = (diploidBAF - lefty) / (diploidRDR - leftx)
+# 		b0 = diploidBAF - (m0 * diploidRDR)
 # 		m1 = -(m0**-1)
 # 		scores = []
 # 		for RDR, BAF, classification in zip(RDRs, meanBAFs, classifications):
-# 			if classification != "HETDEL" and classification != "HOMDEL":
+# 			if classification != "SINGLE" and classification != "ZERO":
 # 				scores.append(float('inf'))
 # 				continue
 # 			b1 = BAF - (m1 * RDR)
@@ -340,13 +368,13 @@ def generate_delta(C, mu):
 # 			score = distToContact + distToIntercept
 # 			scores.append(score)
 
-# 		clonalHetDelInd = np.argmin(scores)
-# 		clonalHetDelRDR = RDRs[clonalHetDelInd]
-# 		clonalHetDelBAF = meanBAFs[clonalHetDelInd]
-# 		ax.plot([clonalHetDelRDR], [clonalHetDelBAF], 'rx', mew=5, markersize=10, zorder=4)
+# 		clonalsingleCopyInd = np.argmin(scores)
+# 		clonalsingleCopyRDR = RDRs[clonalsingleCopyInd]
+# 		clonalsingleCopyBAF = meanBAFs[clonalsingleCopyInd]
+# 		ax.plot([clonalsingleCopyRDR], [clonalsingleCopyBAF], 'rx', mew=5, markersize=10, zorder=4)
 
-# 		x = clonalHetDelRDR
-# 		stepSize = abs(normRDR - clonalHetDelRDR)
+# 		x = clonalsingleCopyRDR
+# 		stepSize = abs(diploidRDR - clonalsingleCopyRDR)
 # 		i = 0
 # 		while x < 5 and i < 100:
 # 			ax.plot([x, x], [0, 0.5], 'black', zorder=2)
