@@ -32,6 +32,7 @@ from Enumerator import Enumerator
 from Optimizer import Optimizer
 from TimeEstimate import *
 from CalcAllC import *
+from ModelSelection import *
 from plotResults import *
 from RunBAFModel import run_BAF_model
 
@@ -222,9 +223,12 @@ def main():
 		# Backwards compatibility
 		resultsfile, boundsfile = run_fixed_N(args[2], args, intervals, args[1])
 	else:
-		resultsfile, boundsfile = run_fixed_N(2, args, intervals)
-		intervals = read_interval_file(boundsfile)
-		resultsfile, boundsfile = run_fixed_N(3, args, intervals, resultsfile)
+		resultsfile2, boundsfile2 = run_fixed_N(2, args, intervals)
+		intervals = read_interval_file(boundsfile2)
+		resultsfile3, boundsfile3 = run_fixed_N(3, args, intervals, resultsfile2)
+		
+		ModelSelection(args[0],resultsfile2, resultsfile3)
+
 
 def run_fixed_N(n, args, intervals, resultsfile=None):
 	(filename, results, N, k, tau, directory, prefix, max_normal, bound_heuristic, \
@@ -380,6 +384,7 @@ def run_fixed_N(n, args, intervals, resultsfile=None):
 	return resultsfile, boundsfile
 
 import time
+
 if __name__ == '__main__':
 	main()
 
