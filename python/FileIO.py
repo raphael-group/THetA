@@ -636,6 +636,7 @@ def write_out_result(directory, prefix, results, n):
 		f.write(val_str)
 		f.write("\n")
 	f.close()
+	return path
 
 def write_out_NLL_result(directory, prefix, results, best=True):
 	"""
@@ -755,6 +756,7 @@ def write_out_bounds(directory, prefix, inputFile, upper_bounds, lower_bounds, n
 			f.write("\t" + str(int(lower_bounds[i])))
 			f.write("\n")
 	f.close()
+	return outputFile
 
 def write_out_N3_script(directory, prefix, inputFile):
 	# All the arguments are the same except -n 3 instead of 2 and --bounds prefix.n2.withbounds	

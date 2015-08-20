@@ -214,26 +214,24 @@ def main():
 	#  Read in arguments and data file
 	##
 	args = parse_arguments()
-	intervals = read_interval_file(args[0])
-	
-	ub, lb = run_fixed_N(2, args, intervals)
-	intervals[4] = ub
-	intervals[5] = lb
-	ub, lb = run_fixed_N(3, args, intervals)
 
-def run_fixed_N(n, args, intervals):
+	print "Reading in query file..."
+	intervals = read_interval_file(args[0])
+	resultsfile, boundsfile = run_fixed_N(2, args, intervals)
+
+	intervals = read_interval_file(boundsfile)
+	resultsfile, boundsfile = run_fixed_N(3, args, intervals, resultsfile)
+
+def run_fixed_N(n, args, intervals, resultsfile=None):
 	(filename, results, N, k, tau, directory, prefix, max_normal, bound_heuristic, \
 		normal_bound_heuristic,heuristic_lb, heuristic_ub, num_processes, \
 		bounds_only, multi_event, force, get_values, choose_intervals, num_intervals, \
 		read_depth_file, graph_format, runBAF, tumorSNP, normalSNP, ratio_dev, min_frac,\
 		cluster_bounds, density_bounds) = args
+	lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds = intervals
 
 	global pre
 	pre = prefix
-
-	print "Reading in query file..."
-	
-	lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds = intervals
 
 	###
 	#	Determine is sample has enough copy number aberrations to run
@@ -255,8 +253,6 @@ def run_fixed_N(n, args, intervals):
 		# Add code here
 		print "Setting bounds using density needs to be implemented."
 
-
-
 	if choose_intervals:
 		print "Selecting intervals..."
 		allM, allLengths, allTumor, allNormal, allUpperBounds, allLowerBounds = (m, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds)
@@ -268,12 +264,12 @@ def run_fixed_N(n, args, intervals):
 			#upper_bounds = None  
 			#lower_bounds = None
 		elif n == 3:
-			if results is None: 
+			if resultsfile is None: 
 				print "ERROR: No results file supplied. Unable to automatically select intervals for n=3 without results of n=2 analysis. See --RESULTS flag, or --NO_INTERVAL_SELECTION to disable interval selection. Exiting..."
 				exit(1)
 			else: 
 			# Need to read in original file, bounds file and results file. Original file needed because copy numbers are based on 
-				copy = read_results_file(results)
+				copy = read_results_file(resultsfile)
 				order, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds, copy = select_intervals_n3(lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds, copy, tau, force, num_intervals)
 
 		m = len(order)
@@ -308,9 +304,9 @@ def run_fixed_N(n, args, intervals):
 	ub_out = reverse_sort_list(upper_bounds, sorted_index)
 	lb_out = reverse_sort_list(lower_bounds, sorted_index)
 	if choose_intervals:
-		write_out_bounds(directory, prefix, filename, ub_out, lb_out, n, order)
+		boundsfile = write_out_bounds(directory, prefix, filename, ub_out, lb_out, n, order)
 	else: 
-		write_out_bounds(directory, prefix, filename, ub_out, lb_out, n)
+		boundsfile = write_out_bounds(directory, prefix, filename, ub_out, lb_out, n)
 
 	if bounds_only: sys.exit(0)
 
@@ -347,11 +343,12 @@ def run_fixed_N(n, args, intervals):
 		#lko 7-6-15 Fix multiple solutions to only return the solution with the overal min NLL
 		best = find_mins(best)	
 
+
 	#run BAF model on results to determine most likely solution
 	if runBAF and tumorSNP is not None and normalSNP is not None:
 		if len(best) != 1:
 			BAFprefix = prefix + ".preliminary"
-			write_out_result(directory, BAFprefix, best, n)
+			resultsfile = write_out_result(directory, BAFprefix, best, n)
 
 			resultsFile = BAFprefix + ".n"+str(n)+".results"
 			resultsPath = os.path.join(directory, resultsFile)
@@ -360,12 +357,12 @@ def run_fixed_N(n, args, intervals):
 			except IOError:
 				print "ERROR: Invalid locations for tumor and normal SNP files. The BAF model will not be run. You can try running the BAF model again directly from the runBAFModel.py script."
 		else:
-			write_out_result(directory, prefix, best, n)
+			resultsfile = write_out_result(directory, prefix, best, n)
 	elif runBAF and (tumorSNP is None or normalSNP is None):
 		print "ERROR: Need file location for tumor and normal SNP files to run the BAF model. The BAF model will not be run. You can try running the BAF model again directly from the runBAFModel.py script."
-		write_out_result(directory, prefix, best, n)
+		resultsfile = write_out_result(directory, prefix, best, n)
 	else:
-		write_out_result(directory, prefix, best, n)
+		resultsfile = write_out_result(directory, prefix, best, n)
 
 	###
 	# Make Results Plots
@@ -376,7 +373,7 @@ def run_fixed_N(n, args, intervals):
 
 	if n == 2: write_out_N3_script(directory, prefix, filename)
 
-	return ub_out, lb_out
+	return resultsfile, boundsfile
 
 import time
 if __name__ == '__main__':
