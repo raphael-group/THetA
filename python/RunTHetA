@@ -1,43 +1,4 @@
 #!/bin/bash
-
 #Get the location of the script
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )"&& pwd )"
-
-if [ $1 == "-h" ]
-then
-	python $DIR/../python/GetPrefix.py "$@"
-	exit 0
-fi
-
-
-Filename=`python $DIR/../python/GetPrefix.py "$@"`
-echo "FILENAME:" $Filename
-
-n2Results=${Filename}.n2.results
-n2Bounds=${Filename}.n2.withBounds
-runN3=${Filename}.RunN3.bash
-n3Results=${Filename}.n3.results
-
-echo "Running THetA for N = 2..."
-
-python $DIR/../python/RunTHetA.py -n 2 "$@"
-
-if [ $? != 0 ]; then
-	echo "N = 2 ended with ERROR. Exiting..."
-	exit 1
-fi
-
-echo "Running THetA for N = 3..."
-
-#chmod +x $runN3
-#$runN3
-
-#if [ $? != 0 ]; then
-#	echo "N = 3 ended with ERROR. Exiting..."
-#	exit 1
-#fi
-
-echo "Selecting Best Solution..."
-
-python $DIR/../python/ModelSelection.py $n2Bounds $n2Results $n3Results
-
+python $DIR/../python/RunTHetA.py "$@"
