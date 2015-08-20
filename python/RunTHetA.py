@@ -214,10 +214,14 @@ def main():
 	#  Read in arguments and data file
 	##
 	args = parse_arguments()
-	n = args[2]
-	run_fixed_N(n, args)
+	intervals = read_interval_file(args[0])
+	
+	ub, lb = run_fixed_N(2, args, intervals)
+	intervals[4] = ub
+	intervals[5] = lb
+	ub, lb = run_fixed_N(3, args, intervals)
 
-def run_fixed_N(n, args):
+def run_fixed_N(n, args, intervals):
 	(filename, results, N, k, tau, directory, prefix, max_normal, bound_heuristic, \
 		normal_bound_heuristic,heuristic_lb, heuristic_ub, num_processes, \
 		bounds_only, multi_event, force, get_values, choose_intervals, num_intervals, \
@@ -228,7 +232,8 @@ def run_fixed_N(n, args):
 	pre = prefix
 
 	print "Reading in query file..."
-	lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds = read_interval_file(filename)
+	
+	lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds = intervals
 
 	###
 	#	Determine is sample has enough copy number aberrations to run
@@ -267,7 +272,7 @@ def run_fixed_N(n, args):
 				print "ERROR: No results file supplied. Unable to automatically select intervals for n=3 without results of n=2 analysis. See --RESULTS flag, or --NO_INTERVAL_SELECTION to disable interval selection. Exiting..."
 				exit(1)
 			else: 
-				# Need to read in original file, bounds file and results file. Original file needed because copy numbers are based on 
+			# Need to read in original file, bounds file and results file. Original file needed because copy numbers are based on 
 				copy = read_results_file(results)
 				order, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds, copy = select_intervals_n3(lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds, copy, tau, force, num_intervals)
 
@@ -370,6 +375,8 @@ def run_fixed_N(n, args):
 	plot_results(directory, filename, prefix, read_depth_file, n, graph_format)
 
 	if n == 2: write_out_N3_script(directory, prefix, filename)
+
+	return ub_out, lb_out
 
 import time
 if __name__ == '__main__':
