@@ -214,13 +214,17 @@ def main():
 	#  Read in arguments and data file
 	##
 	args = parse_arguments()
-
 	print "Reading in query file..."
 	intervals = read_interval_file(args[0])
-	resultsfile, boundsfile = run_fixed_N(2, args, intervals)
 
-	intervals = read_interval_file(boundsfile)
-	resultsfile, boundsfile = run_fixed_N(3, args, intervals, resultsfile)
+	if args[2] != None:
+		# Run for a specific n. If n > 2, args[1] should contain the results file
+		# Backwards compatibility
+		resultsfile, boundsfile = run_fixed_N(args[2], args, intervals, args[1])
+	else:
+		resultsfile, boundsfile = run_fixed_N(2, args, intervals)
+		intervals = read_interval_file(boundsfile)
+		resultsfile, boundsfile = run_fixed_N(3, args, intervals, resultsfile)
 
 def run_fixed_N(n, args, intervals, resultsfile=None):
 	(filename, results, N, k, tau, directory, prefix, max_normal, bound_heuristic, \
