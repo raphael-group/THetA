@@ -179,8 +179,8 @@ def parse_arguments(silent=False):
 		print "================================================="
 		print "Arguments are:"
 		print "\tQuery File:", filename
+		if n is not None: print "n:", n
 		if n == 3 and results is not None: print "\tResults File:", results
-		print "\tn:", n
 		print "\tk:", k
 		print "\ttau:", tau
 		print "\tOutput Directory:", directory
