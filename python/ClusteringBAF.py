@@ -28,6 +28,7 @@ import os
 os.environ["BNPYOUTDIR"] = "./"
 import bnpy
 from FileIO import *
+from shutil import rmtree
 from ClusterPlottingTools import *
 import matplotlib.pyplot as plt
 import numpy as np
@@ -35,7 +36,7 @@ from math import sqrt, ceil, log
 from scipy.spatial.distance import euclidean
 from multiprocessing import Pool
 
-def clustering_BAF(filename, byChrm=True, generateData=True, prefix=None, outdir="./", numProcesses=1):
+def clustering_BAF(intervals=None, missingData=None, filename=None, byChrm=True, generateData=True, prefix=None, outdir="./", numProcesses=1):
 	"""
 	Performs clustering on interval data and analyzes clusters to determine copy
 	number bounds and which intervals belong to similar clusters.
@@ -55,7 +56,7 @@ def clustering_BAF(filename, byChrm=True, generateData=True, prefix=None, outdir
 	Returns:
 		lengths (list of ints): Length of each interval
 		tumorCounts (list of ints): Tumor count for each interval
-		diploidCounts (list of ints): diploid count for each interval
+		normalCounts (list of ints): normal count for each interval
 		m (int): The total number of intervals (including intervals that have been marked as invalid).
 		upper_bounds (list of ints): The upper copy number bound assigned to each interval.
 		lower_bounds (list of ints): The lower copy number bound assigned to each interval.
@@ -77,9 +78,11 @@ def clustering_BAF(filename, byChrm=True, generateData=True, prefix=None, outdir
 		prefix = sampleName
 
 	#setting bnpy outdir
-	os.environ["BNPYOUTDIR"] = outdir + prefix + "_cluster_data/"
+	bnpyoutdir = outdir + prefix + "_cluster_data/"
+	os.environ["BNPYOUTDIR"] = bnpyoutdir
 
-	missingData, intervals = read_interval_RD_BAF_file(filename, byChrm=byChrm)
+	if intervals is None and missingData is None:
+		missingData, intervals = read_interval_RD_BAF_file(filename, byChrm=byChrm)
 
 	metaData = generate_meta_data(intervals, byChrm, numProcesses, sampleName, generateData, outdir)
 
@@ -95,9 +98,14 @@ def clustering_BAF(filename, byChrm=True, generateData=True, prefix=None, outdir
 	
 	plot_classifications(metaMu, metaSigma, intervals, clusterAssignments, numClusters, sampleName, singleCopyParamInds, zeroCopyParamInds, ampParamInds, diploidInd, outdir)
 
-	lengths, tumorCounts, diploidCounts, upper_bounds, lower_bounds, clusterAssignments, m = process_classifications(intervals, missingData, metaMu, clusterAssignments, numClusters, diploidInd, clonalsingleCopyParamInd, singleCopyParamInds, ampParamInds, sampleName, outdir)
+	lengths, tumorCounts, normalCounts, upper_bounds, lower_bounds, clusterAssignments, m = process_classifications(intervals, missingData, metaMu, clusterAssignments, numClusters, diploidInd, clonalsingleCopyParamInd, singleCopyParamInds, ampParamInds, sampleName, outdir)
 
-	return lengths, tumorCounts, diploidCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters, metaMu, diploidInd
+	try:
+		rmtree(bnpyoutdir)
+	except OSError:
+		print "WARNING: Was unable to remove bnpy output. This can be manually removed after THetA has completed. bnpy output has been stored in " + bnpyoutdir
+
+	return lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters, metaMu, diploidInd
 
 def generate_meta_data(intervals, byChrm, numProcesses, sampleName, generateData, outdir):
 	"""
@@ -522,7 +530,7 @@ def process_classifications(intervals, missingData, metaMu, clusterAssignments, 
 	Returns:
 		lengths (list of ints): Length of each interval
 		tumorCounts (list of ints): Tumor count for each interval
-		diploidCounts (list of ints): diploid count for each interval
+		normalCounts (list of ints): normal count for each interval
 		upper_bounds (list of ints): The upper copy number bound assigned to each interval.
 		lower_bounds (list of ints): The lower copy number bound assigned to each interval.
 		fullClusterAssignments (list of ints): The assignment of each interval to a cluster, where an entry
@@ -554,14 +562,14 @@ def process_classifications(intervals, missingData, metaMu, clusterAssignments, 
 	m = len(intervals) + len(missingData)
 	lengths = range(m)
 	tumorCounts = range(m)
-	diploidCounts = range(m)
+	normalCounts = range(m)
 	upper_bounds = range(m)
 	lower_bounds = range(m)
 	fullClusterAssignments = range(m)
 	for row in missingData:
 		lengths[row[-1]] = None
 		tumorCounts[row[-1]] = None
-		diploidCounts[row[-1]] = None
+		normalCounts[row[-1]] = None
 		upper_bounds[row[-1]] = None
 		lower_bounds[row[-1]] = None
 		fullClusterAssignments[row[-1]] = None
@@ -575,7 +583,7 @@ def process_classifications(intervals, missingData, metaMu, clusterAssignments, 
 
 			lengths[i] = row[2] - row[1] + 1
 			tumorCounts[i] = row[3]
-			diploidCounts[i] = row[4]
+			normalCounts[i] = row[4]
 			upper_bounds[i] = "X"
 			lower_bounds[i] = "X"
 			fullClusterAssignments[i] = -1
@@ -587,7 +595,7 @@ def process_classifications(intervals, missingData, metaMu, clusterAssignments, 
 			lengths[i] = length
 
 			tumorCounts[i] = row[3]
-			diploidCounts[i] = row[4]
+			normalCounts[i] = row[4]
 			fullClusterAssignments[i] = clusterAssignments[j]
 
 			if clusterAssignments[j] in ampParamInds:
@@ -605,17 +613,17 @@ def process_classifications(intervals, missingData, metaMu, clusterAssignments, 
 
 	plot_clusters(intervals, clusterAssignments, numClusters, sampleName, amp_upper, stepSize, diploidRDR, clonalsingleCopyRDR, outdir)
 
-	return lengths, tumorCounts, diploidCounts, upper_bounds, lower_bounds, fullClusterAssignments, m
+	return lengths, tumorCounts, normalCounts, upper_bounds, lower_bounds, fullClusterAssignments, m
 
 
-def group_to_meta_interval(lengths, tumorCounts, diploidCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters):
+def group_to_meta_interval(lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters):
 	"""
 	Produces meta-intervals given intervals and their clustering.
 
 	Arguments:
 		lengths (list of ints): Length of each interval
 		tumorCounts (list of ints): Tumor count for each interval
-		diploidCounts (list of ints): diploid count for each interval
+		normalCounts (list of ints): normal count for each interval
 		m (int): The total number of intervals (including intervals that have been marked as invalid).
 		upper_bounds (list of ints): The upper copy number bound assigned to each interval.
 		lower_bounds (list of ints): The lower copy number bound assigned to each interval.
@@ -631,15 +639,15 @@ def group_to_meta_interval(lengths, tumorCounts, diploidCounts, m, upper_bounds,
 								of the intervals assigned to that meta-interval.
 		metaTumorCounts (list of ints): "Tumor counts" of each meta-interval, where the count is the sum of
 									the tumor counts of the intervals assigned to that meta-interval.
-		metadiploidCounts (list of ints): "diploid counts" of each meta-interval, where the count is the sum of
-										the tumor counts of the intervals assigned to that meta-interval.
+		metaNormalCounts (list of ints): "normal counts" of each meta-interval, where the count is the sum of
+										the normal counts of the intervals assigned to that meta-interval.
 		meta_lower_bounds (list of ints): The lower copy number bound assigned to each meta-interval.
 		meta_upper_bounds (list of ints): The upper copy number bound assigned to each meta-interval.
 	"""
 
 	metaLengths = [0 for i in range(numClusters)]
 	metaTumorCounts = [0 for i in range(numClusters)]
-	metadiploidCounts = [0 for i in range(numClusters)]
+	metaNormalCounts = [0 for i in range(numClusters)]
 	meta_lower_bounds = [2 for i in range(numClusters)]
 	meta_upper_bounds = [2 for i in range(numClusters)]
 	intervalMap = {}
@@ -656,11 +664,11 @@ def group_to_meta_interval(lengths, tumorCounts, diploidCounts, m, upper_bounds,
 			intervalMap[clusterAssignments[i]].append(i)
 			metaLengths[clusterAssignments[i]] += lengths[i]
 			metaTumorCounts[clusterAssignments[i]] += tumorCounts[i]
-			metadiploidCounts[clusterAssignments[i]] += diploidCounts[i]
+			metaNormalCounts[clusterAssignments[i]] += normalCounts[i]
 			meta_lower_bounds[clusterAssignments[i]] = lower_bounds[i]
 			meta_upper_bounds[clusterAssignments[i]] = upper_bounds[i]
 
-	return intervalMap, metaLengths, metaTumorCounts, metadiploidCounts, meta_lower_bounds, meta_upper_bounds
+	return intervalMap, metaLengths, metaTumorCounts, metaNormalCounts, meta_lower_bounds, meta_upper_bounds
 
 def write_clusters_for_all_samples(samplelist):
 	"""
@@ -675,9 +683,9 @@ def write_clusters_for_all_samples(samplelist):
 	for sample in samplelist:
 		filename = "/research/compbio/projects/THetA/ICGC-PanCan/processed_data/pilot64/" + sample + "/" + sample + ".gamma.0.2.RD.BAF.intervals.txt"
 		try:
-			lengths, tumorCounts, diploidCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters, clusterMeans, diploidInd = clustering_BAF(filename)
+			lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters, clusterMeans, diploidInd = clustering_BAF(filename)
 			singleCopyParamInds, zeroCopyParamInds, ampParamInds, diploidInd = classify_clusters(clusterMeans, lengths, clusterAssignments)
-			intervalMap, metaLengths, metaTumorCounts, metadiploidCounts, meta_lower_bounds, meta_upper_bounds = group_to_meta_interval(lengths, tumorCounts, diploidCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters)
+			intervalMap, metaLengths, metaTumorCounts, metaNormalCounts, meta_lower_bounds, meta_upper_bounds = group_to_meta_interval(lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters)
 			f.write(sample + "\n")
 			f.write(str(numClusters) + "\n")
 			for i in range(numClusters):

@@ -289,17 +289,11 @@ def un_meta_cluster_results_N3(best, meta_order, intervalMap, allTumor, allNorma
 		
 	return newBest, r, rN
 
-def score_clusters(intervalMap, rd_baf_file,m):
+def score_clusters(intervalMap, lengths, rd, baf, m):
 	"""
 	This function will score the given cluster assignments in the intervalMap based on the average
 	distance to the cluster center.
 	"""
-	cols=(1,2,5,6)
-	X=numpy.loadtxt(rd_baf_file, usecols=cols)
-
-	lengths = X[:,1] - X[:,0] + 1
-	rd = X[:,2]
-	baf = X[:,3]
 
 	cluster_scores=[float('inf') for x in range(m)]
 	for key in intervalMap.keys():

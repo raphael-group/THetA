@@ -33,7 +33,7 @@ from numpy import linspace
 from scipy.stats import norm, beta
 from multiprocessing import Pool
 
-def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, prefix=None, directory="./", plotOption="best", model="gaussian", width=12.0, height=12.0, gamma=0.05, numProcesses=1):
+def run_BAF_model(resultsFile, tumor=None, normal=None, tumorBAF=None, normalBAF=None, chrmsToUse=None, tumorSNP=None, normalSNP=None, intervalFile=None, prefix=None, directory="./", plotOption="best", model="gaussian", width=12.0, height=12.0, gamma=0.05, numProcesses=1):
 	"""
 	Runs the BAF model on SNP and interval data.
 
@@ -56,21 +56,23 @@ def run_BAF_model(tumorSNP, normalSNP, intervalFile, resultsFile, prefix=None, d
 	minSize = 2000000 #lower bound on interval size
 	minSNP = 10 #lower bound on number of reads
 
-	#reading in tumor BAF data
-	tumor = read_snp_file(tumorSNP)
+	if tumor is None and normal is None and tumorBAF is None and normalBAF is None and chrmsToUse is None:
+		#reading in tumor BAF data
+		tumor = read_snp_file(tumorSNP)
 
-	#reading in normal snp data, interval data, and THetA results
-	normal = read_snp_file(normalSNP)
-	chrmsToUse, intervals = read_interval_file_BAF(intervalFile)
+		#reading in normal snp data, interval data, and THetA results
+		normal = read_snp_file(normalSNP)
+		chrmsToUse, intervals = read_interval_file_BAF(intervalFile)
+
+		#calculate the BAFs and remove irrelevant data
+		tumorBAF, normalBAF, tumor, normal = calculate_BAF(tumor, normal, chrmsToUse, minSNP, gamma, numProcesses)
+
 	results = read_results_file_full(resultsFile)
 	
 	#possible parameters estimated by THetA
 	k = results['k']
 	C = results['C']
 	mu = results['mu']
-
-	#calculate the BAFs and remove irrelevant data
-	tumorBAF, normalBAF, tumor, normal = calculate_BAF(tumor, normal, chrmsToUse, minSNP, gamma, numProcesses)
 
 	#arrays for storing results
 	BAFVec = []

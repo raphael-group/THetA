@@ -33,10 +33,9 @@ from Optimizer import Optimizer
 from TimeEstimate import *
 from CalcAllC import *
 from plotResults import *
-from RunBAFModel import run_BAF_model
+from RunBAFModel import run_BAF_model, calculate_BAF, generate_pi, calculate_interval
 from SetNewBounds import set_new_bounds
 from ClusteringBAF import clustering_BAF, group_to_meta_interval
-from gridplot import generate_grid_plot
 
 from multiprocessing import JoinableQueue, Queue, Process, Array, current_process
 import os
@@ -223,8 +222,8 @@ def main():
 	filename, results, n, k, tau, directory, prefix, max_normal, bound_heuristic, \
 		normal_bound_heuristic,heuristic_lb, heuristic_ub, num_processes, \
 		bounds_only, multi_event, force, get_values, choose_intervals, num_intervals, \
-		read_depth_file, graph_format, runBAF, tumorSNP, normalSNP, ratio_dev, min_frac,\
-		cluster_bounds, density_bounds = parse_arguments()
+		read_depth_file, graph_format, runBAF, ratio_dev, min_frac,\
+		density_bounds, tumorfile, normalfile, noClustering = parse_arguments()
 
 	global pre
 	pre = prefix
@@ -241,12 +240,65 @@ def main():
 		print "ERROR: This sample does not have enough large copy number aberrations to be a good candidate for tumor composition estimation using THetA.  See --RATIO_DEVIATION and --MIN_FRAC flags to modify how the potential presence of large copy number aberrations is determined.  Exiting..."
 		exit(1)
 
-	###
-	#  Do segmentation stuff
-	###
+	doClustering = tumorfile is not None and normalfile is not None and not noClustering
 
-	if cluster_bounds is not None:
-		lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters, clusterMeans, normalInd = clustering_BAF(cluster_bounds, prefix=prefix, outdir=directory, numProcesses=num_processes)
+	if doClustering:
+		tumorData = read_snp_file(tumorfile)
+		normalData = read_snp_file(normalfile)
+		chrmsToUse, intervalData = read_interval_file_BAF(filename)
+		minSNP = 10
+		gamma = 0.05
+		print "Calculating BAFs"
+		tumorBAF, normalBAF, tumorData, normalData = calculate_BAF(tumorData, normalData, chrmsToUse, minSNP, gamma, num_processes)
+
+		pi = generate_pi(intervalData)
+		SNPToIntervalMap = [calculate_interval(pi, snp[0], snp[1]) for snp in tumorData]
+		meanBAFsNum = [0 for i in lengths]
+		meanBAFsDenom = [0 for i in lengths]
+		numSNPs = [0 for i in lengths]
+		for i in range(len(SNPToIntervalMap)):
+			mapping = SNPToIntervalMap[i]
+			if mapping is None: continue
+			mutCount = tumorData[i][3]
+			refCount = tumorData[i][2]
+			meanBAFsNum[mapping] += mutCount
+			meanBAFsDenom[mapping] += mutCount + refCount
+			numSNPs[mapping] += 1
+
+		meanBAFs = []
+		corrRatio = []
+		tTotal = float(sum(tumorCounts))
+		nTotal = float(sum(normCounts))
+		for i in range(len(lengths)):
+			num = float(meanBAFsNum[i])
+			denom = float(meanBAFsDenom[i])
+			tCount = float(tumorCounts[i])
+			nCount = float(normCounts[i])
+			if num == 0 or nCount == 0:
+				meanBAFs.append(-1)
+				corrRatio.append(-1)
+			else:
+				meanBAFs.append(num / denom)
+				corrRatio.append((tCount / tTotal) / (nCount / nTotal))
+
+		chrms, starts, ends = zip(*intervalData)
+		intervals = zip(chrms, starts, ends, tumorCounts, normalCounts, corrRatio, meanBAFs, numSNPs)
+
+		intervalsByChrm = [[] for i in range(24)]
+		missingData = []
+		for i, interval in enumerate(intervals):
+			if interval[5] == -1 or interval[6] == -1:
+				interval = list(interval)
+				interval.append(i)
+				missingData.append(interval)
+			else:
+				chrm = interval[0]
+				intervalsByChrm[chrm].append(interval)
+
+		intervals = intervalsByChrm
+
+		#original clustering code
+		lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters, clusterMeans, normalInd = clustering_BAF(intervals=intervals, missingData=missingData, prefix=prefix, outdir=directory, numProcesses=num_processes)
 	
 		origM, origLengths, origTumor, origNormal, origUpper, origLower = (m, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds)
 
@@ -255,7 +307,7 @@ def main():
 
 		m = len(lengths)
 
-		cluster_scores = score_clusters(intervalMap,cluster_bounds,m)
+		cluster_scores = score_clusters(intervalMap, lengths, corrRatio, meanBAFs, m)
 
 	elif density_bounds is not None:
 		# Add code here
@@ -277,7 +329,7 @@ def main():
 
 		
 
-		if cluster_bounds or density_bounds is not None:
+		if doClustering or density_bounds is not None:
 			print "Selecting meta-intervals..."
 			allM, allLengths, allTumor, allNormal, allUpperBounds, allLowerBounds = (origM, origLengths, origTumor, origNormal, origUpper, origLower)
 		else:
@@ -286,7 +338,7 @@ def main():
 
 		if n == 2:
 
-			if cluster_bounds is not None or density_bounds is not None:
+			if doClustering or density_bounds is not None:
 
 				order, lengths, tumorCounts, normCounts, lower_bounds, upper_bounds = \
 				select_meta_intervals_n2(lengths, tumorCounts, normCounts, m, k, force, num_intervals, cluster_scores, lower_bounds, upper_bounds)
@@ -303,7 +355,7 @@ def main():
 
 		elif n == 3:
 
-			if cluster_bounds is not None or density_bounds is not None:
+			if doClustering or density_bounds is not None:
 
 				order, lengths, tumorCounts, normCounts, lower_bounds, upper_bounds = \
 				select_meta_intervals_n3(lengths, tumorCounts, normCounts, m, k, force, num_intervals, cluster_scores, lower_bounds, upper_bounds)
@@ -352,7 +404,7 @@ def main():
 	lb_out = reverse_sort_list(lower_bounds, sorted_index)
 
 	#Need to un-meta cluster before writing bounds file
-	if cluster_bounds is not None or density_bounds is not None:
+	if doClustering or density_bounds is not None:
 		ub_out, _ = un_meta_cluster_bounds(ub_out, order, intervalMap)
 		meta_order = order
 		lb_out, order = un_meta_cluster_bounds(lb_out, order, intervalMap)
@@ -389,7 +441,7 @@ def main():
 	rN = reverse_sort_list(rN, sorted_index)
 
 
-	if cluster_bounds is not None or density_bounds is not None:
+	if doClustering or density_bounds is not None:
 		if n == 2:
 			best, r, rN = un_meta_cluster_results_N2(best, meta_order, intervalMap, allTumor, allNormal)
 		elif n == 3:
@@ -410,7 +462,7 @@ def main():
 		best = find_mins(best)	
 
 	#run BAF model on results to determine most likely solution
-	if runBAF and tumorSNP is not None and normalSNP is not None:
+	if runBAF and tumorfile is not None and normalfile is not None:
 		if len(best) != 1:
 			BAFprefix = prefix + ".preliminary"
 			write_out_result(directory, BAFprefix, best, n)
@@ -418,12 +470,12 @@ def main():
 			resultsFile = BAFprefix + ".n"+str(n)+".results"
 			resultsPath = os.path.join(directory, resultsFile)
 			try:
-				run_BAF_model(tumorSNP, normalSNP, filename, resultsPath, prefix=prefix + ".n" + str(n), directory=directory, numProcesses=num_processes)
+				run_BAF_model(resultsPath, tumor=tumorData, normal=normalData, normalBAF=normalBAF, tumorBAF=tumorBAF, chrmsToUse=chrmsToUse, prefix=prefix + ".n" + str(n), directory=directory, numProcesses=num_processes)
 			except IOError:
 				print "ERROR: Invalid locations for tumor and normal SNP files. The BAF model will not be run. You can try running the BAF model again directly from the runBAFModel.py script."
 		else:
 			write_out_result(directory, prefix, best, n)
-	elif runBAF and (tumorSNP is None or normalSNP is None):
+	elif runBAF and (tumorfile is None or normalfile is None):
 		print "ERROR: Need file location for tumor and normal SNP files to run the BAF model. The BAF model will not be run. You can try running the BAF model again directly from the runBAFModel.py script."
 		write_out_result(directory, prefix, best, n)
 	else:

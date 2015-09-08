@@ -66,12 +66,13 @@ def parse_arguments(silent=False):
 			copy number event  
 		min_frac: the minimum fraction of the genome that must contain a potential
 			copy number event for a sample to be considered with THetA.
-		cluster_bounds: The input file to use if using clustering to set bounds.
 		density_bounds: The input file to use if using density to set bounds.
 	"""
 
 	parser = argparse.ArgumentParser()
 	parser.add_argument("QUERY_FILE", help="Interval file", metavar="QUERY_FILE")
+	parser.add_argument("--TUMOR_FILE", help="File containing allelic counts for tumor sample SNPs.", metavar="TUMOR_FILE", default=None, required=False)
+	parser.add_argument("--NORMAL_FILE", help="File containing allelic counts for normal samlpe SNPs.", metavar="NORMAL_FILE", default=None, required=False)
 	parser.add_argument("-n","--N", help="Number of subpopulations", metavar="N", \
 			type=int, default=2, required=False)
 	parser.add_argument("-k","--MAX_K", help="The maximum value allowed for \
@@ -106,17 +107,17 @@ def parse_arguments(silent=False):
 	parser.add_argument("--READ_DEPTH_FILE", metavar="FILENAME",  default=None, required=False)
 	parser.add_argument("--GRAPH_FORMAT", help = "Options are .pdf, .jpg, .png, .eps" , default = ".pdf", required=False)
 	parser.add_argument("--BAF", help="Option to run the BAF model.", action='store_true', default=False, required=False)
-	parser.add_argument("--TUMOR_SNP", help="File location for tumor SNP file used in the BAF model.", default=None, metavar="TUMOR_SNP", required=False)
-	parser.add_argument("--NORMAL_SNP", help="File location for the normal SNP file used in the BAF model.", default=None, metavar="NORMAL_SNP", required=False)
 	parser.add_argument("--RATIO_DEV", help = "The deviation away from 1.0 that a ratio must be to be considered\
 			a potential copy number aberration.", type=float, default=0.1, metavar="RATIO_DEV", required=False)
 	parser.add_argument("--MIN_FRAC", help = "The minimum fraction of the genome that must have a potential copy number\
 			aberration to be a valid sample for THetA analysis.", type=float, default=0.05, metavar="MIN_FRAC", required=False)
-	parser.add_argument("--CLUSTER_BOUNDS", help="Use clustering to set bounds.", default=None, required=False, metavar="CLUSTER_BOUNDS")
 	parser.add_argument("--DENSITY_BOUNDS", help="Use density to set bounds.", default=None, required=False, metavar="DENSITY_BOUNDS")
+	parser.add_argument("--NO_CLUSTERING", help="Option to run THetA without clustering.", action="store_true", default=False, required=False)
 	args = parser.parse_args()
 
 	filename = args.QUERY_FILE
+	tumorfile = args.TUMOR_FILE
+	normalfile = args.NORMAL_FILE
 	
 	n = args.N
 	if n not in N_VALS:
@@ -158,8 +159,6 @@ def parse_arguments(silent=False):
 	read_depth_file = args.READ_DEPTH_FILE
 	graph_format = args.GRAPH_FORMAT
 	runBAF = args.BAF
-	tumorSNP = args.TUMOR_SNP
-	normalSNP = args.NORMAL_SNP
 	if n == 3 and num_intervals == 100: num_intervals = 20
 
 	ratio_dev = args.RATIO_DEV
@@ -172,8 +171,8 @@ def parse_arguments(silent=False):
 		err_msg = "Invalid value for min_frac: "+str(min_frac)+". Min_frac must be between 0 and 1."
 		raise ValueError(err_msg)
 
-	cluster_bounds = args.CLUSTER_BOUNDS
 	density_bounds = args.DENSITY_BOUNDS
+	noClustering = args.NO_CLUSTERING
 	
 	if not silent:
 		print "================================================="
@@ -200,14 +199,12 @@ def parse_arguments(silent=False):
 		if get_values: print "\tGet Values:", get_values
 		if read_depth_file is not None: print "Read depth file:", read_depth_file
 		if runBAF:
-			print "\t Tumor SNP File Location: ", tumorSNP
-			print "\t Normal SNP File Location: ", normalSNP
+			print "\t Tumor SNP File Location: ", tumorfile
+			print "\t Normal SNP File Location: ", normalfile
 		print "\nValid sample for THetA analysis:"
 		print "\tRatio Deviation:", ratio_dev
 		print "\tMin Fraction of Genome Aberrated:", min_frac
-		if cluster_bounds is not None:
-			print "\tCluster bounds file:", cluster_bounds
-		elif density_bounds is not None:
+		if density_bounds is not None:
 			print "\tCluster density file:", density_bounds
 		print "================================================="
 
@@ -217,8 +214,8 @@ def parse_arguments(silent=False):
 	return filename,results,n,k,tau,directory,prefix,max_normal,bound_heuristic, \
 			normal_bound_heuristic, heuristic_lb, heuristic_ub, num_processes, \
 			bounds_only, multi_event, force, get_values, interval_selection, \
-			num_intervals, read_depth_file, graph_format, runBAF, tumorSNP, normalSNP, ratio_dev, min_frac,\
-			cluster_bounds, density_bounds
+			num_intervals, read_depth_file, graph_format, runBAF, ratio_dev, min_frac,\
+			density_bounds, tumorfile, normalfile, noClustering
 
 def parse_BAF_arguments():
 	"""
