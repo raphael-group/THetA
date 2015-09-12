@@ -72,10 +72,11 @@ def clustering_BAF(intervals=None, missingData=None, filename=None, byChrm=True,
 	if not outdir.endswith("/"):
 		outdir += "/"
 
-
-	sampleName = os.path.basename(filename).split(".")[0]
 	if prefix is None:
+		sampleName = os.path.basename(filename).split(".")[0]
 		prefix = sampleName
+	else:
+		sampleName = prefix
 
 	#setting bnpy outdir
 	bnpyoutdir = outdir + prefix + "_cluster_data/"

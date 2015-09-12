@@ -214,6 +214,56 @@ def best_near_max_contamination(best, max_normal):
 		if abs(max_normal-mu[0]) < .01: return True
 	return False
 
+def get_clustering_args(tumorfile, normalfile, filename, num_processes, m, tumorCounts, normCounts):
+	tumorData = read_snp_file(tumorfile)
+	normalData = read_snp_file(normalfile)
+	chrmsToUse, intervalData = read_interval_file_BAF(filename)
+	minSNP = 10
+	gamma = 0.05
+	print "Calculating BAFs"
+	tumorBAF, normalBAF, tumorData, normalData = calculate_BAF(tumorData, normalData, chrmsToUse, minSNP, gamma, num_processes)
+
+	pi = generate_pi(intervalData)
+	SNPToIntervalMap = [calculate_interval(pi, snp[0], snp[1]) for snp in tumorData]
+	meanBAFs = [0 for i in range(m)]
+
+	numSNPs = [0 for i in range(m)]
+	for i in range(len(SNPToIntervalMap)):
+		mapping = SNPToIntervalMap[i]
+		if mapping is None: continue
+		meanBAFs[mapping] += abs(tumorBAF[i] - 0.5)
+		numSNPs[mapping] += 1.0
+	meanBAFs = map(lambda (num, denom): num / denom if denom > 0 else -1, zip(meanBAFs, numSNPs))
+
+	corrRatio = []
+	tTotal = float(sum(tumorCounts))
+	nTotal = float(sum(normCounts))
+	for i in range(m):
+		tCount = float(tumorCounts[i])
+		nCount = float(normCounts[i])
+		if nCount == 0 or meanBAFs[i] == -1:
+			corrRatio.append(-1)
+			meanBAFs[i] = -1
+		else:
+			corrRatio.append((tCount / tTotal) / (nCount / nTotal))
+
+	chrms, starts, ends = zip(*intervalData)
+	intervals = zip(chrms, starts, ends, tumorCounts, normCounts, corrRatio, meanBAFs, numSNPs)
+
+	intervalsByChrm = [[] for i in range(24)]
+	missingData = []
+	for i, interval in enumerate(intervals):
+		if interval[5] == -1 or interval[6] == -1:
+			interval = list(interval)
+			interval.append(i)
+			missingData.append(interval)
+		else:
+			chrm = interval[0]
+			intervalsByChrm[chrm].append(interval)
+
+	intervals = intervalsByChrm
+
+	return intervals, missingData, corrRatio, meanBAFs
 
 def main():
 	###
@@ -243,59 +293,7 @@ def main():
 	doClustering = tumorfile is not None and normalfile is not None and not noClustering
 
 	if doClustering:
-		tumorData = read_snp_file(tumorfile)
-		normalData = read_snp_file(normalfile)
-		chrmsToUse, intervalData = read_interval_file_BAF(filename)
-		minSNP = 10
-		gamma = 0.05
-		print "Calculating BAFs"
-		tumorBAF, normalBAF, tumorData, normalData = calculate_BAF(tumorData, normalData, chrmsToUse, minSNP, gamma, num_processes)
-
-		pi = generate_pi(intervalData)
-		SNPToIntervalMap = [calculate_interval(pi, snp[0], snp[1]) for snp in tumorData]
-		meanBAFsNum = [0 for i in lengths]
-		meanBAFsDenom = [0 for i in lengths]
-		numSNPs = [0 for i in lengths]
-		for i in range(len(SNPToIntervalMap)):
-			mapping = SNPToIntervalMap[i]
-			if mapping is None: continue
-			mutCount = tumorData[i][3]
-			refCount = tumorData[i][2]
-			meanBAFsNum[mapping] += mutCount
-			meanBAFsDenom[mapping] += mutCount + refCount
-			numSNPs[mapping] += 1
-
-		meanBAFs = []
-		corrRatio = []
-		tTotal = float(sum(tumorCounts))
-		nTotal = float(sum(normCounts))
-		for i in range(len(lengths)):
-			num = float(meanBAFsNum[i])
-			denom = float(meanBAFsDenom[i])
-			tCount = float(tumorCounts[i])
-			nCount = float(normCounts[i])
-			if num == 0 or nCount == 0:
-				meanBAFs.append(-1)
-				corrRatio.append(-1)
-			else:
-				meanBAFs.append(num / denom)
-				corrRatio.append((tCount / tTotal) / (nCount / nTotal))
-
-		chrms, starts, ends = zip(*intervalData)
-		intervals = zip(chrms, starts, ends, tumorCounts, normalCounts, corrRatio, meanBAFs, numSNPs)
-
-		intervalsByChrm = [[] for i in range(24)]
-		missingData = []
-		for i, interval in enumerate(intervals):
-			if interval[5] == -1 or interval[6] == -1:
-				interval = list(interval)
-				interval.append(i)
-				missingData.append(interval)
-			else:
-				chrm = interval[0]
-				intervalsByChrm[chrm].append(interval)
-
-		intervals = intervalsByChrm
+		intervals, missingData, corrRatio, meanBAFs = get_clustering_args(tumorfile, normalfile, filename, num_processes, m, tumorCounts, normCounts)
 
 		#original clustering code
 		lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters, clusterMeans, normalInd = clustering_BAF(intervals=intervals, missingData=missingData, prefix=prefix, outdir=directory, numProcesses=num_processes)
@@ -307,7 +305,7 @@ def main():
 
 		m = len(lengths)
 
-		cluster_scores = score_clusters(intervalMap, lengths, corrRatio, meanBAFs, m)
+		cluster_scores = score_clusters(intervalMap, origLengths, corrRatio, meanBAFs, m)
 
 	elif density_bounds is not None:
 		# Add code here

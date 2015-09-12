@@ -304,9 +304,9 @@ def score_clusters(intervalMap, lengths, rd, baf, m):
 
 		rows = intervalMap[key]
 
-		cluster_lens = lengths[rows]
-		cluster_rd = rd[rows]
-		cluster_baf = baf[rows]
+		cluster_lens = [lengths[row] for row in rows]
+		cluster_rd = [rd[row] for row in rows]
+		cluster_baf = [baf[row] for row in rows]
 		tot_len = sum(cluster_lens)
 
 		#Give small clusters high distance scores
