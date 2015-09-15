@@ -52,7 +52,7 @@ def time_estimate(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 	C = enum.generate_next_C()
 	if C is False:
 		print "ERROR: No valid Copy Number Profiles exist for these intervals within the bounds specified. Exiting..."
-		sys.exit(1)
+		exit(1)
 	start = time.clock()
 	for i in range(TEST_NUM):
 		try:

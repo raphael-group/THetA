@@ -1,5 +1,5 @@
  ###
- # 2013 Brown University, Providence, RI.
+ # 2013, 2014, 2015 Brown University, Providence, RI.
  #
  #                       All Rights Reserved
  #
@@ -20,7 +20,7 @@
  # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  # http://cs.brown.edu/people/braphael/software.html
- # 
+ #
  # @author Layla Oesper, Ahmad Mahmoody, Benjamin J. Raphael, and Gryte Satas
  ###
 
@@ -35,11 +35,11 @@ MAX_K = 7
 
 def parse_arguments(silent=False):
 	"""
-	Parse command line arguments 
-	
+	Parse command line arguments
+
 	Returns:
 		query file: full path to the location of the input file
-		results: for n=3 automatic interval selection, must provide results 
+		results: for n=3 automatic interval selection, must provide results
 			of n=2 analysis
 		n: number of subpopulations
 		k: maximum value of k to be considered
@@ -60,18 +60,19 @@ def parse_arguments(silent=False):
 		get_values: collects and prints out values for C, mu and likelihood for
 			all Cs considered, for development purposes
 		runBAF: flag indicating if the BAF post-processing model should be run.
-		tumorSNP: file location for tumor SNP file used in the BAF post-processing model.
-		normalSNP: file location for the normal SNP file used in the BAF post-processing model.
 		ratio_dev: the deviation away from 1.0 for a ratio to indicate a potential
-			copy number event  
+			copy number event
 		min_frac: the minimum fraction of the genome that must contain a potential
 			copy number event for a sample to be considered with THetA.
-		cluster_bounds: The input file to use if using clustering to set bounds.
-		density_bounds: The input file to use if using density to set bounds.
+		tumorfile: file location for tumor SNP file.
+		normalfile: file location for the normal SNP file.
+		noClustering: the option to run THetA without clustering intervals first.
 	"""
 
 	parser = argparse.ArgumentParser()
 	parser.add_argument("QUERY_FILE", help="Interval file", metavar="QUERY_FILE")
+	parser.add_argument("--TUMOR_FILE", help="File containing allelic counts for tumor sample SNPs.", metavar="TUMOR_FILE", default=None, required=False)
+	parser.add_argument("--NORMAL_FILE", help="File containing allelic counts for normal samlpe SNPs.", metavar="NORMAL_FILE", default=None, required=False)
 	parser.add_argument("-n","--N", help="Number of subpopulations", metavar="N", \
 			type=int, default=None, required=False)
 	parser.add_argument("-k","--MAX_K", help="The maximum value allowed for \
@@ -106,23 +107,22 @@ def parse_arguments(silent=False):
 	parser.add_argument("--READ_DEPTH_FILE", metavar="FILENAME",  default=None, required=False)
 	parser.add_argument("--GRAPH_FORMAT", help = "Options are .pdf, .jpg, .png, .eps" , default = ".pdf", required=False)
 	parser.add_argument("--BAF", help="Option to run the BAF model.", action='store_true', default=False, required=False)
-	parser.add_argument("--TUMOR_SNP", help="File location for tumor SNP file used in the BAF model.", default=None, metavar="TUMOR_SNP", required=False)
-	parser.add_argument("--NORMAL_SNP", help="File location for the normal SNP file used in the BAF model.", default=None, metavar="NORMAL_SNP", required=False)
 	parser.add_argument("--RATIO_DEV", help = "The deviation away from 1.0 that a ratio must be to be considered\
 			a potential copy number aberration.", type=float, default=0.1, metavar="RATIO_DEV", required=False)
 	parser.add_argument("--MIN_FRAC", help = "The minimum fraction of the genome that must have a potential copy number\
 			aberration to be a valid sample for THetA analysis.", type=float, default=0.05, metavar="MIN_FRAC", required=False)
-	parser.add_argument("--CLUSTER_BOUNDS", help="Use clustering to set bounds.", default=None, required=False, metavar="CLUSTER_BOUNDS")
-	parser.add_argument("--DENSITY_BOUNDS", help="Use density to set bounds.", default=None, required=False, metavar="DENSITY_BOUNDS")
+	parser.add_argument("--NO_CLUSTERING", help="Option to run THetA without clustering.", action="store_true", default=False, required=False)
 	args = parser.parse_args()
 
 	filename = args.QUERY_FILE
-	
+	tumorfile = args.TUMOR_FILE
+	normalfile = args.NORMAL_FILE
+
 	n = args.N
 	if n not in N_VALS:
 		err_msg = "Invalid value entered for n: "+str(n)+". Currently supported values for n: "+str(N_VALS)
 		raise ValueError(err_msg)
-	
+
 	k = args.MAX_K
 	if k not in range(MAX_K):
 		err_msg = "Invalid value entered for k: "+str(k)+". Supported values for k: 0-"+str(MAX_K)
@@ -151,15 +151,13 @@ def parse_arguments(silent=False):
 	bounds_only = args.BOUNDS_ONLY
 	multi_event = not(args.NO_MULTI_EVENT)
 	results = args.RESULTS
-	force = args.FORCE	
+	force = args.FORCE
 	get_values = args.GET_VALUES
 	interval_selection = not(args.NO_INTERVAL_SELECTION)
 	num_intervals = args.NUM_INTERVALS
 	read_depth_file = args.READ_DEPTH_FILE
 	graph_format = args.GRAPH_FORMAT
 	runBAF = args.BAF
-	tumorSNP = args.TUMOR_SNP
-	normalSNP = args.NORMAL_SNP
 	if n == 3 and num_intervals == 100: num_intervals = 20
 
 	ratio_dev = args.RATIO_DEV
@@ -172,9 +170,8 @@ def parse_arguments(silent=False):
 		err_msg = "Invalid value for min_frac: "+str(min_frac)+". Min_frac must be between 0 and 1."
 		raise ValueError(err_msg)
 
-	cluster_bounds = args.CLUSTER_BOUNDS
-	density_bounds = args.DENSITY_BOUNDS
-	
+	noClustering = args.NO_CLUSTERING
+
 	if not silent:
 		print "================================================="
 		print "Arguments are:"
@@ -200,15 +197,15 @@ def parse_arguments(silent=False):
 		if get_values: print "\tGet Values:", get_values
 		if read_depth_file is not None: print "Read depth file:", read_depth_file
 		if runBAF:
-			print "\t Tumor SNP File Location: ", tumorSNP
-			print "\t Normal SNP File Location: ", normalSNP
+			print "\t Tumor SNP File Location: ", tumorfile
+			print "\t Normal SNP File Location: ", normalfile
 		print "\nValid sample for THetA analysis:"
 		print "\tRatio Deviation:", ratio_dev
 		print "\tMin Fraction of Genome Aberrated:", min_frac
-		if cluster_bounds is not None:
-			print "\tCluster bounds file:", cluster_bounds
-		elif density_bounds is not None:
-			print "\tCluster density file:", cluster_density
+		if not noClustering:
+			print "\tProgram WILL cluster intervals."
+		else:
+			print "\tProgram will NOT cluster intervals."
 		print "================================================="
 
 
@@ -217,8 +214,8 @@ def parse_arguments(silent=False):
 	return filename,results,n,k,tau,directory,prefix,max_normal,bound_heuristic, \
 			normal_bound_heuristic, heuristic_lb, heuristic_ub, num_processes, \
 			bounds_only, multi_event, force, get_values, interval_selection, \
-			num_intervals, read_depth_file, graph_format, runBAF, tumorSNP, normalSNP, ratio_dev, min_frac,\
-			cluster_bounds, density_bounds
+			num_intervals, read_depth_file, graph_format, runBAF, ratio_dev, min_frac,\
+			tumorfile, normalfile, noClustering
 
 def parse_BAF_arguments():
 	"""
@@ -243,6 +240,8 @@ def parse_BAF_arguments():
 	parser.add_argument("--HEIGHT", help="Sets the output plot's height.", metavar="HEIGHT", type=float, required=False, default=None)
 	parser.add_argument("--G", help="Sets the gamma value used as a parameter for determining SNP heterozygosity.",
 						metavar="G", type=float, required=False, default=None)
+	parser.add_argument("--NUM_PROCESSES", help="The number of processes to be used",
+			default=1, type=int, metavar="NUM_PROCESSES", required=False)
 	args = parser.parse_args()
 
 	kwargs = {}
@@ -250,6 +249,7 @@ def parse_BAF_arguments():
 	kwargs['normalSNP'] = args.NORMAL_SNP
 	kwargs['intervalFile'] = args.INTERVALS
 	kwargs['resultsFile'] = args.RESULTS
+	kwargs['numProcesses'] = args.NUM_PROCESSES
 
 	if args.P is not None:
 		kwargs['prefix'] = args.P
@@ -284,12 +284,12 @@ def parse_BAF_arguments():
 
 	return kwargs
 
-def read_binned_file(filename, byChrm=False, double=False):
+def read_interval_RD_BAF_file(filename, byChrm=False, double=False):
 	"""
-	Parses the data in a .binned.txt file.
+	Parses the data in an interval file with RDR and BAF data.
 
 	Arguments:
-		filename (str): the location of the .binned.txt file
+		filename (str): the location of the interval file
 
 	Returns:
 		data (2D list): A 2D list, where each row is [chromosome number, start interval,
@@ -299,7 +299,9 @@ def read_binned_file(filename, byChrm=False, double=False):
 	"""
 
 	data = []
+	missingData = []
 	print "Reading binned file at " + filename
+	i = 0
 	with open(filename) as f:
 		for line in f:
 			if line.startswith("#"): continue
@@ -315,9 +317,13 @@ def read_binned_file(filename, byChrm=False, double=False):
 			meanBAF = float(meanBAF)
 			numSNPs = int(numSNPs)
 
-			if (corrRatio == -1) or (meanBAF == -1): continue
+			if (corrRatio == -1) or (meanBAF == -1):
+				missingData.append([chrm, start, end, tumorCounts, normalCounts, corrRatio, meanBAF, numSNPs, i])
+				i += 1
+				continue
 
 			data.append([chrm, start, end, tumorCounts, normalCounts, corrRatio, meanBAF, numSNPs])
+			i += 1
 
 	if double:
 		print "Generating 100kb bins..."
@@ -342,23 +348,23 @@ def read_binned_file(filename, byChrm=False, double=False):
 					newData.append(previousRow)
 					previousRow = row
 		data = newData
-		
+
 	if byChrm:
 		print "Sorting by chromosome..."
 		dataByChrm = map(lambda x: [], range(24))
 		for row in data:
 			chrm = row[0]
 			dataByChrm[chrm - 1].append(row)
-		return dataByChrm
+		return missingData, dataByChrm
 	else:
-		return data
+		return missingData, data
 
 def read_interval_file(filename):
 	"""
 	Read in input file
 
 	Args:
-		filename (string): full path to the input file 
+		filename (string): full path to the input file
 	Returns:
 		tumor_counts: tumor read depth vector
 		norm_counts: normal read depth vector
@@ -378,9 +384,9 @@ def read_interval_file(filename):
 			if line.startswith("#"): continue
 
 
-			line = line.strip().replace(" ","\t").split()	
+			line = line.strip().replace(" ","\t").split()
 			numLine += 1
-			
+
 			if len(line) < 6 or len(line) > 8:
 				sys.stderr.write("Invalid input file format in interval file line #"+str(numLine)+":\n" + str(line)+"\nToo few/many columns. Exiting...\n")
 				sys.exit(1)
@@ -388,7 +394,7 @@ def read_interval_file(filename):
 			start = int(line[2])
 			end = int(line[3])
 			lengths.append(end-start)
-		
+
 			# Read Tumor Counts
 			tumor_counts.append(int(line[4]))
 			norm_counts.append(int(line[5]))
@@ -396,20 +402,20 @@ def read_interval_file(filename):
 			# Read Bounds
 			if len(line) > 6:
 				upper_bounds.append(line[6])
-			else: 
+			else:
 				upper_bounds.append("X")
 
 			if len(line) > 7:
 				lower_bounds.append(line[7])
-			else: 
+			else:
 				lower_bounds.append("X")
 
 	if numLine == 1:
-		sys.stderr.write("Number of intervals must be greater than 1. Exiting...\n") 
+		sys.stderr.write("Number of intervals must be greater than 1. Exiting...\n")
 		sys.exit(1)
 
-	if all([x == "X" for x in upper_bounds]): upper_bounds = None	
-	if all([x == "X" for x in lower_bounds]): lower_bounds = None	
+	if all([x == "X" for x in upper_bounds]): upper_bounds = None
+	if all([x == "X" for x in lower_bounds]): lower_bounds = None
 	m = len(lengths)
 
 	return [lengths, tumor_counts, norm_counts, m, upper_bounds, lower_bounds]
@@ -435,7 +441,10 @@ def read_interval_file_BAF(filename):
 		for line in f:
 			if line.startswith("#"): continue
 
-			iden, chrm, startPos, endPos, tCount, nCount = line.strip().split("\t")
+			#layla - fix bug when extra columns are provided
+			vals = line.strip().split("\t")
+			iden, chrm, startPos, endPos, tCount, nCount = vals[0:6]
+			#iden, chrm, startPos, endPos, tCount, nCount = line.strip().split("\t")
 
 			chrm = chrm.lower()
 			if chrm.startswith("chrm"):
@@ -446,7 +455,7 @@ def read_interval_file_BAF(filename):
 				chrm = 24
 			else:
 				chrm = int(chrm)
-			
+
 			chrmArray.append(chrm)
 			chrmsToUse.add(chrm)
 			startPosArray.append(int(startPos))
@@ -473,7 +482,7 @@ def read_results_file(filename):
 		print "ERROR: The result file provided appears to be empty. Exiting..."
 	elif len(lines) > 1:
 		print "WARNING: The results file contains more than one solution. THetA will use the first provided solution."
-	
+
 	soln = lines[0].strip().split("\t")
 	copy = [i for i in soln[2].split(":")]
 	return copy
@@ -606,9 +615,9 @@ def write_out_result(directory, prefix, results, n):
 
 	filename = prefix + ".n"+str(n)+".results"
 	path = os.path.join(directory,filename)
-	
+
 	print "Writing results file to", path
-	
+
 	f = open(path, 'w')
 
 	# Header
@@ -621,14 +630,14 @@ def write_out_result(directory, prefix, results, n):
 		C_str = ""
 		for i in range(m):
 			for j in range(1,n):
-				if int(C[i][j]) == -1: 
+				if int(C[i][j]) == -1:
 					C_str = C_str + "X" + ","
 				else:
 					C_str = C_str + str(int(C[i][j])) +","
 			C_str = C_str[:-1]
 			C_str += ":"
 		C_str = C_str[:-1] + "\t"
-		
+
 		val_str = string.join([str(val) for val in vals],",")
 		f.write(l_str)
 		f.write(mu_str)
@@ -728,9 +737,9 @@ def write_out_bounds(directory, prefix, inputFile, upper_bounds, lower_bounds, n
 
 	print "Writing bounds file to", outputFile
 	length = len(lines[1].split())
-	
+
 	if "#" in lines[0]: lines = lines[1:]
-	
+
 	# Header
 	f.write("#ID\tchrm\tstart\tend\ttumorCount\tnormalCount\tUpperBound\tLowerBound\n")
 
@@ -740,18 +749,18 @@ def write_out_bounds(directory, prefix, inputFile, upper_bounds, lower_bounds, n
 			orderMap[v] = i
 		for i,line in enumerate(lines):
 			line = "\t".join(line.strip().split("\t")[:6])
-			f.write(line.strip())	
+			f.write(line.strip())
 			if i in orderMap:
 				f.write("\t" + str(int(upper_bounds[orderMap[i]])))
 				f.write("\t" + str(int(lower_bounds[orderMap[i]])))
-			else: 
+			else:
 				f.write("\tX")
 				f.write("\tX")
 			f.write("\n")
-	else:	
+	else:
 		for i,line in enumerate(lines):
 			line = "\t".join(line.strip().split("\t")[:6])
-			f.write(line.strip())	
+			f.write(line.strip())
 			f.write("\t" + str(int(upper_bounds[i])))
 			f.write("\t" + str(int(lower_bounds[i])))
 			f.write("\n")
@@ -759,7 +768,7 @@ def write_out_bounds(directory, prefix, inputFile, upper_bounds, lower_bounds, n
 	return outputFile
 
 def write_out_N3_script(directory, prefix, inputFile):
-	# All the arguments are the same except -n 3 instead of 2 and --bounds prefix.n2.withbounds	
+	# All the arguments are the same except -n 3 instead of 2 and --bounds prefix.n2.withbounds
 
 	filename = os.path.join(directory, prefix+".RunN3.bash")
 	print "Writing script to run N=3 to ", filename

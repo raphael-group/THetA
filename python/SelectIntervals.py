@@ -35,6 +35,8 @@ import math
 ###
 MIN_LENGTH_N2 = 1000000 # 1Mb
 MIN_LENGTH_N3 = 5000000 # 5Mb
+MAX_CLUSTER_SCORE=0.05
+#MAX_CLUSTER_SCORE=0.1
 
 def select_intervals_n3(lengths, tumor_counts, norm_counts, m, upper_bounds, lower_bounds, copy, tau, force, num_intervals):
 	"""
@@ -113,15 +115,21 @@ def select_intervals_n3(lengths, tumor_counts, norm_counts, m, upper_bounds, low
 	print "\tSelected", len(intervals), "intervals for analysis."
 	return [column(topLines, i) for i in range(len(topLines[0]))]
 
-def select_intervals_n2(lengths, tumor_counts, norm_counts, m, k, force, num_intervals):
+def select_intervals_n2(lengths, tumor_counts, norm_counts, m, k, force, num_intervals, lower=None, upper=None):
 	"""
 	Selects num intervals for n=2 analysis
 	Returns lines in original input order
 	"""
-	indexes = filter_intervals_n2(lengths, tumor_counts, norm_counts, m, k)
+	indexes = filter_intervals_n2(lengths, tumor_counts, norm_counts, m, k, lower, upper)
 
 	total_length = float(sum(lengths))
-	lines = [[i, lengths[i], tumor_counts[i], norm_counts[i]] for i in indexes]
+
+	#layla 7-17-15 - Handle predefined bounds
+	if lower is None or upper is None:
+		lines = [[i, lengths[i], tumor_counts[i], norm_counts[i]] for i in indexes]
+	else:
+		lines = [[i, lengths[i], tumor_counts[i], norm_counts[i], lower[i], upper[i]] for i in indexes]
+
 	lines.sort(key=lambda x: x[1])
 
 	lim = min(num_intervals, len(indexes))
@@ -138,9 +146,57 @@ def select_intervals_n2(lengths, tumor_counts, norm_counts, m, k, force, num_int
 
 	
 	print "\tSelected", len(topLines), "intervals for analysis."
+
+
 	return [column(topLines, i) for i in range(len(topLines[0]))]
 
-def filter_intervals_n2(lengths, tumor_counts, norm_counts, m,  k):
+def select_meta_intervals_n2(lengths, tumor_counts, norm_counts, m, k, force, num_intervals, scores, lower=None, upper=None):
+	"""
+	Selects up to num intervals for n=2 analysis.  
+	Returns lines in original input order
+	"""
+
+	indexes = filter_meta_intervals_n2(m, scores)
+
+	lines = [[i, lengths[i], tumor_counts[i], norm_counts[i], lower[i], upper[i], scores[i]] for i in indexes]
+
+	lines.sort(key=lambda x: x[6])
+
+	
+	lim = min(num_intervals, len(indexes))
+	topLines = lines[:lim]
+
+	topLines.sort(key=lambda x: x[0])
+
+	print "\tSelected", len(topLines), "intervals for analysis."
+
+
+	return [column(topLines, i) for i in range(len(topLines[0])-1)]
+
+def select_meta_intervals_n3(lengths, tumor_counts, norm_counts, m, k, force, num_intervals, scores, lower=None, upper=None):
+	"""
+	Selects up to num intervals for n=3 analysis.
+	Returns lines in original input order.
+	"""
+	indexes = filter_meta_intervals_n3(lower, upper, m, scores)
+
+	lines = [[i, lengths[i], tumor_counts[i], norm_counts[i], lower[i], upper[i], scores[i]] for i in indexes]
+
+	lines.sort(key=lambda x: x[6])
+
+	
+	lim = min(num_intervals, len(indexes))
+	topLines = lines[:lim]
+
+	topLines.sort(key=lambda x: x[0])
+
+	print "\tSelected", len(topLines), "intervals for analysis."
+
+	return [column(topLines, i) for i in range(len(topLines[0])-1)]
+
+
+
+def filter_intervals_n2(lengths, tumor_counts, norm_counts, m,  k, lower, upper):
 	"""
 	Filters out intervals that aren't long enough or overly amplified
 	"""
@@ -150,9 +206,33 @@ def filter_intervals_n2(lengths, tumor_counts, norm_counts, m,  k):
 	indexes = range(m)
 	indexes = [i for i in indexes if tumor_counts[i] > 0 and norm_counts[i] > 0 and lengths[i] >= MIN_LENGTH_N2]
 	indexes = [i for i in indexes if ((tumor_counts[i]/total_tumor) / (norm_counts[i]/total_normal)) < float(k+1)/2]
+
 	return indexes
+
 
 def column(lines, column):
 	return [line[column] for line in lines]
 
+
+def filter_meta_intervals_n2(m, scores):
+	"""
+	Filters out intervals that don't have a good enough score.
+	"""
+	indexes = range(m)
+	indexes = [i for i in indexes if scores[i] < MAX_CLUSTER_SCORE]
+
+	return indexes
+
+def filter_meta_intervals_n3(lower, upper, m, scores):
+	"""
+	Filters out intervals that don't have a good enough score.
+	Also only keeps intervals that are called: (1) normal,
+	(2) potential heterozygous deletion, (3) single amplification.
+	"""
+	indexes = range(m)
+	indexes = [i for i in indexes if scores[i] < MAX_CLUSTER_SCORE]
+	indexes = [i for i in indexes if lower[i] == 2 or lower[i] == 1]
+	indexes = [i for i in indexes if upper[i] == 2 or upper[i] == 3]
+
+	return indexes
 		
