@@ -1,5 +1,5 @@
  ###
- # 2013 Brown University, Providence, RI.
+ # 2013, 2014, 2015 Brown University, Providence, RI.
  #
  #                       All Rights Reserved
  #
@@ -20,8 +20,9 @@
  # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  # http://cs.brown.edu/people/braphael/software.html
- # 
- # @author Layla Oesper, Ahmad Mahmoody, Benjamin J. Raphael and Gryte Satas
+ #
+ # @author Layla Oesper, Ahmad Mahmoody, Benjamin J. Raphael, Gryte Satas and
+ # Alex Ashery
  ###
 
 from SelectIntervals import *
@@ -34,7 +35,6 @@ from TimeEstimate import *
 from CalcAllC import *
 from plotResults import *
 from RunBAFModel import run_BAF_model, calculate_BAF, generate_pi, calculate_interval
-from SetNewBounds import set_new_bounds
 from ClusteringBAF import clustering_BAF, group_to_meta_interval
 
 from multiprocessing import JoinableQueue, Queue, Process, Array, current_process
@@ -52,7 +52,7 @@ def process_loop(queue, opt, returnQueue, sorted_index, get_values):
 	returnQueue (multiprocessing.Queue): Queue to put results in
 	sorted_index (list): Array containing ordering information for sorting
 	"""
-	min_likelihood = float('inf') 
+	min_likelihood = float('inf')
 	best = []
 	if get_values: solns = []
 	while True:
@@ -81,7 +81,7 @@ def process_loop(queue, opt, returnQueue, sorted_index, get_values):
 				stringC = "".join((str(int(C[i][1])) for i in range(m)))
 				valsStr = " ".join((str(v) for v in vals))
 				f.write(stringC+"\t"+str(mu[0])+"\t"+str(likelihood)+"\t"+valsStr+"\n")
-	
+
 
 def start_processes(max_processes, queue, opt, returnQueue, sorted_index, get_values):
 	"""
@@ -96,7 +96,7 @@ def start_processes(max_processes, queue, opt, returnQueue, sorted_index, get_va
 
 def find_mins(best):
 	"""
-	Takes a the list of "best" C,mu pairs returned by each process and finds 
+	Takes a the list of "best" C,mu pairs returned by each process and finds
 	the ones with the minimum likelihood
 	"""
 	min_likelihood = float('inf')
@@ -116,7 +116,7 @@ def do_optimization(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 	"""
 	Performs the optimization for the given parameters with max_proccesses
 	number of processes
-	Returns a list of the best C matrices and associated mu values 
+	Returns a list of the best C matrices and associated mu values
 	and likelihoods
 	"""
 	enum = Enumerator(n, m, k, tau, lower_bounds, upper_bounds, multi_event)
@@ -132,7 +132,7 @@ def do_optimization(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 
 	processes = start_processes(max_processes, queue, opt, returnQueue, \
 			    sorted_index, get_values)
-	
+
 	# fix problem with missing first matrix
 	#C = enum.generate_next_C()
 	C=enum._C_to_array()
@@ -164,13 +164,13 @@ def do_optimization_single(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 		    max_normal, sorted_index, multi_event, get_values):
 	"""
 	Performs the optimization for the given parameters with a single process
-	Returns a list of the best C matrices and associated mu values 
+	Returns a list of the best C matrices and associated mu values
 	and likelihoods
 	"""
 
 	enum = Enumerator(n, m, k, tau, lower_bounds, upper_bounds, multi_event)
 	opt = Optimizer(r, rN, m, n,tau, upper_bound=max_normal)
-	min_likelihood = float("inf")	
+	min_likelihood = float("inf")
 	best = []
 	count = 0
 
@@ -203,8 +203,8 @@ def do_optimization_single(n,m,k,tau,lower_bounds, upper_bounds, r, rN, \
 				m,n = C.shape
 				stringC = "".join((str(int(C[i][1])) for i in range(m)))
 				f.write(stringC+"\t"+str(mu[0])+"\t"+str(likelihood)+"\n")
-	
-	if count == 0: 
+
+	if count == 0:
 		print "Error: No valid Copy Number Profiles exist for these intervals within the bounds specified. Exiting..."
 		sys.exit(1)
 	return best
@@ -273,7 +273,7 @@ def main():
 		normal_bound_heuristic,heuristic_lb, heuristic_ub, num_processes, \
 		bounds_only, multi_event, force, get_values, choose_intervals, num_intervals, \
 		read_depth_file, graph_format, runBAF, ratio_dev, min_frac,\
-		density_bounds, tumorfile, normalfile, noClustering = parse_arguments()
+		tumorfile, normalfile, noClustering = parse_arguments()
 
 	global pre
 	pre = prefix
@@ -292,12 +292,15 @@ def main():
 
 	doClustering = tumorfile is not None and normalfile is not None and not noClustering
 
+	###
+	# Setup if we will do clustering of intervals prior to running
+	###
 	if doClustering:
 		intervals, missingData, corrRatio, meanBAFs = get_clustering_args(tumorfile, normalfile, filename, num_processes, m, tumorCounts, normCounts)
 
 		#original clustering code
 		lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters, clusterMeans, normalInd = clustering_BAF(intervals=intervals, missingData=missingData, prefix=prefix, outdir=directory, numProcesses=num_processes)
-	
+
 		origM, origLengths, origTumor, origNormal, origUpper, origLower = (m, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds)
 
 		intervalMap, lengths, tumorCounts, normCounts, lower_bounds, upper_bounds = \
@@ -307,17 +310,6 @@ def main():
 
 		cluster_scores = score_clusters(intervalMap, origLengths, corrRatio, meanBAFs, m)
 
-	elif density_bounds is not None:
-		# Add code here
-		#print "Setting bounds using density needs to be implemented."
-		upper_bounds, lower_bounds, clusterAssignments, numClusters = set_new_bounds(density_bounds)
-
-		origM, origLengths, origTumor, origNormal, origUpper, origLower = (m, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds)
-
-		intervalMap, lengths, tumorCounts, normCounts, lower_bounds, upper_bounds = \
-		group_to_meta_interval(lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters)
-
-		m = len(lengths)
 
 	###
 	#	Automatically Select Intervals
@@ -325,9 +317,7 @@ def main():
 	###
 	if choose_intervals:
 
-		
-
-		if doClustering or density_bounds is not None:
+		if doClustering:
 			print "Selecting meta-intervals..."
 			allM, allLengths, allTumor, allNormal, allUpperBounds, allLowerBounds = (origM, origLengths, origTumor, origNormal, origUpper, origLower)
 		else:
@@ -336,7 +326,7 @@ def main():
 
 		if n == 2:
 
-			if doClustering or density_bounds is not None:
+			if doClustering:
 
 				order, lengths, tumorCounts, normCounts, lower_bounds, upper_bounds = \
 				select_meta_intervals_n2(lengths, tumorCounts, normCounts, m, k, force, num_intervals, cluster_scores, lower_bounds, upper_bounds)
@@ -353,16 +343,16 @@ def main():
 
 		elif n == 3:
 
-			if doClustering or density_bounds is not None:
+			if doClustering:
 
 				order, lengths, tumorCounts, normCounts, lower_bounds, upper_bounds = \
 				select_meta_intervals_n3(lengths, tumorCounts, normCounts, m, k, force, num_intervals, cluster_scores, lower_bounds, upper_bounds)
 
-			elif results is None: 
+			elif results is None:
 				print "ERROR: No results file supplied. Unable to automatically select intervals for n=3 without results of n=2 analysis. See --RESULTS flag, or --NO_INTERVAL_SELECTION to disable interval selection. Exiting..."
 				exit(1)
-			else: 
-				# Need to read in original file, bounds file and results file. Original file needed because copy numbers are based on 
+			else:
+				# Need to read in original file, bounds file and results file. Original file needed because copy numbers are based on
 				copy = read_results_file(results)
 				order, lengths, tumorCounts, normCounts, upper_bounds, lower_bounds, copy = select_intervals_n3(lengths, tumorCounts, normCounts, m, upper_bounds, lower_bounds, copy, tau, force, num_intervals)
 
@@ -389,12 +379,12 @@ def main():
 		if bound_heuristic is False: bound_heuristic = 0.5
 		upper_bounds,lower_bounds = calculate_bounds_heuristic(float(bound_heuristic),\
 			 r, rN, m, tau, k)
-	else: 
+	else:
 		if upper_bounds is not None: upper_bounds = sort_by_sorted_index(upper_bounds,\
 			sorted_index)
 		if lower_bounds is not None: lower_bounds = sort_by_sorted_index(lower_bounds,\
 			sorted_index)
-	
+
 
 
 	###Bounds files in their original orders
@@ -402,7 +392,7 @@ def main():
 	lb_out = reverse_sort_list(lower_bounds, sorted_index)
 
 	#Need to un-meta cluster before writing bounds file
-	if doClustering or density_bounds is not None:
+	if doClustering:
 		ub_out, _ = un_meta_cluster_bounds(ub_out, order, intervalMap)
 		meta_order = order
 		lb_out, order = un_meta_cluster_bounds(lb_out, order, intervalMap)
@@ -410,7 +400,7 @@ def main():
 
 	if choose_intervals:
 		write_out_bounds(directory, prefix, filename, ub_out, lb_out, n, order)
-	else: 
+	else:
 		write_out_bounds(directory, prefix, filename, ub_out, lb_out, n)
 
 	if bounds_only: sys.exit(0)
@@ -419,7 +409,7 @@ def main():
 
 	enum = time_estimate(n,m,k,tau,lower_bounds,upper_bounds,r,rN,max_normal,sorted_index, num_processes, multi_event, force)
 	###
-	#  Initialize optimizer and enumerator 
+	#  Initialize optimizer and enumerator
 	###
 	print "Performing optimization..."
 
@@ -439,7 +429,7 @@ def main():
 	rN = reverse_sort_list(rN, sorted_index)
 
 
-	if doClustering or density_bounds is not None:
+	if doClustering:
 		if n == 2:
 			best, r, rN = un_meta_cluster_results_N2(best, meta_order, intervalMap, allTumor, allNormal)
 		elif n == 3:
@@ -451,13 +441,13 @@ def main():
 	if choose_intervals:
 		if n == 2:
 			best = calc_all_c_2(best, r, rN, allTumor, allNormal, order)
-		elif n == 3 and not multi_event: 
+		elif n == 3 and not multi_event:
 			best = calc_all_c_3(best, r, rN, allTumor, allNormal, order)
 		else:
 			best = calc_all_c_3_multi_event(best, r, rN, allTumor, allNormal, order)
 
 		#lko 7-6-15 Fix multiple solutions to only return the solution with the overal min NLL
-		best = find_mins(best)	
+		best = find_mins(best)
 
 	#run BAF model on results to determine most likely solution
 	if runBAF and tumorfile is not None and normalfile is not None:
@@ -491,4 +481,3 @@ def main():
 import time
 if __name__ == '__main__':
 	main()
-
