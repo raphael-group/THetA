@@ -104,7 +104,7 @@ def plot_classifications(mus, sigmas, intervals, clusterAssignments, numClusters
 	ax.set_title(sampleName + " meta Clustering")
 	ax.set_xlim([0, 5])
 	ax.set_ylim([0, 0.5])
-	fig.savefig(os.path.join(outdir + sampleName + "_classifications.png"))
+	fig.savefig(os.path.join(outdir, sampleName + "_classifications.png"))
 
 def plot_clusters(intervals, clusterAssignments, numClusters, sampleName, amp_upper, stepSize, diploidRDR, clonalsingleCopyRDR, outdir):
 	print "Plotting clusters..."
@@ -129,7 +129,7 @@ def plot_clusters(intervals, clusterAssignments, numClusters, sampleName, amp_up
 		ax.plot([barX, barX], [0.0, 0.5], color='blue')
 	ax.set_ylim([0, 0.5])
 	ax.set_xlim([0, ((maxStep * stepSize) + diploidRDR)])
-	fig.savefig(os.path.join(outdir + sampleName + "_assignment.png"))
+	fig.savefig(os.path.join(outdir, sampleName + "_assignment.png"))
 
 def parse_preprocessed_data(filename):
 	sampleList = []
