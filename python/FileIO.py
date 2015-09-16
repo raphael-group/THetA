@@ -366,6 +366,7 @@ def read_interval_file(filename):
 	Args:
 		filename (string): full path to the input file
 	Returns:
+		lengths: lengths of intervals
 		tumor_counts: tumor read depth vector
 		norm_counts: normal read depth vector
 		m: number of intervals
@@ -780,3 +781,38 @@ def write_out_N3_script(directory, prefix, inputFile):
 		string = "python "+ argString.replace("-n 2", "").replace(inputFile, boundsFile) +" -n 3" + " --RESULTS " + resultsFile
 		f.write("#!/bin/bash\n")
 		f.write(string)
+
+
+def load_results(filename,tau=2):
+	"""
+	Loads in the results from a THetA2 results file.
+
+	Args:
+		filename (string): path to the THetA2 results file.
+
+	Returns:
+		results (list of tuples)
+			nll (float)- negative log likelihood of solution
+			C (int[][]) - the C matrix
+			mu (float[]) - the mu vector
+	"""
+
+	results = []
+
+	with open(filename) as f:
+		lines = f.readlines()
+	if lines[0].startswith("#"):
+		lines = lines[1:]
+	if len(lines) == 0:
+		sys.stderr.write("ERROR: The result file provided appears to be empty. Exiting...\n")
+		sys.exit(1)
+	else:
+		for l in lines:
+			soln = l.strip().split("\t")
+			mu = [float(i) for i in soln[1].split(",")]
+
+			#Leave as strings because of X in data
+			C = [[tau] + [i for i in r.split(",")] for r in soln[2].split(":")]
+			results.append((float(soln[0]),C, mu))
+
+	return results
