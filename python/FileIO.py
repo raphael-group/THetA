@@ -86,7 +86,7 @@ def parse_arguments(silent=False):
 			filename were example.input, output filed would be example.output and\
 			example.withbounds)", default=None, metavar="PRE", required=False)
 	parser.add_argument("-m","--MAX_NORMAL", help="The maximum fraction to consider\
-			for normal. Only enforced for n=2", default=.5, type=float,\
+			for normal. Only enforced for n=2", default=1.0, type=float,\
 			metavar="MAX_NORMAL", required=False)
 	parser.add_argument("--NUM_PROCESSES", help="The number of processes to be used",
 			default=1, type=int, metavar="NUM_PROCESSES", required=False)

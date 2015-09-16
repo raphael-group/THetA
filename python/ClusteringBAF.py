@@ -36,12 +36,13 @@ from math import sqrt, ceil, log
 from scipy.spatial.distance import euclidean
 from multiprocessing import Pool
 
-def clustering_BAF(intervals=None, missingData=None, filename=None, byChrm=True, generateData=True, prefix=None, outdir="./", numProcesses=1):
+def clustering_BAF(n, intervals=None, missingData=None, filename=None, byChrm=True, generateData=True, prefix=None, outdir="./", numProcesses=1):
 	"""
 	Performs clustering on interval data and analyzes clusters to determine copy
 	number bounds and which intervals belong to similar clusters.
 
 	Arguments:
+		n (int): The number of components to consider.
 		filename (string): Location of the input interval file.
 		byChrm (bool): Indicates if intra-chromosome interval clustering should be
 						performed before full genome clustering. True to do intra-chromosome
@@ -80,7 +81,7 @@ def clustering_BAF(intervals=None, missingData=None, filename=None, byChrm=True,
 
 	#setting bnpy outdir
 	#bnpyoutdir = outdir + prefix + "_cluster_data/"
-	bnpyoutdir = os.path.join(outdir,prefix+"_cluster_data/")
+	bnpyoutdir = os.path.join(outdir,prefix+"_"+str(n)+"_cluster_data/")
 	os.environ["BNPYOUTDIR"] = bnpyoutdir
 
 	if intervals is None and missingData is None:
@@ -103,10 +104,10 @@ def clustering_BAF(intervals=None, missingData=None, filename=None, byChrm=True,
 	lengths, tumorCounts, normalCounts, upper_bounds, lower_bounds, clusterAssignments, m = process_classifications(intervals, missingData, metaMu, clusterAssignments, numClusters, diploidInd, clonalsingleCopyParamInd, singleCopyParamInds, ampParamInds, sampleName, outdir)
 
 	#Layla 9-15-15 -- Commenting out this section fixes the crash problem...need to investigate further
-	#try:
-	#	rmtree(bnpyoutdir)
-	#except OSError:
-	#	print "WARNING: Was unable to remove bnpy output. This can be manually removed after THetA has completed. bnpy output has been stored in " + bnpyoutdir
+	try:
+		rmtree(bnpyoutdir)
+	except OSError:
+		print "WARNING: Was unable to remove bnpy output. This can be manually removed after THetA has completed. bnpy output has been stored in " + bnpyoutdir
 
 	return lengths, tumorCounts, normalCounts, m, upper_bounds, lower_bounds, clusterAssignments, numClusters, metaMu, diploidInd
 
