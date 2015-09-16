@@ -153,7 +153,7 @@ def generate_meta_data(intervals, byChrm, numProcesses, sampleName, generateData
 			plot_chromosome_clustering(generatedData, mus, sigmas, clusterAssignments, currAx)
 			metaData += metaDataRow
 
-		fig.savefig(outdir + sampleName + "_by_chromosome.png")
+		fig.savefig(os.path.join(outdir,sampleName + "_by_chromosome.png"))
 	else:
 		metaData = [row[5:7] for row in intervals]
 		if generateData:

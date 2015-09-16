@@ -20,13 +20,14 @@
  # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  # http://cs.brown.edu/people/braphael/software.html
- # 
+ #
  # @author Layla Oesper, Ahmad Mahmoody, Benjamin J. Raphael, Gryte Satas, and Alex Ashery
  ###
 
 from FileIO import *
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 def plot_chromosome_clustering(data, mus, sigmas, clusterAssignments, ax):
 	data = np.array(data)
@@ -103,7 +104,7 @@ def plot_classifications(mus, sigmas, intervals, clusterAssignments, numClusters
 	ax.set_title(sampleName + " meta Clustering")
 	ax.set_xlim([0, 5])
 	ax.set_ylim([0, 0.5])
-	fig.savefig(outdir + sampleName + "_classifications.png")
+	fig.savefig(os.path.join(outdir + sampleName + "_classifications.png"))
 
 def plot_clusters(intervals, clusterAssignments, numClusters, sampleName, amp_upper, stepSize, diploidRDR, clonalsingleCopyRDR, outdir):
 	print "Plotting clusters..."
@@ -128,7 +129,7 @@ def plot_clusters(intervals, clusterAssignments, numClusters, sampleName, amp_up
 		ax.plot([barX, barX], [0.0, 0.5], color='blue')
 	ax.set_ylim([0, 0.5])
 	ax.set_xlim([0, ((maxStep * stepSize) + diploidRDR)])
-	fig.savefig(outdir + sampleName + "_assignment.png")
+	fig.savefig(os.path.join(outdir + sampleName + "_assignment.png"))
 
 def parse_preprocessed_data(filename):
 	sampleList = []
@@ -193,7 +194,7 @@ def plot_two_largest_from_preprocessed(filename):
 		lengths = clusterLengths[i]
 		RDRs = clusterRDRs[i]
 		meanBAFs = clusterMeanBAFs[i]
-		
+
 		sortedlist = sorted(zip(lengths, RDRs, meanBAFs), key=lambda (a, b, c): a)
 		lengths, RDRs, meanBAFs = zip(*sortedlist)
 		lengths = list(lengths)[-2:]
@@ -242,7 +243,7 @@ def plot_BAF_by_chrm(intervalfile, resultsfile, clusterAssignments, outdir):
 		for row, deltaj in zip(intervals, delta):
 				row[6] = abs(row[6] - deltaj)
 
-		
+
 
 		cmap = plt.get_cmap('gist_rainbow')
 		colors = [cmap(i) for i in np.linspace(0, 1, max(clusterAssignments) + 1)]
