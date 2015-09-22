@@ -141,7 +141,7 @@ is tab delimited containing the following fields:
 
   There are two supported formats for these files.
 
-  Format 1: A tab delimited file with the following columns
+  Format 1: A tab (or comma) delimited file with the following columns
     (1) chromosome (Integer) - Chromosome on which a germline SNP may occur.
     (2) position (Integer) - Genomic coordinate of potential SNP position.
     (3) ref_allele - The number of reads aligning to the position with the reference allele.
@@ -149,7 +149,7 @@ is tab delimited containing the following fields:
 
   NOTE: The above file format may be either uncompressed or compressed as **.tar.gz
 
-  Format 2: A tab delimited file with the following columns.
+  Format 2: A tab (or comma) delimited file with the following columns.
     (1) Chrm (Integer)
     (2) pos (Integer)
     (3) A -  # reads with A at this position
@@ -204,100 +204,80 @@ is tab delimited containing the following fields:
 
 5) COMPLETE EXAMPLE ==========================================================
 
-	bin/RunTHetA example/PD4120a.intervals
+	bin/RunTHetA example/Example.intervals --TUMOR_FILE TUMOR_SNP.formatted.txt --NORMAL_FILE NORMAL_SNP.formatted.txt
 
 Runs THetA for the case of normal and one tumor subpopulation, as well as normal and two tumor
 subpopulations. By default, the algorithm uses a bound heuristic to set reasonable lower
 and upper bounds on the copy number considered for each interval. For this input,
 the program will take ~5 minutes to complete using a single process and will produce
-three files (or four if you have matlab installed):
+the following files:
 
 Results Files:
-File 1: PD4120a.n2.results
-containing a single solution with 34.5% normal and 65.4% tumor, output in the following format
+File 1: Example.n2.results
+containing a single solution with 7.1% normal and 92.8% tumor, output in the following format
 (only part of the output is written here as indicated by ...)
 
 #NLL    mu      C       p*
-12534652744.8   0.345525386958,0.654474613042	2:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:1:2:2:3:2:2:2:2:2:1:2:3:2:3:3: ...	4.97752475775e-06,1.75115814182e-05,0.000709237511777,0.000598878358733,0.00158303218873,0.0007845646391,4.17929289805e-05,0.000858662779858,0.00212827237416, ...
+5791889568.5    0.0712509462197,0.92874905378   2:2:2:2:2:2:1:1:2:3 ...	0.0377235085987,0.0376053764831,1.84957060675e-05,2.06683267202e-06,0.0376787007771, ...
 
-File 2: PD4120a.n3.results
-containing a single solution wih 31.6% normal and two tumor subpopulations at 55.8%
-and 12.4% each.
+File 2: Example.n3.results
+containing a single solution wih 33% normal and two tumor subpopulations at 33% each.
 
 #NLL    mu      C       p*
-12533388199.9   0.316798996672,0.558861427378,0.124339575949    2,3:1,2:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1:1,1: ...	 5.29201137218e-06,1.87738182607e-05,0.000694756604183,0.000586650717035,0.00155071051586,0.0007685457345,4.09396188657e-05,0.000841130971172,0.00208481822083,0.000502870137658,0.000445582453407,0.000489368296792,0.000298445523978, ...
+5837666256.9    0.333333333333,0.335286458333,0.331380208333    3,2:3,2:3,2:3,2:3, ...	 0.0375153868211,0.037397906444,1.83936646783e-05,2.05542989148e-06,0.0374708262057, ...
 
 ** Notice that only the tumor components of C are written.  It is assumed that the normal component contains all segments with the expected copy number. **
 
-File 3: PD4120a.BEST.results
+File 3: Example.BEST.results
 In this case, as indicated by command line output, the solution consisting of a normal
-and two tumor subpopulations is selected. PD4120a.BEST.results will contain a copy of
-PD4120a.n3.results
+and one tumor subpopulations is selected. Example.BEST.results will contain a copy of
+Example.n2.results
 
 Visualization Files:
 a pdf visualization of the results from THetA, similar to those seen in the original publication.
 
-File 1: example/PD4120a.n2.results.pdf
-File 2: example/PD4120a.n3.results.pdf
-File 3: example/PD4120a.BEST.results.pdf
+File 1: example/Example.n2.results.pdf
+File 2: example/Example.n3.results.pdf
+File 3: example/Example.BEST.results.pdf
 
 Bounds Files:
-File 1: example/PD4120a.n2.withBounds
+File 1: example/Example.n2.withBounds
 containing information about the individual upper and lower bounds for all intervals
 as set by the bounds heuristic.  Bounds set to a value of "X" indicate that the interval
 was not used in the initial estimate phase:
 
 #ID     chrm    start   end     tumorCount      normalCount     UpperBound      LowerBound
-start_1_10001:end_1_564400      1       10001   564400  13751   2267    X       X
-start_1_570001:end_1_804000     1       570001  804000  48047   11855   X       X
-start_1_804001:end_1_4124300    1       804001  4124300 1758468 480140  X       X
-start_1_4127501:end_1_6485000   1       4127501 6485000 1482531 405429  X       X
-start_1_6485001:end_1_13122900  1       6485001 13122900        4008088 1071682 X       X
-start_1_13165701:end_1_16891900 1       13165701        16891900        1972497 531135  X       X
-start_1_16918201:end_1_16975300 1       16918201        16975300        98443   28293   X       X
-start_1_16975301:end_1_20498000 1       16975301        20498000        2149097 581298  X       X
-start_1_20498001:end_1_29426500 1       20498001        29426500        5413316 1440799 2       0
+1       1       835242  187535959       61365864        28527633        X       X
+2       1       187537271       188339390       60007895        28438298        X       X
+3       1       188341697       191529098       30483   13987   X       X
+4       1       191556604       192084626       3484    1563    X       X
+5       1       192086582       249224583       61287382        28493748        X       X
+6       2       18506   92187351        61365864        28527633        2       2
+7       2       95326507        242985493       52840767        46767446        2       1
+8       3       60596   99860735        35052965        31135809        2       1
+9       3       99877091        129088134       20017262        9466440 2       2
 ...				...	...		...		...	...	...	...
 
-File 2: example/PD4120a.n3.withBounds
+File 2: example/Example.n3.withBounds
 
 #ID     chrm    start   end     tumorCount      normalCount     UpperBound      LowerBound
-start_1_10001:end_1_564400      1       10001   564400  13751   2267    X       X
-start_1_570001:end_1_804000     1       570001  804000  48047   11855   X       X
-start_1_804001:end_1_4124300    1       804001  4124300 1758468 480140  X       X
-start_1_4127501:end_1_6485000   1       4127501 6485000 1482531 405429  X       X
-start_1_6485001:end_1_13122900  1       6485001 13122900        4008088 1071682 X       X
-start_1_13165701:end_1_16891900 1       13165701        16891900        1972497 531135  X       X
-start_1_16918201:end_1_16975300 1       16918201        16975300        98443   28293   X       X
-start_1_16975301:end_1_20498000 1       16975301        20498000        2149097 581298  X       X
-start_1_20498001:end_1_29426500 1       20498001        29426500        5413316 1440799 X       X
-start_1_29426501:end_1_31589400 1       29426501        31589400        1280677 347529  X       X
-start_1_31590901:end_1_33465100 1       31590901        33465100        1162476 307938  X       X
-start_1_33465101:end_1_35371600 1       33465101        35371600        1246168 338198  X       X
-start_1_35371601:end_1_36569200 1       35371601        36569200        785215  206253  X       X
-start_1_36569201:end_1_51348300 1       36569201        51348300        9600613 2573086 2       1
+1       1       835242  187535959       61365864        28527633        X       X
+2       1       187537271       188339390       60007895        28438298        X       X
+3       1       188341697       191529098       30483   13987   X       X
+4       1       191556604       192084626       3484    1563    X       X
+5       1       192086582       249224583       61287382        28493748        X       X
+6       2       18506   92187351        61365864        28527633        2       2
+7       2       95326507        242985493       52840767        46767446        2       1
+8       3       60596   99860735        35052965        31135809        2       1
+9       3       99877091        129088134       20017262        9466440 2       2
 ...				...	...		...		...	...	...	...
 
-N = 3 Script:
-File 1: example/PD4120a.RunN3.bash
-a script that can be run to rerun analysis of n = 3 while considering a mixture of normal cells
-and two distinct tumor populations.
+Other files:
+Various other output files may be created during the execution of THetA2, but
+only those listed above are required for analysis of the output of the algorithm.
 
 NOTES:
-- example/ contains the example described above - created from real data:
-
- PD4120a.intervals:
-
-	a) tumor and normal read depths determined from BAM files described in:
-	Nik-Zainal, S. et al. (2012) The Life History of 21 Breast Cancers.
-	Cell, 149, 5:994-1007.
-
-	b) genomic intervals determined by
-		(1) running the algorithm (with default parameter lambda = 2) described in:
-		Xi, R. et al. (2011) Copy number variation detection in whole-genome
-		sequencing data using the Bayesian information criterion. PNAS, 108,
-		46:E1128-E1136.
-		(2) Removal of all intervals less than 50 Kb in length.
+- example/ contains the example described above.
 
 6) OPTIONAL PARAMETERS=========================================================
 
@@ -338,7 +318,7 @@ Basic Options: There are a variety of optional parameters that can be passed to 
 
 		Usage: bin/RunTHetA interval_count_file --MAX_NORMAL (-m) 0.5
 
-		Default: 0.5
+		Default: 1.0  (NOTE: this default value has changed from previous versions)
 
 -------------------------------------------------------------------------------
 (5) --TAU, -t (Integer) -- the expected copy in the normal genome
