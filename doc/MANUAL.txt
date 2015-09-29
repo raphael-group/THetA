@@ -69,8 +69,12 @@ Requirements to run:
 1. Python 2.7 or higher
 	a. numpy (tested with 1.6.2)
 	b. scipy (tested with 0.10.1)
-  c. joblib (tested with XXXX)
+  	c. joblib 
+	d. bnpy-dev (should be cloned from: https://bitbucket.org/michaelchughes/bnpy-dev)
+	   *NOTE: bnpy-dev needs to be added to the PYTHONPATH environment variable.
+
 2. *nix OS
+
 3. Java 1.6 (optional, for preprocessing script)
 
 

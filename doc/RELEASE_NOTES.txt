@@ -32,6 +32,8 @@ Beta_0.62 (October 2014) - (1) Added support for BAF model to distinguish betwee
 			       depth alone.  See THetA2 paper for details.
 
 ------------------------------------------------------------------------------
-Beta_0.7 (August 2015) - (1) Includes code for optional interval clustering
-						(2) BAF model for distinguishing equally likely solutions
-							has been rewritten in python
+Beta_0.7 (September 2015) - (1) Includes code for optional interval clustering
+			    (2) BAF model for distinguishing equally likely solutions
+				has been rewritten in python
+			    (3) Above changes significantly increase the speed of
+				the program in some instances.
