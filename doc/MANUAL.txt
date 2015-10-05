@@ -39,7 +39,7 @@ contact: layla@cs.brown.edu
 	 braphael@cs.brown.edu
 
 Beta Version: 0.7
-Version date: September, 2015
+Version date: October, 2015
 
 WEBSITE:
 http://compbio.cs.brown.edu/software/

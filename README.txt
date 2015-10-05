@@ -1,4 +1,4 @@
-Copyright 2012, 2013, 2014 Brown University, Providence, RI.
+Copyright 2012, 2013, 2014, 2015 Brown University, Providence, RI.
 
                          All Rights Reserved
 
@@ -36,8 +36,8 @@ heterogeneity from high-throughput DNA sequencing data.  Genome Biology.  14:R80
 contact: layla@cs.brown.edu
 	 braphael@cs.brown.edu
 
-Beta Version: 0.62
-Version data: October, 2014
+Beta Version: 0.7
+Version data: October, 2015
 
 WEBSITE:
 http://compbio.cs.brown.edu/software/
