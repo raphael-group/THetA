@@ -1,4 +1,4 @@
- ###
+ ##
  # 2013 Brown University, Providence, RI.
  #
  #                       All Rights Reserved
@@ -41,15 +41,15 @@ class Enumerator:
 		"""
 		self.m = m
 		self.n = n-1 #N-1 since the first column is fixed. We are only generating n-1 columns
-		self.k = k
 		self.tau = tau
 		self.iter = [0]*m
 		self.allow_multi_event = True
 		
 		self.lower_bound, self.upper_bound = self._check_bound_order(lower_bound,upper_bound)
+		self.k = max(self.upper_bound)
+		self.first = True
 
 		if n == 2:
-	
 			if self.lower_bound is None: self.lower_bound = [0]*m
 			if self.upper_bound is None: self.upper_bound = [k]*m
 			self.iter = self.lower_bound[:]	
@@ -117,6 +117,11 @@ class Enumerator:
 		# Using list self.iter, which is a copy of the n=1 column
 		# finds an index in the array where the value is less than
 		# the one immediately following, and adds one
+		if self.first:
+			self.first = False
+			return self._C_to_array()
+		
+
 		for i in range(self.m-1):
 			if self.iter[i] < self.iter[i+1] and self.iter[i] < self.upper_bound[i]:
 				self.iter[i] += 1
