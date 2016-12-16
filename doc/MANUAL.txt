@@ -106,8 +106,9 @@ The interval_count_file must contain one line per genomic interval.  Each line
 is tab delimited containing the following fields:
 
 	1. interval ID (String) - an identifier for the interval
-	2. chromosome number (Integer) - chromosome on which the interval
-	   occurs
+	2. chromosome number (String) - chromosome on which the interval
+	   occurs. Valid formats include (1, 2, ..., X, Y), (chr1, chr2, ..., X, Y), 
+       or (chrm1, chrm2, ..., X, Y)
 	3. interval start coordinate (Integer) - starting position for the
 	   interval
 	4. interval end coordinate (Integer) - ending position for the interval
