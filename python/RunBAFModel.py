@@ -42,7 +42,7 @@ from numpy import linspace
 from scipy.stats import norm, beta
 from multiprocessing import Pool
 
-def run_BAF_model(resultsFile, tumor=None, normal=None, tumorBAF=None, normalBAF=None, chrmsToUse=None, tumorSNP=None, normalSNP=None, intervalFile=None, prefix=None, directory="./", plotOption="best", model="gaussian", width=12.0, height=12.0, gamma=0.05, numProcesses=1):
+def run_BAF_model(resultsFile, tumor=None, normal=None, tumorBAF=None, normalBAF=None, chrmsToUse=None, intervals=None, tumorSNP=None, normalSNP=None, intervalFile=None, prefix=None, directory="./", plotOption="best", model="gaussian", width=12.0, height=12.0, gamma=0.05, numProcesses=1):
 	"""
 	Runs the BAF model on SNP and interval data.
 
