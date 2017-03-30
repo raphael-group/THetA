@@ -131,7 +131,8 @@ def run_BAF_model(resultsFile, tumor=None, normal=None, tumorBAF=None, normalBAF
 	results['BAF_NLL'] = NLLVec
 	write_out_NLL_result(directory, prefix, results)
 
-def plot_single_result(BAF, means, pos, chrm, NLL, chrmsToUse, numberResults, fig, colors, plotNum=0):
+def plot_single_result(BAF, means, pos, chrm, NLL, chrmsToUse, numberResults, fig, colors, plotNum=1):
+
 	"""
 	Creates a subplot from the BAF model calculations for one THetA output.
 
@@ -248,7 +249,7 @@ def plot_results(BAFVec, meansVec, posVec, chrmVec, NLLVec, chrmsToUse, plotOpti
 		for i in range(numberResults):
 			fig = plot_single_result(BAFVec[i], meansVec[i], posVec[i], 
 									 chrmVec[i], NLLVec[i], chrmsToUse,
-									 numberResults, fig, colors, plotNum=i)
+									 numberResults, fig, colors, plotNum=i+1)
 	elif plotOption == "best":
 		#determine the optimal result
 		currBestInd = 0
