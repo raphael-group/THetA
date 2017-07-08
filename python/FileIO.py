@@ -682,7 +682,7 @@ def write_out_NLL_result(directory, prefix, results, best=True):
     filename = prefix + ".results"
     BAFfilename = prefix + ".BAF.NLL.results"
     path = os.path.join(directory, filename)
-    BAFpath = os.path.join(directory, filename)
+    BAFpath = os.path.join(directory, BAFfilename)
 
     print "Writing results file to", path
 
