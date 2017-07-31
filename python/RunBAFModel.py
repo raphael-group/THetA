@@ -487,7 +487,7 @@ def normal_BAF_pdf(x, delta, sigma):
 
 	Returns:
 		mu (float): the mean of the distribution
-		p (float): the probability of seeing x in the distribution
+		p (float): the log-probability of seeing x in the distribution
 	"""
 	
 	#casting values as floats for safety
@@ -498,7 +498,7 @@ def normal_BAF_pdf(x, delta, sigma):
 	#sgn is used to calculate mu. See the THetA2 supplement for a full explanation.
 	sgn = lambda y: 1.0 if y >= 0 else -1.0
 	mu = 0.5 + (sgn(x - 0.5) * delta)
-	p = norm(mu, sigma).pdf(x)
+	p = norm(mu, sigma).logpdf(x)
 	return mu, p
 
 def get_gaussian_NLL(tumor, tumorBAF, normal, normalBAF, C, mu, pi, numProcesses):
@@ -538,8 +538,8 @@ def get_gaussian_NLL(tumor, tumorBAF, normal, normalBAF, C, mu, pi, numProcesses
 		#ignore snps whose intervals cannot be calculated, or have a 0 standard deviation
 		if j is None or sigma[j] is None or sigma[j] == 0: continue
 		else:
-			mean, likelihood = normal_BAF_pdf(tumorBAF[i], delta[j], sigma[j])
-			NLL -= log(likelihood)
+			mean, log_likelihood = normal_BAF_pdf(tumorBAF[i], delta[j], sigma[j])
+			NLL -= log_likelihood
 			means.append(mean)
 			posVec.append(pos)
 			chrmVec.append(chrm)
