@@ -45,7 +45,7 @@ L. Oesper, A. Mahmoody, B.J. Raphael. (2013)  THetA: Inferring intra-tumor
 heterogeneity from high-throughput DNA sequencing data.  Genome Biology.  14:R80.
 
 contact: layla@cs.brown.edu
-	 braphael@cs.brown.edu
+	 braphael@cs.princeton.edu
 
 Beta Version: 0.7
 Version data: October, 2015
@@ -53,6 +53,8 @@ Version data: October, 2015
 WEBSITE:
 http://compbio.cs.brown.edu/software/
 http://compbio.cs.brown.edu/projects/theta/
+
+UPDATE: If the user is interested in the inference of tumor purity, tumor ploidy, and allele- and clone-specific copy-number aberrations (CNAs), we reccommend the user to consider [HATCHet](https://github.com/raphael-group/hatchet), an new algorithm offerring several innovations and improvements over THetA.  
 
 
 SUMMARY========================================================================
