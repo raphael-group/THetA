@@ -54,7 +54,7 @@ WEBSITE:
 http://compbio.cs.brown.edu/software/
 http://compbio.cs.brown.edu/projects/theta/
 
-UPDATE: If the user is interested in the inference of tumor purity, tumor ploidy, and allele- and clone-specific copy-number aberrations (CNAs), we reccommend the user to consider [HATCHet](https://github.com/raphael-group/hatchet), an new algorithm offerring several innovations and improvements over THetA.  
+UPDATE: If the user is interested in the inference of tumor purity, tumor ploidy, and allele- and clone-specific copy-number aberrations (CNAs), we recommend the user to consider [HATCHet](https://github.com/raphael-group/hatchet), an new algorithm offering several innovations and improvements over THetA.  
 
 
 SUMMARY========================================================================
