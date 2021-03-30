@@ -38,41 +38,42 @@ import FileIO
 import numpy
 import sys
 import math
+import numpy as np
 from Optimizer import *
 
 def L2(mu, C, m, r):
-	vals = []
-	total_sum = 0
-	mu1 = 1-mu
-	valid_rows = [i for i in range(m) if C[i][0] != 0]
-	if mu == 0.0:
-		valid_rows = [i for i in range(m) if C[i][1] != 0]
-	denom = sum([C[j][0]*mu + C[j][1]*mu1 for j in valid_rows])
-	for i in range(m):
-		if i in valid_rows:
-			numer = C[i][0]*mu + C[i][1]*mu1
-			total_sum += r[i] * numpy.log(numer/denom)
-			vals.append(numer/denom)
-		else:
-			vals.append("X")
-	return (-total_sum, vals)
 
+        if m != C.shape[0]:
+            raise ValueError('m not equal to first dimension of C')
 
+        if mu:
+            valid_rows = C[:,0].astype(bool)
+        else:
+            valid_rows = C[:,1].astype(bool)
+
+        C[:, 0] = C[:, 0] * mu 
+        C[:, 1] = C[:, 1] * (1 - mu)
+        C_weightedsum = np.sum(C[:, :2], axis=1)
+        denom = C_weightedsum.dot(valid_rows)
+        vals_array = C_weightedsum / denom
+        total_sum = (np.log(vals_array) * valid_rows).dot(r)
+        vals = [i if j else 'X' for i, j in zip(vals_array, valid_rows)]
+        return (-total_sum, vals)
 
 def L3(mu, C, m, r, n):
-	total_sum = 0
-	vals = []
-	valid_rows = [i for i in range(m) if C[i][0] != 0]
 
-	denom = sum([C[h][j]*mu[j] for j in range(n) for h in valid_rows])
-	for i in range(m):
-		if i in valid_rows:
-			numer = sum([C[i][j]*mu[j] for j in range(n)])
-			total_sum += r[i] * numpy.log(numer/denom)
-			vals.append(numer/denom)
-		else:
-			vals.append("X")
-	return (-total_sum, vals)
+        if m != C.shape[0]:
+            raise ValueError('m not equal to first dimension of C')
+        if n != C.shape[1]:
+            raise ValueError('n not equal to second dimension of C')
+ 
+        valid_rows = C[:,0].astype(bool)
+        Cdotmu = np.dot(C, mu)
+        denom = Cdotmu.dot(valid_rows)
+        vals_array = Cdotmu / denom
+        total_sum = (np.log(vals_array) * valid_rows).dot(r)
+        vals = [i if j else 'X' for i, j in zip(vals_array, valid_rows)]
+        return (-total_sum, vals)
 
 def calculateX(tumorI, normalI, sumR, sumAll, mu, n, row, h):
 	# Calculate the (real) value for C[m][h] that minimizes the likelihood
