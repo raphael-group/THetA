@@ -1,3 +1,5 @@
+We noticed that Theta2 was taking a while to finish with some large inputs and concluded that a considerable speedup can be achieved by vectorizing the array operations in the L2 and L3 functions of the CalcAllC module. Those changes are implemented in this Kids First version of the software. 
+
 Copyright 2012, 2013, 2014, 2015, 2017 Brown University, Providence, RI.
 
                          All Rights Reserved
